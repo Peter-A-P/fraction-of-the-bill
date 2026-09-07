@@ -1,0 +1,48 @@
+# Private working notes, never committed
+CLAUDE.local.md
+
+# Secrets and tokens
+.env
+.env.*
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+# Data (loaders fetch and verify; nothing raw is committed)
+data/raw/
+data/edgar/
+data/xbrl/
+
+# Models, adapters, checkpoints, quantised weights (published to Hugging Face, never here)
+checkpoints/
+adapters/
+merged/
+quant/out/
+*.safetensors
+*.gguf
+*.bin
+
+# Runs and caches
+runs/
+mlruns/
+wandb/
+.cache/
+*.sqlite
+*.sqlite3
+bench/results/raw/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
