@@ -50,7 +50,7 @@ Pareto chart and the break-even curve come out of those tables.
 
 ## Part of a portfolio
 
-One of ten projects built over twelve months. Measured with the AI Release Gate; every
+One of fifteen projects built over twelve months. Measured with the AI Release Gate; every
 model call, frontier or self-hosted, goes through the Compliant AI Gateway; the filings
 dataset and the small extractor are reused by the Verified Filings Analyst.
 
