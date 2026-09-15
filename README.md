@@ -5,9 +5,13 @@ frontier API on a high-volume extraction task at a small fraction of the per-cal
 the exact volume at which the switch pays for itself. For a team spending five figures a
 month on API calls, this is the project that finds most of it.
 
-**Status: planning.** Nothing has run yet. The plan is in [PLAN.md](PLAN.md): a
-three-week build in April 2027 on rented GPUs, measured with the AI Release Gate on
-identical items.
+**Status: week 1 started 2026-09-14**, about seven months ahead of its April 2027 slot.
+Built and tested so far: the fifteen-field extraction schema, the programmatic grader with
+its named failure modes and paired bootstrap intervals, the SEC fair-access client, XBRL
+fact selection, and the company-level splits. **Nothing has been fetched, trained,
+quantised, served or spent.** The fetcher is deliberately gated on a declared contact
+address, as the SEC's access policy requires. The plan is in [PLAN.md](PLAN.md); the
+dataset design and the open questions are in [docs/data.md](docs/data.md).
 
 ## Result
 

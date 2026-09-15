@@ -1,6 +1,9 @@
 # Plan: Frontier Quality at a Fraction of the Bill
 
-**Written:** 2026-09-07. **Status:** plan only, nothing built.
+**Written:** 2026-09-07. **Revised:** 2026-09-14 (rev. 2, section 3).
+**Status:** week 1 started 2026-09-14, about seven months early. The schema, the grader, the
+EDGAR fair-access client, the XBRL fact selection and the splits are built and tested; nothing
+has been fetched, trained, quantised, served or spent.
 
 **Build:** three weeks, Apr 5 to Apr 25 2027, slack to Apr 30. **Package:** `smallprint`.
 **Fed by:** 03 (the gate runs the comparison and supplies intervals and the power function
@@ -136,6 +139,33 @@ period; split by filing date into train, validation, pre-cutoff test and post-cu
 with company-level separation so no filer appears in both train and test. Published on
 Hugging Face with a datasheet, checksums and the construction script. Nothing raw is
 committed.
+
+**Rev. 2, 2026-09-14, on building the splits.** The company-level rule above is made exact,
+and one part of it changed. Companies are partitioned into three *pools*, train, validation
+and test, and a company belongs to exactly one pool for ever. The cutoff then divides the
+test pool's own filings in time, so a test filer contributes to both the pre-cutoff and the
+post-cutoff set. That is deliberate and it is not a leak: neither set is trained on. Had
+the two test sets held different companies, the gap between their scores would have mixed
+contamination with whichever set happened to hold the easier filers, and the contamination
+gap is a headline number in its own right. Sharing the filers makes it a within-filer
+comparison. Two consequences follow. Training-pool filings dated after the cutoff are
+dropped rather than used, and the count is published, so that no reader has to take on
+trust that held-out-period filings were not the reason the score held up. And the leakage
+check, which runs on every build rather than only in the test suite, is stated over pools
+rather than over splits, because the two test splits are designed to share filers and a
+check stated over splits would fire on the correct arrangement. `docs/data.md` carries the
+reasoning; `smallprint/data/split.py` carries the rule.
+
+**Rev. 2, 2026-09-14, on where the non-numeric truth comes from.** The `companyfacts` API
+organises facts by unit, and three fields of the schema are not numeric: `auditor_name`,
+`state_of_incorporation` and `fiscal_period`. The expectation is that the API does not
+serve them and that they come instead from the Financial Statement Data Sets submission
+table and the Notes Data Sets text table, which moves those bulk sets from the cross-check
+role the table above gives them to a primary join. This is confirmed against the live API
+on the first fetch and recorded in `docs/data.md` before any filing is paired. `Fact.value`
+accepts a string for that reason. If the three fields prove unavailable at corpus scale
+they are dropped and the task becomes twelve fields, which is a change to `SCHEMA`, to
+`docs/data.md` and to this section in one commit.
 
 ## 4. Methods and architecture
 

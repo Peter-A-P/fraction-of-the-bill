@@ -1,0 +1,92 @@
+[project]
+name = "smallprint"
+version = "0.1.0.dev1"
+description = "Frontier quality at a fraction of the bill: fine-tuned, quantised small models measured against frontier APIs on structured extraction from SEC filings with XBRL truth."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+authors = [{ name = "Peter Parker" }]
+dependencies = [
+  # The EDGAR fair-access client. Pinned below 1.0 because the 0.x line still changes
+  # defaults (timeouts, redirects, HTTP/2) between minors, and a rate limiter built on top
+  # of its transport hooks is exactly the thing a default change breaks quietly.
+  "httpx>=0.28,<1",
+  # The extraction schema, the filing records and the split manifests are all pydantic
+  # models. 2.x is the current line; 3 would be a rewrite of the validation API.
+  "pydantic>=2,<3",
+  # Configuration and the datasheet front matter.
+  "pyyaml>=6,<7",
+  # Command line. 0.x is the only line typer has; pinned below 1.
+  "typer>=0.15,<1",
+  # Filing documents are HTML of a size and sloppiness that html.parser gives up on. lxml
+  # is the only parser that survives a 12 MB 10-K with unbalanced tables. 5.x is current
+  # and ships wheels for 3.13.
+  "lxml>=5,<6",
+  # Bootstrap intervals, paired deltas and the break-even curve arithmetic. 2.x is the
+  # current line and the one with the stable dtype rules this code relies on.
+  "numpy>=2,<3",
+]
+
+[project.optional-dependencies]
+# Training, quantisation and serving are not installed on the laptop. Each extra is
+# installed on the rented GPU that runs that stage, and nothing in the base package
+# imports from them, so `smallprint data build` and `smallprint report` work everywhere.
+train = [
+  # Pinned on the day the GPU is rented, because the versions that matter are the ones
+  # that agree with the CUDA build on the machine. Deliberately empty until then.
+]
+serve = []
+
+[dependency-groups]
+dev = [
+  # The EDGAR client's fair-access behaviour is tested against httpx's own MockTransport,
+  # not against sec.gov: a suite that hammers a public regulator to prove it is polite to
+  # that regulator has missed the point, and CI would run it on every push.
+  "pytest>=9,<10",
+  "mypy>=1,<2",
+  "ruff>=0.13,<1",
+  "types-PyYAML>=6,<7",
+  "lxml-stubs>=0.5,<1",
+]
+
+[project.scripts]
+smallprint = "smallprint.cli:main"
+
+[build-system]
+requires = ["hatchling>=1,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["smallprint"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# ruff formats Python blocks inside Markdown by default; the plan and docs keep their layout.
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "N", "RUF"]
+ignore = [
+  # Line length is handled by the formatter.
+  "E501",
+  # ContactNotDeclared and FairAccessViolation read as the conditions they describe, and
+  # both appear in the fair-access documentation by those names. An Error suffix would make
+  # the code say something slightly different from the document it implements.
+  "N818",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Typer declares a command's options as its argument defaults. That is the library's
+# interface rather than the mistake B008 usually catches, and working around it would put
+# the help text somewhere a reader of the command would not look for it.
+"smallprint/cli.py" = ["B008"]
+
+[tool.mypy]
+python_version = "3.13"
+files = ["smallprint", "tests"]
+strict = true
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
