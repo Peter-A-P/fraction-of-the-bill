@@ -2,8 +2,9 @@
 
 **Written:** 2026-09-07. **Revised:** 2026-09-14 (rev. 2, section 3).
 **Status:** week 1 started 2026-09-14, about seven months early. The schema, the grader, the
-EDGAR fair-access client, the XBRL fact selection and the splits are built and tested; nothing
-has been fetched, trained, quantised, served or spent.
+EDGAR fair-access client, the XBRL fact selection, the splits, the statement locator and the
+locatability filter are built and tested; nothing has been fetched, trained, quantised,
+served or spent.
 
 **Build:** three weeks, Apr 5 to Apr 25 2027, slack to Apr 30. **Package:** `smallprint`.
 **Fed by:** 03 (the gate runs the comparison and supplies intervals and the power function

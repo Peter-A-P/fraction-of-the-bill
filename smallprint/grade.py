@@ -137,7 +137,13 @@ class GradeContext(BaseModel):
     distractors: Mapping[str, tuple[float | str, ...]] = {}
 
 
-def _tolerance(spec: FieldSpec, truth: float, ctx: GradeContext) -> float:
+def tolerance(spec: FieldSpec, truth: float, ctx: GradeContext) -> float:
+    """How far a numeric reading may be from its truth and still be correct.
+
+    Public because the locatability filter in `pair.py` uses the same rule: a filing is kept
+    only if a reading the grader would accept is actually printed on the page. Two rules
+    would let a filing in whose label no correct reading of the page could reach.
+    """
     match spec.kind:
         case FieldKind.PER_SHARE:
             return PER_SHARE_TOLERANCE
@@ -245,12 +251,12 @@ def _grade_field(
             predicted_value = float(predicted)
             if not math.isfinite(predicted_value):
                 return rendered.model_copy(update={"reason": MissReason.MALFORMED})
-            tolerance = _tolerance(spec, truth_value, ctx)
-            if _numbers_agree(predicted_value, truth_value, tolerance):
+            allowed = tolerance(spec, truth_value, ctx)
+            if _numbers_agree(predicted_value, truth_value, allowed):
                 return rendered.model_copy(update={"correct": True})
-            if _matches_distractor(spec, predicted_value, ctx, tolerance):
+            if _matches_distractor(spec, predicted_value, ctx, allowed):
                 return rendered.model_copy(update={"reason": MissReason.WRONG_PERIOD})
-            reason = _classify_number(predicted_value, truth_value, tolerance)
+            reason = _classify_number(predicted_value, truth_value, allowed)
             return rendered.model_copy(update={"reason": reason})
 
 

@@ -16,6 +16,7 @@ import typer
 
 from smallprint import __version__
 from smallprint.data.edgar import CONTACT_ENV, ContactNotDeclared, EdgarClient, declared_contact
+from smallprint.data.statements import Statement, locate
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
 
 app = typer.Typer(
@@ -84,6 +85,33 @@ def cache(
             f"{record.fetched_at:%Y-%m-%d} {record.sha256[:12]} {record.bytes:>10,} {record.url}"
         )
     typer.echo(f"\n{len(records):,} documents, {total / 1e6:,.1f} MB.")
+
+
+def _describe(name: str, statement: Statement | None) -> str:
+    if statement is None:
+        return f"{name}: not found"
+    scale = f"{statement.scale:,.0f}" if statement.scale_declared else "not printed, assumed 1"
+    shares = "" if statement.share_scale is None else f", shares at {statement.share_scale:,.0f}"
+    return f"{name}: {len(statement.rows)} rows, scale {scale}{shares}"
+
+
+@data_app.command("locate")
+def locate_command(
+    document: Path = typer.Argument(..., exists=True, dir_okay=False, help="A filing document."),
+) -> None:
+    """Show what a model would be shown from one filing document, and the scales read from it.
+
+    Reads a local file only. This is the view the hand audit of pairs works from: whether the
+    right tables were taken and whether the scale under them was read correctly.
+    """
+    located = locate(document.read_bytes())
+    typer.echo(located.render())
+    typer.echo("")
+    typer.echo(_describe("income statement", located.income))
+    typer.echo(_describe("balance sheet", located.balance))
+    typer.echo(f"auditor block: {'found' if located.auditor else 'not found'}")
+    if located.income is None or located.balance is None:
+        raise typer.Exit(code=1)
 
 
 def main() -> None:

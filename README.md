@@ -7,7 +7,9 @@ month on API calls, this is the project that finds most of it.
 
 **Status: building, started 2026-09-14.** Built and tested so far: the fifteen-field extraction schema, the programmatic grader with
 its named failure modes and paired bootstrap intervals, the SEC fair-access client, XBRL
-fact selection, and the company-level splits. **Nothing has been fetched, trained,
+fact selection, the company-level splits, the statement locator that finds what the model
+is shown inside a filing, and the locatability filter that keeps a filing only when its
+labels are printed where they are read from. **Nothing has been fetched, trained,
 quantised, served or spent.** The fetcher is deliberately gated on a declared contact
 address, as the SEC's access policy requires. The plan is in [PLAN.md](PLAN.md); the
 dataset design and the open questions are in [docs/data.md](docs/data.md).

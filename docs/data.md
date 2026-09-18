@@ -7,7 +7,8 @@ than after it, so that the decisions can be argued with before thirty thousand d
 are pulled from a public regulator on the strength of them.
 
 **Status: built and tested against fixtures; nothing has been fetched.** The fetcher is
-gated on a declared contact address (see Fair access below). Written 2026-09-14.
+gated on a declared contact address (see Fair access below). Written 2026-09-14; the
+statement locator and the locatability filter added 2026-09-18.
 
 ## The task
 
@@ -125,12 +126,77 @@ trust that filings from the held-out period were not the reason the score held u
 kind of artefact that gets hand-edited once, late at night, to put back a few filings that
 were dropped, and that edit is what it refuses to let pass.
 
+## What the model is shown
+
+Not the filing. A 10-K is a few hundred pages; the model is shown four sections of it,
+found by [`smallprint/data/statements.py`](../smallprint/data/statements.py) and labelled
+in a fixed order: the cover page, the income statement, the balance sheet, and in an annual
+report the audit report's signature block. Each field of the schema names the section it is
+read from (`FieldSpec.section`).
+
+**Two things are removed before anything is read.** The inline XBRL header (`ix:header`) is
+a hidden block carrying the filing's own tagged facts, which include this task's cover-page
+labels; left in, it would put the answers in the question. Anything styled `display:none`
+goes for the same reason. A test plants a sentinel number in the hidden header and fails
+if it ever reaches the rendered text.
+
+**A table is taken as a statement by its lines, not only by its title.** Most tables in a
+10-K carry the same line items as the statements: the discussion section's highlights, the
+segment note, the quarterly table. The locator scores each table against the lines its
+statement carries (net income, per-share amounts, revenue, operating income, tax, weighted
+shares for the income statement; total assets, total liabilities, equity, cash, current
+totals, retained earnings for the balance sheet), with an anchor line it must have. A title
+in the heading adds weight. A table titled as a *different* statement is never taken, which
+is what keeps the cash flow statement out of both. A balance sheet broken across a page is
+read on to its second table. Ties go to the earliest table, and that is the choice the hand
+audit is most likely to catch wrong.
+
+**The scale is read from the statement's heading**, "(in thousands, except per share data)"
+and its variants, because the grader needs it as its precision floor. Shares have their own
+scale: "except share and per share data" means share counts are printed whole, and "number
+of shares, which are reflected in thousands" means they are not. A statement with no printed
+scale is assumed to be in whole units, and one where that is wrong fails the filter below
+rather than being labelled a thousand times too small.
+
+`smallprint data locate FILE` prints exactly what a model would be shown from one local
+filing document, with the scales read. The hand audit works from that view.
+
+## The locatability filter
+
+A filing becomes an item only when every fact it is labelled with can be found in the text
+it is shown, so the task is extraction rather than inference
+([`smallprint/data/pair.py`](../smallprint/data/pair.py)). "Found" is exact:
+
+| Field kind | Found when |
+|---|---|
+| Money, shares, per share | A number printed in the field's own section, times that section's scale, is within the grader's tolerance of the fact. The grader and the filter share one function, so a filing is kept only if a reading the grader would accept is on the page |
+| Period end | The date is printed on the cover page, in any of its usual spellings |
+| Auditor | The name appears in the signature block after the grader's normalisation (case, punctuation, "and" for "&", legal suffix) |
+| State of incorporation | The code or, for US states and territories, the name is printed on the cover page |
+| Fiscal period | Not searched. It is never printed as "Q3"; it is read from which columns the income statement carries. That is still reading the page, but no string search can confirm it |
+
+The field's own section matters. A revenue figure found in the balance sheet, or a cash
+figure found only in the discussion section's highlights table, is a coincidence and not a
+location, and tests assert that both are dropped. Sign is not required to match: reading a
+loss out of its parentheses is the model's job.
+
+Every drop has a named reason, and the tally goes in the datasheet: no income statement, no
+balance sheet, mixed scales between the two statements, no cover-period facts, a required
+fact missing, or a named field not locatable. A filter whose losses are not published could
+be removing exactly the hard cases without anyone knowing.
+
+**Known weaknesses, to be measured on the first fetch rather than guessed at.** Any printed
+number counts as a location for a field in its section, including a year in a column
+heading, so a coincidental match is possible; the tolerance makes it rare and the hand
+audit is the check. Filers incorporated outside the US whose cover page spells out a
+country rather than printing the EDGAR code are dropped for their state field; the tally
+says how many. And the rule that the two statements must declare the same scale drops a
+small class of filings that could in principle be kept.
+
 ## Still to build
 
-- The statement locator: finding the primary statements inside a filing document and
-  recording the reporting scale printed above them, which the grader needs as its precision
-  floor.
-- The locatability filter: keeping a filing only when every numeric fact is findable in the
-  text after unit scaling, so the task is extraction rather than inference.
-- The datasheet, the checksums and the Hugging Face publication.
+- The corpus driver: selecting filings from the quarterly indexes, fetching them through the
+  fair-access client, and running pairing and the splits over the lot.
+- The answer to the open question above, from the first live fetch.
+- The datasheet with the drop tally, the checksums and the Hugging Face publication.
 - A hand audit of 200 pairs before any training starts.

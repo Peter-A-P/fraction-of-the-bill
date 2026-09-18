@@ -37,6 +37,22 @@ class FieldKind(StrEnum):
     CATEGORICAL = "categorical"
 
 
+class Section(StrEnum):
+    """Where on the filing a field's value is printed.
+
+    The locatability filter searches for a value only in the section its field belongs to.
+    Searching the whole document would find almost any number somewhere, usually in a note
+    or in the prior-year column of a different statement, and would keep filings whose
+    label is not actually on the page the field is read from.
+    """
+
+    COVER = "cover"
+    INCOME = "income"
+    BALANCE = "balance"
+    #: The signature block of the audit report, in an annual report only.
+    AUDITOR = "auditor"
+
+
 #: Relative tolerance for scaled numeric fields. A statement printed in thousands has
 #: already thrown away everything below the thousand, so the largest honest disagreement
 #: between a correct reading and the filed fact is half of the reporting unit; the relative
@@ -59,6 +75,7 @@ class FieldSpec(BaseModel):
 
     name: str
     kind: FieldKind
+    section: Section
     #: Shown to the model in the prompt. It is the whole of the task specification for this
     #: field, so it says what to do when the statement offers more than one candidate.
     description: str
@@ -77,6 +94,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="period_end",
         kind=FieldKind.DATE,
+        section=Section.COVER,
         description=(
             "The last day of the period this report covers, as YYYY-MM-DD. Not the filing "
             "date and not the end of the prior-year comparative period."
@@ -86,6 +104,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="fiscal_period",
         kind=FieldKind.CATEGORICAL,
+        section=Section.COVER,
         description=(
             "The fiscal period this report covers: FY for an annual report, or Q1, Q2 or Q3 "
             "for a quarterly one."
@@ -96,6 +115,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="revenue",
         kind=FieldKind.MONETARY,
+        section=Section.INCOME,
         description=(
             "Total revenue for the period, in whole units of the reporting currency. The top "
             "line of the income statement, for the current period only."
@@ -110,6 +130,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="cost_of_revenue",
         kind=FieldKind.MONETARY,
+        section=Section.INCOME,
         description=(
             "Cost of revenue or cost of goods sold for the period, in whole units of the "
             "reporting currency, as a positive number."
@@ -124,6 +145,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="operating_income",
         kind=FieldKind.MONETARY,
+        section=Section.INCOME,
         description=(
             "Operating income or loss for the period, in whole units of the reporting "
             "currency. Negative if a loss."
@@ -134,6 +156,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="net_income",
         kind=FieldKind.MONETARY,
+        section=Section.INCOME,
         description=(
             "Net income or loss attributable to the company for the period, in whole units "
             "of the reporting currency. Negative if a loss."
@@ -143,6 +166,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="eps_basic",
         kind=FieldKind.PER_SHARE,
+        section=Section.INCOME,
         description="Basic earnings per share for the period, in currency units per share.",
         concepts=("us-gaap:EarningsPerShareBasic",),
         optional=True,
@@ -150,6 +174,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="eps_diluted",
         kind=FieldKind.PER_SHARE,
+        section=Section.INCOME,
         description="Diluted earnings per share for the period, in currency units per share.",
         concepts=("us-gaap:EarningsPerShareDiluted",),
         optional=True,
@@ -157,6 +182,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="shares_diluted",
         kind=FieldKind.SHARE_COUNT,
+        section=Section.INCOME,
         description=(
             "Weighted average diluted shares outstanding for the period, as a whole number "
             "of shares rather than in thousands or millions."
@@ -170,6 +196,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="total_assets",
         kind=FieldKind.MONETARY,
+        section=Section.BALANCE,
         description=(
             "Total assets at the period end, in whole units of the reporting currency. The "
             "current balance sheet column, not the comparative one."
@@ -179,6 +206,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="total_liabilities",
         kind=FieldKind.MONETARY,
+        section=Section.BALANCE,
         description=(
             "Total liabilities at the period end, in whole units of the reporting currency. "
             "Not total liabilities and equity."
@@ -189,6 +217,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="cash_and_equivalents",
         kind=FieldKind.MONETARY,
+        section=Section.BALANCE,
         description=(
             "Cash and cash equivalents at the period end, in whole units of the reporting "
             "currency, excluding short-term investments held on a separate line."
@@ -201,6 +230,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="stockholders_equity",
         kind=FieldKind.MONETARY,
+        section=Section.BALANCE,
         description=(
             "Total stockholders equity attributable to the company at the period end, in "
             "whole units of the reporting currency. Negative if a deficit."
@@ -213,6 +243,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="auditor_name",
         kind=FieldKind.CATEGORICAL,
+        section=Section.AUDITOR,
         description=(
             "The name of the independent registered public accounting firm that signed the "
             "audit report, as printed. Null in a quarterly report, which is reviewed rather "
@@ -224,6 +255,7 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
     FieldSpec(
         name="state_of_incorporation",
         kind=FieldKind.CATEGORICAL,
+        section=Section.COVER,
         description=(
             "The two-letter code of the state or country of incorporation from the cover "
             "page, for example DE or NY."

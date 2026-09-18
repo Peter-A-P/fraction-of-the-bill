@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from filings import document
 from typer.testing import CliRunner
 
 from smallprint import __version__
@@ -71,6 +72,23 @@ def test_the_cache_command_lists_what_was_fetched_with_its_digest(
     assert result.exit_code == 0
     assert "https://www.sec.gov/one" in result.output
     assert "1 documents" in result.output
+
+
+def test_locate_shows_the_input_and_the_scales_it_read(tmp_path: Path) -> None:
+    path = tmp_path / "filing.htm"
+    path.write_bytes(document())
+    result = runner.invoke(app, ["data", "locate", str(path)])
+    assert result.exit_code == 0
+    assert "[INCOME STATEMENT]" in result.output
+    assert "income statement: 10 rows, scale 1,000" in result.output
+
+
+def test_locate_fails_when_a_statement_is_not_found(tmp_path: Path) -> None:
+    path = tmp_path / "empty.htm"
+    path.write_bytes(b"<html><body><p>Nothing here.</p></body></html>")
+    result = runner.invoke(app, ["data", "locate", str(path)])
+    assert result.exit_code == 1
+    assert "income statement: not found" in result.output
 
 
 def test_no_command_promises_work_that_does_not_exist() -> None:
