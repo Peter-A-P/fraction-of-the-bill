@@ -5,8 +5,7 @@ frontier API on a high-volume extraction task at a small fraction of the per-cal
 the exact volume at which the switch pays for itself. For a team spending five figures a
 month on API calls, this is the project that finds most of it.
 
-**Status: week 1 started 2026-09-14**, about seven months ahead of its April 2027 slot.
-Built and tested so far: the fifteen-field extraction schema, the programmatic grader with
+**Status: building, started 2026-09-14.** Built and tested so far: the fifteen-field extraction schema, the programmatic grader with
 its named failure modes and paired bootstrap intervals, the SEC fair-access client, XBRL
 fact selection, and the company-level splits. **Nothing has been fetched, trained,
 quantised, served or spent.** The fetcher is deliberately gated on a declared contact
@@ -54,7 +53,7 @@ Pareto chart and the break-even curve come out of those tables.
 
 ## Part of a portfolio
 
-One of fifteen projects built over twelve months. Measured with the AI Release Gate; every
+One of fifteen projects. Measured with the AI Release Gate; every
 model call, frontier or self-hosted, goes through the Compliant AI Gateway; the filings
 dataset and the small extractor are reused by the Verified Filings Analyst.
 
