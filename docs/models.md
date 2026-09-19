@@ -1,7 +1,8 @@
 # Base models, their licences and their cutoffs
 
-**One base chosen, 2026-09-19: Gemma 4 E4B.** The other two sizes are open. Nothing may
-be fine-tuned until each size it uses is recorded here in full.
+**Chosen, 2026-09-19: Gemma 4 E2B, Gemma 4 E4B and OLMo 3 7B.** The split's cutoff is
+**2025-01-31**, the latest of the three. Nothing may be fine-tuned until the revision and
+digest of the weights it uses are recorded here.
 
 A gate, not a placeholder. Three things have to be recorded here before a training run
 starts, and two of them decide whether the project's headline number means anything.
@@ -32,15 +33,30 @@ is after every base model's cutoff and all three sizes are measured on identical
 
 ## Chosen
 
-| | Gemma 4 E4B |
-|---|---|
-| Checkpoint | [`google/gemma-4-E4B`](https://huggingface.co/google/gemma-4-E4B), the pre-trained base; `google/gemma-4-E4B-it` for the untuned instruction baseline |
-| Parameters | 4.5B effective, 8B with per-layer embeddings (the second figure is what serving memory pays for) |
-| Licence | Apache 2.0, no gating, read 2026-09-19 from the model card and the Hugging Face page |
-| Documented cutoff | "a cutoff date of January 2025" ([model card](https://ai.google.dev/gemma/docs/core/model_card_4)). Month only, so the split uses **2025-01-31** |
-| Context | 128k |
-| Reasoning | Opt-in: "Thinking is enabled by including the `<\|think\|>` token at the start of the system prompt." The fine-tune trains the base checkpoint to emit the JSON directly, with no thinking tokens, so they cost no latency and no money. The untuned `-it` baseline is measured with thinking off and on, which says what reasoning buys on this task before any fine-tuning |
-| Revision and digest | Recorded when the weights are downloaded for the first run |
+| | Small: Gemma 4 E2B | Middle: Gemma 4 E4B | Large: OLMo 3 7B |
+|---|---|---|---|
+| Base checkpoint | [`google/gemma-4-E2B`](https://huggingface.co/google/gemma-4-E2B) | [`google/gemma-4-E4B`](https://huggingface.co/google/gemma-4-E4B) | [`allenai/Olmo-3-1025-7B`](https://huggingface.co/allenai/Olmo-3-1025-7B) |
+| Untuned baseline | `google/gemma-4-E2B-it` | `google/gemma-4-E4B-it` | `allenai/Olmo-3-7B-Instruct` |
+| Parameters | 2.3B effective, 5.1B with per-layer embeddings | 4.5B effective, 8B with per-layer embeddings | 7B |
+| Licence | Apache 2.0, ungated | Apache 2.0, ungated | Apache 2.0 |
+| Documented cutoff | "a cutoff date of January 2025" ([card](https://ai.google.dev/gemma/docs/core/model_card_4)) | same | "Date cutoff: Dec 2024" ([card](https://huggingface.co/allenai/Olmo-3-1025-7B)) |
+| Context | 128k | 128k | 65k |
+| Reasoning | Opt-in by a `<\|think\|>` token in the system prompt | same | The base has none; a separate Think variant exists and is not used |
+| Training data | Not released | Not released | **Released (Dolma 3)**, so contamination can be checked against the corpus directly |
+| Revision and digest | Recorded at first download | Recorded at first download | Recorded at first download |
+
+Licences and cutoffs were read from the model cards and Hugging Face pages on 2026-09-19.
+Month-only cutoffs take the month's last day, so the split uses 2025-01-31, after all three.
+
+**Reasoning.** The fine-tunes train the base checkpoints to emit the JSON directly, with no
+thinking tokens, so reasoning costs no latency and no money. The untuned Gemma baselines are
+measured with thinking off and on, which says what reasoning buys on this task before any
+fine-tuning.
+
+**What mixing families costs.** The three sizes are not one family, so the size axis of the
+curve mixes architecture with scale, and the per-layer embeddings make Gemma's "effective"
+size smaller than what serving memory pays for. The cards and the Pareto chart state both
+counts. No single family with a documented cutoff offered all three sizes on 2026-09-19.
 
 ## Shortlist, 2026-09-19
 

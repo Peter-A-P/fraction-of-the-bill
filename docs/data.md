@@ -360,9 +360,26 @@ about 5 GB rather than 70. Each body's digest is still of the bytes EDGAR served
 `smallprint data compact-cache` converts a cache written before this, checking every body
 against its digest first.
 
+## The datasheet and the hand audit
+
+`smallprint data datasheet` writes `DATASHEET.md` and `SHA256SUMS` into a build directory
+from the build's own report and items: composition, splits, label coverage per field, every
+drop reason with its count, what the corpus underrepresents on purpose, and the exact
+rebuild command. The licence line is a gate, filled in before publication rather than
+guessed. `smallprint data verify` checks a build against its checksums.
+
+`smallprint data audit-sample` draws the 200-item hand audit by a keyed hash, spread across
+every split and form so a fault confined to one of them is not missed, and writes one page
+per item (the labels beside the input exactly as the model sees it) and a verdict sheet.
+`smallprint data audit-report` reads the sheet back and reports the share of items with any
+wrong label, with a 95% Wilson interval: with no errors in 200 the upper bound is still
+1.9%, and that bound is the ceiling on how far any score measured on this corpus can be
+trusted.
+
 ## Still to build
 
-- The full corpus, split at **2025-01-31** (Gemma 4 E4B's documented cutoff).
+- The full corpus, split at **2025-01-31**, the latest documented cutoff of the three bases.
+- The hand audit itself, which needs a person.
 - The datasheet, checksums and Hugging Face publication, and the hand audit of 200 pairs.
 - The base-model cutoff, from `docs/models.md`, which the full build needs.
 - The datasheet with the drop tally, the checksums and the Hugging Face publication.

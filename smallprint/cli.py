@@ -18,7 +18,9 @@ import typer
 from smallprint import __version__
 from smallprint.bench.breakeven import BreakEvenInputs, curve
 from smallprint.bench.cost import GpuPrice, PriceKind
+from smallprint.data import audit as hand_audit
 from smallprint.data.build import build, write_build
+from smallprint.data.datasheet import read_items, verify, write_datasheet
 from smallprint.data.edgar import CONTACT_ENV, ContactNotDeclared, EdgarClient, declared_contact
 from smallprint.data.statements import Statement, locate
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
@@ -102,6 +104,52 @@ def compact_cache(
     with EdgarClient(cache_dir, offline=True) as edgar:
         count, saved = edgar.compact()
     typer.echo(f"Compressed {count:,} documents, saving {saved / 1e9:,.2f} GB.")
+
+
+@data_app.command("datasheet")
+def datasheet_command(
+    build_dir: Path = typer.Option(Path("data/build"), help="A build written by data build."),
+) -> None:
+    """Write DATASHEET.md and SHA256SUMS for a build, from the build's own outputs."""
+    sheet, sums = write_datasheet(build_dir)
+    typer.echo(f"Wrote {sheet} and {sums}.")
+
+
+@data_app.command("verify")
+def verify_command(
+    build_dir: Path = typer.Option(Path("data/build"), help="A build with a SHA256SUMS file."),
+) -> None:
+    """Check a build's files against its SHA256SUMS."""
+    changed = verify(build_dir)
+    if changed:
+        typer.echo(f"Changed since the checksums were written: {', '.join(changed)}")
+        raise typer.Exit(code=1)
+    typer.echo("Every file matches its checksum.")
+
+
+@data_app.command("audit-sample")
+def audit_sample(
+    build_dir: Path = typer.Option(Path("data/build"), help="A build written by data build."),
+    out: Path = typer.Option(Path("data/audit"), help="Where the pages and the sheet go."),
+    n: int = typer.Option(200, help="How many items to audit."),
+    seed: int = typer.Option(20260919, help="Seed for the sample."),
+) -> None:
+    """Draw the hand-audit sample: one page per item and a verdict sheet to fill in."""
+    chosen = hand_audit.sample(read_items(build_dir), n, seed=seed)
+    sheet = hand_audit.write_audit(out, chosen)
+    typer.echo(f"{len(chosen)} items. Pages in {out / 'items'}; verdicts go in {sheet}.")
+
+
+@data_app.command("audit-report")
+def audit_report(
+    sheet: Path = typer.Option(Path("data/audit/audit.csv"), help="The filled verdict sheet."),
+) -> None:
+    """The label error rate from the hand audit so far, with its 95% interval."""
+    result = hand_audit.report(sheet)
+    typer.echo(f"Audited {result.audited}, pending {result.pending}.")
+    typer.echo(f"Items with a wrong label: {result.items_wrong}")
+    for field, count in result.wrong_by_field.items():
+        typer.echo(f"  {field}: {count}")
 
 
 def _describe(name: str, statement: Statement | None) -> str:

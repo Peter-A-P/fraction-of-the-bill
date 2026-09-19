@@ -23,6 +23,7 @@ data/raw/
 data/edgar/
 data/xbrl/
 data/build/
+data/audit/
 
 # Models, adapters, checkpoints, quantised weights (published to Hugging Face, never here)
 checkpoints/

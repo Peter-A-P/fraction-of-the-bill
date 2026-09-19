@@ -198,8 +198,10 @@ counts it. Third, the first base: Gemma 4 E4B (Apache 2.0, pre-trained checkpoin
 published, documented cutoff January 2025), so the split's cutoff is 2025-01-31 and the
 post-cutoff test set is every test-pool filing from February 2025 on. Its reasoning mode
 is opt-in by a system-prompt token; the fine-tune trains the base checkpoint to emit the
-JSON directly, and the untuned baseline is measured with thinking off and on. The other
-two sizes are in `docs/models.md`.
+JSON directly, and the untuned baseline is measured with thinking off and on. Three sizes
+are kept, as section 1 requires: Gemma 4 E2B, Gemma 4 E4B and OLMo 3 7B, all Apache 2.0
+with documented cutoffs, recorded in `docs/models.md`. OLMo's released training data makes
+the contamination gap checkable directly on the large size.
 
 ## 4. Methods and architecture
 
