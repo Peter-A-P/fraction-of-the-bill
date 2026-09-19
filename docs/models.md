@@ -1,6 +1,7 @@
 # Base models, their licences and their cutoffs
 
-**Not yet chosen. Nothing may be fine-tuned until this is filled in.**
+**Not yet chosen. Nothing may be fine-tuned until this is filled in.** A shortlist, with
+what it implies for the cutoff, is below (2026-09-19).
 
 A gate, not a placeholder. Three things have to be recorded here before a training run
 starts, and two of them decide whether the project's headline number means anything.
@@ -28,6 +29,36 @@ against.
 
 Where the three cutoffs differ, the split uses the latest of them, so that one held-out set
 is after every base model's cutoff and all three sizes are measured on identical items.
+
+## Shortlist, 2026-09-19
+
+**A shortlist, not the decision.** The plan chooses in April 2027 from the families current
+then, and every licence and cutoff below is re-read from its model card on the day of the
+choice. It is written now because the cutoff decides the corpus, and the shape of the
+answer is already visible: the constraint that bites is not quality or licence, it is
+whether the training cutoff is documented at all.
+
+| Family | Sizes near 1.5B, 4B, 8B | Licence | Documented cutoff | Notes |
+|---|---|---|---|---|
+| [OLMo 3](https://huggingface.co/allenai/Olmo-3-1025-7B) (Ai2) | 7B (and 32B) | Apache 2.0 | "Date cutoff: Dec 2024" | **Training data is released (Dolma 3).** Contamination can be checked against the corpus directly rather than inferred from a date, which no other family allows. No small size in this generation. Base checkpoints published. 65k context |
+| [Gemma 4](https://ai.google.dev/gemma/docs/core/model_card_4) (Google) | E2B, E4B (then 12B) | Apache 2.0, no separate Google terms | "cutoff date of January 2025" | Month only, so the split takes 2025-01-31. "E" sizes are effective parameters; the weights on disk are larger, which matters for serving memory and is read from the card on the day. 128k context |
+| [Qwen3.5](https://huggingface.co/Qwen/Qwen3.5-4B) (Alibaba) | 0.8B, 2B, 4B, 9B | Apache 2.0 | **Not stated on the model card** | The natural single family for three sizes, with base checkpoints. Hybrid Gated DeltaNet and sparse MoE, with a vision encoder. Unusable for the headline as things stand, by the rule above, unless a cutoff is documented by the day |
+| [Granite 4.1](https://huggingface.co/ibm-granite/granite-4.1-8b) (IBM) | 3B, 8B | Apache 2.0 | **Not stated on the model card** | Dense, released 2026-04-29, 128k context. Same problem |
+| Ministral 3 (Mistral) | 3B, 8B | Apache 2.0 | Not checked yet | To read on the day |
+
+Sources read 2026-09-19: the model cards linked above, and a
+[survey of 2026 small models](https://www.bentoml.com/blog/the-best-open-source-small-language-models)
+for the list of families to check.
+
+**What this points to, if the choice were made today.** A mixed trio with documented
+cutoffs: Gemma 4 E2B and E4B for the two small sizes and OLMo 3 7B for the large one. All
+three are Apache 2.0 and publish base checkpoints. The latest cutoff is January 2025, so
+the post-cutoff test set is every test-pool filing from February 2025 on, which is most of
+2025 and 2026 rather than one quarter of 2027, and the contamination gap can be
+cross-checked on the OLMo size against its released training data. The cost is that the
+three sizes are not one family, so the size axis of the curve mixes architecture with
+scale; the card for each size says so. If Qwen or Granite document their cutoffs by the
+day, a single-family trio becomes possible and is preferable for that reason.
 
 ## Model cards
 

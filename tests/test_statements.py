@@ -357,3 +357,19 @@ def test_a_sentence_introducing_a_table_is_not_its_title() -> None:
     assert locate_statement(Section.INCOME, items) is not None
     statement = locate_statement(Section.INCOME, items)
     assert statement is not None and statement.heading == ()
+
+
+def test_html_comments_are_never_read_but_the_text_after_them_is() -> None:
+    """One filing agent's comments reached the cover page on the 300-company build, and
+    anything a filer leaves in a comment would have reached the model's input."""
+    doc = (
+        b"<html><body><!-- Field: Set; Name: xdx; ID: xdx_021 -->"
+        b"<p>Table of Contents</p><p>FORM 10-Q</p>"
+        b"<p>For the quarterly period ended <!-- a note -->January 31, 2025</p>"
+        b"</body></html>"
+    )
+    rendered = " ".join(b.render() for b in blocks(doc))
+    assert "Field: Set" not in rendered
+    assert "a note" not in rendered
+    assert "For the quarterly period ended January 31, 2025" in rendered
+    assert "January 31, 2025" in locate(doc).cover

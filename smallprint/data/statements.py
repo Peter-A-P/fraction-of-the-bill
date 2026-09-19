@@ -274,6 +274,12 @@ def _tag(element: HtmlElement) -> str:
 
 
 def _hidden(element: HtmlElement) -> bool:
+    # Comments and processing instructions are nodes whose tag is not a string. Their
+    # content is never shown; the text after them, their tail, belongs to the parent and is
+    # still read. On the 300-company build one filing agent's comments ("Field: Set; Name:
+    # xdx; ...") were read as text and pushed the cover page past its real start.
+    if not isinstance(element.tag, str):
+        return True
     if _tag(element) in _INVISIBLE_TAGS:
         return True
     style = element.get("style")

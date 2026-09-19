@@ -326,19 +326,24 @@ named for the filer that exposed it:
 | Insulet and Linde print the share scale in the share row's label ("(in thousands):", "(000's)"), not in the heading | The label's scale overrides the heading's |
 | A discussion-section table introduced by "The following table sets forth ... our Consolidated Statements of Income as a percentage of net sales:" counted that sentence as its title | A sentence introducing a table ends its heading |
 
-Rebuilt offline with every fix and the bank exclusion: **737 kept of 1,456, or 737 of the
-1,373 filings not excluded as banks (54%).**
+A sixth fault came from the 40 cover-page misses: **HTML comments were read as text.** One
+filing agent's software writes comments ("Field: Set; Name: xdx; ...") at the top of every
+document, and they pushed the cover page past its real start. Anything a filer left in a
+comment could have reached the model's input the same way. Comments and processing
+instructions are now never read; the text after them still is.
+
+Rebuilt offline with every fix and the bank exclusion: **775 kept of 1,456, or 775 of the
+1,373 filings not excluded as banks (56%).**
 
 | Reason | Filings | What they are |
 |---|---:|---|
 | `truth_missing:revenue` | 225 | Pre-revenue companies, shells, SPACs and other revenue concepts |
-| `no_income_statement` | 103 | Funds, trusts, BDCs; not yet examined at this scale |
+| `no_income_statement` | 103 | Investment vehicles: 56 with no industry code (BDCs and closed-end funds), 32 commodity and crypto trusts, 3 SPACs, 3 asset-backed trusts, 8 others |
 | `bank` | 83 | Excluded by decision |
 | `unlocatable:shares_diluted` | 62 | 46 print weighted shares only in a note, not on the statement. Dropped by the plan's rule; see below |
 | `not_fetched` | 59 | |
-| `unlocatable:period_end` | 40 | Not yet examined |
 | `unlocatable:revenue` | 36 | About 20 print no scale at all over statements in thousands (Thor). Dropped: the model would have to guess the scale |
-| `unlocatable:auditor_name` | 28 | Mostly signatures printed as images, with no text to find |
+| `unlocatable:auditor_name` | 30 | Mostly signatures printed as images, with no text to find |
 | `no_balance_sheet` | 24 | Statements laid out without HTML tables, holding companies with one asset line |
 | other | 64 | Eleven reasons, 17 or fewer each |
 
@@ -350,8 +355,10 @@ so it is left for a decision rather than made quietly.
 
 ## Still to build
 
-- `no_income_statement` and `unlocatable:period_end` at 300-company scale.
 - The decision on optional fields not printed on the statement (above).
+- The base-model choice (`docs/models.md` has a shortlist), which sets the cutoff the full
+  corpus is split on.
+- The datasheet, checksums and Hugging Face publication, and the hand audit of 200 pairs.
 - The base-model cutoff, from `docs/models.md`, which the full build needs.
 - The datasheet with the drop tally, the checksums and the Hugging Face publication.
 - A hand audit of 200 pairs before any training starts.
