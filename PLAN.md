@@ -1,13 +1,14 @@
 # Plan: Frontier Quality at a Fraction of the Bill
 
-**Written:** 2026-09-07. **Revised:** 2026-09-14 (rev. 2, section 3); 2026-09-18 (rev. 3, section 3); 2026-09-19 (rev. 4, section 2.8).
+**Written:** 2026-09-07. **Revised:** 2026-09-14 (rev. 2, section 3); 2026-09-18 (rev. 3, section 3); 2026-09-19 (rev. 4, section 2.8; rev. 5, the schedule, section 3 and the bases).
 **Status:** week 1 started 2026-09-14, about seven months early. The schema, the grader, the
 EDGAR fair-access client, the XBRL fact selection, the splits, the statement locator, the
 locatability filter, the corpus build and the load, cost and break-even arithmetic are built
 and tested. A 50-company smoke build has been fetched from EDGAR; nothing has been trained,
 quantised, served or spent.
 
-**Build:** three weeks, Apr 5 to Apr 25 2027, slack to Apr 30. **Package:** `smallprint`.
+**Build:** as soon as possible (rev. 5). The week-by-week table in section 5 is kept as the
+order of work, not as dates. **Package:** `smallprint`.
 **Fed by:** 03 (the gate runs the comparison and supplies intervals and the power function
 from 02), 04 (every frontier call and every call to the served small models goes through
 the gateway, so cost per call lands in one ledger). **Feeds:** 05 (June 2027) inherits the
@@ -184,6 +185,21 @@ is fetched anyway, and no second source has to be matched to filings by accessio
 bulk data sets go back to the cross-check role the table gives them. The schema stays at
 fifteen fields. The hidden header that carries some of these tags is stripped from the
 model's input, so reading truth from the same document is not a leak.
+
+**Rev. 5, 2026-09-19, three decisions.** First, the schedule: the build runs now rather
+than in April 2027, so every choice the plan deferred to "the day" (the bases, the GPU
+prices) is made on the day it is needed. Second, diluted shares: about 3% of filings print
+weighted diluted shares only in a note. When the income statement prints no share-count
+line at all, that one field's label becomes null and the filing is kept, because "not
+reported" is the correct reading of the page the model is shown. When a share line is
+printed but does not match, the filing is still dropped, since nulling it would mark a
+correct reading as a hallucination. This is the only field treated so, and the datasheet
+counts it. Third, the first base: Gemma 4 E4B (Apache 2.0, pre-trained checkpoint
+published, documented cutoff January 2025), so the split's cutoff is 2025-01-31 and the
+post-cutoff test set is every test-pool filing from February 2025 on. Its reasoning mode
+is opt-in by a system-prompt token; the fine-tune trains the base checkpoint to emit the
+JSON directly, and the untuned baseline is measured with thinking off and on. The other
+two sizes are in `docs/models.md`.
 
 ## 4. Methods and architecture
 

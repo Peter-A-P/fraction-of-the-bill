@@ -91,6 +91,19 @@ def cache(
     typer.echo(f"\n{len(records):,} documents, {total / 1e6:,.1f} MB.")
 
 
+@data_app.command("compact-cache")
+def compact_cache(
+    cache_dir: Path = typer.Option(Path("data/raw"), help="Where fetched documents are kept."),
+) -> None:
+    """Compress documents cached before compression, checking each against its digest."""
+    if not cache_dir.exists():
+        typer.echo(f"No cache at {cache_dir}.")
+        return
+    with EdgarClient(cache_dir, offline=True) as edgar:
+        count, saved = edgar.compact()
+    typer.echo(f"Compressed {count:,} documents, saving {saved / 1e9:,.2f} GB.")
+
+
 def _describe(name: str, statement: Statement | None) -> str:
     if statement is None:
         return f"{name}: not found"

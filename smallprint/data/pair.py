@@ -48,6 +48,20 @@ from smallprint.schema import (
     FiscalPeriod,
 )
 
+#: Optional fields whose label becomes null, rather than dropping the filing, when the
+#: statement prints no line for them at all. Decided 2026-09-19: about 3% of filings print
+#: weighted diluted shares only in a note, and for the page the model is shown, "not
+#: reported" is the correct reading. Only when the line is absent: if a share-count line
+#: is printed but does not match, the filing is still dropped, because nulling it would
+#: mark a correct reading of that line as a hallucination.
+NULL_WHEN_LINE_ABSENT: Final[frozenset[str]] = frozenset({"shares_diluted"})
+
+#: What a share-count line looks like, and what a per-share line looks like, which is not one.
+_SHARE_COUNT_LINE = re.compile(r"weighted|\bshares\b", re.IGNORECASE)
+_PER_SHARE_LINE = re.compile(
+    r"per\s+(?:common\s+|ordinary\s+)?share\b|per[\s-]share", re.IGNORECASE
+)
+
 #: Fields that are read from the shape of the report rather than printed as a value.
 NOT_SEARCHED: Final[frozenset[str]] = frozenset({"fiscal_period"})
 
@@ -122,6 +136,9 @@ class Item(BaseModel):
     text: str
     truth: Extraction
     context: GradeContext
+    #: Fields the filing tagged but the statement does not print a line for, labelled null
+    #: because null is what a reader of this page would answer. See NULL_WHEN_LINE_ABSENT.
+    not_on_page: tuple[str, ...] = ()
 
 
 class Dropped(BaseModel):
@@ -257,6 +274,16 @@ def _printed_synonym(
     return truth.model_copy(update=updates) if updates else truth
 
 
+def _line_printed(name: str, located: LocatedFiling) -> bool:
+    """Whether the statement prints a line for this field at all, whatever its value."""
+    if name != "shares_diluted" or located.income is None:
+        raise ValueError(f"no line test for {name}")
+    return any(
+        row and _SHARE_COUNT_LINE.search(row[0]) and not _PER_SHARE_LINE.search(row[0])
+        for row in located.income.rows
+    )
+
+
 def _cover_value(facts: Sequence[Fact], concept: str) -> str | None:
     for fact in facts:
         if fact.concept == concept and isinstance(fact.value, str):
@@ -316,10 +343,17 @@ def pair_filing(
     ctx = GradeContext(scale=scale, share_scale=located.income.share_scale, distractors=distractors)
     ctx = _read_share_scale(truth, located, ctx)
     truth = _printed_synonym(truth, own, located, ctx, period_end, fiscal_period)
+    not_on_page: list[str] = []
     for name, spec in FIELDS.items():
         value = getattr(truth, name)
-        if value is not None and not locatable(spec, value, located, ctx):
-            return Dropped(item_id=accession, reason=DropReason.UNLOCATABLE, field=name)
+        if value is None or locatable(spec, value, located, ctx):
+            continue
+        if name in NULL_WHEN_LINE_ABSENT and not _line_printed(name, located):
+            not_on_page.append(name)
+            continue
+        return Dropped(item_id=accession, reason=DropReason.UNLOCATABLE, field=name)
+    if not_on_page:
+        truth = truth.model_copy(update=dict.fromkeys(not_on_page))
 
     return Item(
         item_id=accession,
@@ -331,6 +365,7 @@ def pair_filing(
         text=located.render(),
         truth=truth,
         context=ctx,
+        not_on_page=tuple(not_on_page),
     )
 
 
@@ -338,5 +373,10 @@ def tally(results: Iterable[Item | Dropped]) -> dict[str, int]:
     """Kept and dropped counts, by reason and field, for the datasheet."""
     counts: Counter[str] = Counter()
     for result in results:
-        counts["kept" if isinstance(result, Item) else result.key] += 1
+        if isinstance(result, Item):
+            counts["kept"] += 1
+            for name in result.not_on_page:
+                counts[f"kept_with_null:{name}"] += 1
+        else:
+            counts[result.key] += 1
     return dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))

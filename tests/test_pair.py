@@ -230,3 +230,31 @@ def test_when_no_synonym_is_printed_the_filing_is_still_dropped() -> None:
     )
     result = dropped(pair(facts=[*facts, contract]))
     assert (result.reason, result.field) == (DropReason.UNLOCATABLE, "revenue")
+
+
+def test_diluted_shares_with_no_line_on_the_statement_are_labelled_null_not_dropped() -> None:
+    """Bristol-Myers Squibb and 3% of filings print weighted shares only in a note. For the
+    page the model is shown, "not reported" is the right answer (decided 2026-09-19)."""
+    overrides: dict[str, float | str] = {
+        "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding": 99_999_000.0
+    }
+    item = kept(pair(facts=filings.facts(overrides=overrides), share_label="Other items, net"))
+    assert item.truth.shares_diluted is None
+    assert item.not_on_page == ("shares_diluted",)
+    assert tally([item]) == {"kept": 1, "kept_with_null:shares_diluted": 1}
+
+
+def test_a_printed_share_line_that_does_not_match_still_drops_the_filing() -> None:
+    """Nulling here would mark a correct reading of the printed line as a hallucination."""
+    overrides: dict[str, float | str] = {
+        "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding": 99_999_000.0
+    }
+    result = dropped(pair(facts=filings.facts(overrides=overrides)))
+    assert (result.reason, result.field) == (DropReason.UNLOCATABLE, "shares_diluted")
+
+
+def test_only_the_named_optional_field_is_ever_nulled() -> None:
+    """Cost of revenue is optional too, but a missing line for it still drops the filing."""
+    overrides: dict[str, float | str] = {"us-gaap:CostOfRevenue": 99_999_000.0}
+    result = dropped(pair(facts=filings.facts(overrides=overrides)))
+    assert (result.reason, result.field) == (DropReason.UNLOCATABLE, "cost_of_revenue")

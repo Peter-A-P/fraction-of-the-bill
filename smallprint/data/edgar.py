@@ -19,6 +19,7 @@ So three things are true of this client and are tested rather than asserted:
 from __future__ import annotations
 
 import datetime as dt
+import gzip
 import hashlib
 import json
 import os
@@ -164,12 +165,24 @@ class EdgarClient:
         return hashlib.sha256(url.encode()).hexdigest()[:32]
 
     def _cached(self, url: str) -> bytes | None:
-        path = self.cache_dir / "body" / self._key(url)
-        return path.read_bytes() if path.exists() else None
+        key = self._key(url)
+        compressed = self.cache_dir / "body" / f"{key}.gz"
+        if compressed.exists():
+            return gzip.decompress(compressed.read_bytes())
+        # Caches written before bodies were compressed still read.
+        plain = self.cache_dir / "body" / key
+        return plain.read_bytes() if plain.exists() else None
 
     def _store(self, url: str, status: int, body: bytes) -> None:
+        """Keep the body compressed and its digest over the original bytes.
+
+        Filing HTML compresses about fourteen times. The full corpus is some seventy gigabytes
+        as fetched and about five compressed, which is the difference between fitting on a
+        laptop and not. The digest is of what EDGAR served, so compression changes nothing a
+        rebuild is audited against.
+        """
         key = self._key(url)
-        (self.cache_dir / "body" / key).write_bytes(body)
+        (self.cache_dir / "body" / f"{key}.gz").write_bytes(gzip.compress(body, compresslevel=6))
         record = CachedResponse(
             url=url,
             fetched_at=dt.datetime.now(dt.UTC),
@@ -180,6 +193,28 @@ class EdgarClient:
         (self.cache_dir / "meta" / f"{key}.json").write_text(
             record.model_dump_json(indent=2), encoding="utf-8"
         )
+
+    def compact(self) -> tuple[int, int]:
+        """Compress bodies cached before compression, checking each against its digest.
+
+        Returns how many were compressed and how many bytes that saved. A body whose digest
+        does not match its record is left alone and reported by raising, because a cache
+        that no longer holds what was fetched is not one to quietly rewrite.
+        """
+        records = {self._key(r.url): r for r in self.manifest()}
+        count = saved = 0
+        for plain in sorted((self.cache_dir / "body").iterdir()):
+            if plain.suffix == ".gz" or plain.stem not in records:
+                continue
+            body = plain.read_bytes()
+            if hashlib.sha256(body).hexdigest() != records[plain.stem].sha256:
+                raise ValueError(f"cached body {plain.name} does not match its recorded digest")
+            packed = gzip.compress(body, compresslevel=6)
+            plain.with_name(f"{plain.name}.gz").write_bytes(packed)
+            plain.unlink()
+            count += 1
+            saved += len(body) - len(packed)
+        return count, saved
 
     def manifest(self) -> Iterator[CachedResponse]:
         """Every document this cache holds, with the date it was fetched and its digest."""

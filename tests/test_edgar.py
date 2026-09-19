@@ -7,6 +7,7 @@ it is polite to that regulator has missed the point, and CI would run it on ever
 from __future__ import annotations
 
 import datetime as dt
+import gzip
 import time
 from pathlib import Path
 
@@ -227,3 +228,44 @@ def test_an_index_entry_exposes_its_accession_number() -> None:
         path="edgar/data/1/0000000001-27-000001.txt",
     )
     assert entry.accession == "0000000001-27-000001"
+
+
+def test_bodies_are_cached_compressed_and_read_back_whole(tmp_path: Path) -> None:
+    body = b"<html>" + b"statement " * 5000 + b"</html>"
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, content=body))
+    with EdgarClient(tmp_path, contact=CONTACT, transport=transport) as edgar:
+        edgar.get("https://www.sec.gov/doc")
+    stored = list((tmp_path / "body").iterdir())
+    assert [p.suffix for p in stored] == [".gz"]
+    assert stored[0].stat().st_size < len(body) / 10
+    with EdgarClient(tmp_path, offline=True) as edgar:
+        assert edgar.get("https://www.sec.gov/doc") == body
+        record = next(edgar.manifest())
+    assert record.bytes == len(body)  # the digest and size are of what EDGAR served
+
+
+def test_a_cache_written_before_compression_still_reads_and_compacts(tmp_path: Path) -> None:
+    body = b"<html>" + b"older " * 5000 + b"</html>"
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, content=body))
+    with EdgarClient(tmp_path, contact=CONTACT, transport=transport) as edgar:
+        edgar.get("https://www.sec.gov/old")
+    packed = next((tmp_path / "body").iterdir())
+    packed.with_suffix("").write_bytes(gzip.decompress(packed.read_bytes()))
+    packed.unlink()  # now laid out as the uncompressed cache was
+
+    with EdgarClient(tmp_path, offline=True) as edgar:
+        assert edgar.get("https://www.sec.gov/old") == body
+        count, saved = edgar.compact()
+        assert (count, saved > 0) == (1, True)
+        assert edgar.get("https://www.sec.gov/old") == body
+
+
+def test_compaction_refuses_a_body_that_no_longer_matches_its_digest(tmp_path: Path) -> None:
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, content=b"original"))
+    with EdgarClient(tmp_path, contact=CONTACT, transport=transport) as edgar:
+        edgar.get("https://www.sec.gov/x")
+    packed = next((tmp_path / "body").iterdir())
+    packed.with_suffix("").write_bytes(b"tampered")
+    packed.unlink()
+    with EdgarClient(tmp_path, offline=True) as edgar, pytest.raises(ValueError, match="digest"):
+        edgar.compact()

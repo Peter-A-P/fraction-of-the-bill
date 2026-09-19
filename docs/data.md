@@ -347,17 +347,22 @@ Rebuilt offline with every fix and the bank exclusion: **775 kept of 1,456, or 7
 | `no_balance_sheet` | 24 | Statements laid out without HTML tables, holding companies with one asset line |
 | other | 64 | Eleven reasons, 17 or fewer each |
 
-**A rule worth revisiting, not changed here.** Diluted weighted shares is an optional
-field, but the plan's filter drops a filing whenever any labelled fact is not on the page.
-About 3% of filings print weighted shares only in a note. Setting that one field's label to
-null when it is not on the statement would keep them; it is a change to the plan's rule,
-so it is left for a decision rather than made quietly.
+**Changed by decision, 2026-09-19 (PLAN.md rev. 5).** About 3% of filings print weighted
+diluted shares only in a note. When the income statement has no share-count line at all,
+that field's label is null and the filing is kept (`NULL_WHEN_LINE_ABSENT` in `pair.py`),
+and the item records it in `not_on_page`. When a share line is printed but does not match,
+the filing is still dropped. The tally counts these as `kept_with_null:shares_diluted`.
+No other field is treated this way.
+
+**The cache is stored compressed** (from 2026-09-19). Filing HTML compresses about
+fourteen times: the 300-company cache went from 3.9 GB to 299 MB, and the full corpus is
+about 5 GB rather than 70. Each body's digest is still of the bytes EDGAR served.
+`smallprint data compact-cache` converts a cache written before this, checking every body
+against its digest first.
 
 ## Still to build
 
-- The decision on optional fields not printed on the statement (above).
-- The base-model choice (`docs/models.md` has a shortlist), which sets the cutoff the full
-  corpus is split on.
+- The full corpus, split at **2025-01-31** (Gemma 4 E4B's documented cutoff).
 - The datasheet, checksums and Hugging Face publication, and the hand audit of 200 pairs.
 - The base-model cutoff, from `docs/models.md`, which the full build needs.
 - The datasheet with the drop tally, the checksums and the Hugging Face publication.
