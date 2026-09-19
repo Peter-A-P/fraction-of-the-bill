@@ -146,6 +146,15 @@ _THOUSANDS_OMITTED = re.compile(r"\b000['\u2019]?s\s+omitted|\bin\s+\$\s*000['\u
 _SHARE_SCALE = re.compile(
     r"\bshares?\b[^)]{0,40}?\bin\s+(thousands|millions|billions)\b", re.IGNORECASE
 )
+_SHARE_ROW = re.compile(r"\bshares\b", re.IGNORECASE)
+_LABEL_SCALE = re.compile(
+    r"\((?:in\s+)?(thousands|millions)\)|\bin\s+(thousands|millions)\b"
+    rf"|\(000{_APOSTROPHE}s\)",
+    re.IGNORECASE,
+)
+_INTRODUCING_SENTENCE = re.compile(
+    r"\bthe\s+following\s+table\b|\bas\s+a\s+percentage\s+of\b|:\s*$", re.IGNORECASE
+)
 _EXCEPT_CLAUSE = re.compile(r"\bexcept\b([^)]*)", re.IGNORECASE)
 _SHARE_WORD = re.compile(r"(per[\s-]+)?\bshares?\b", re.IGNORECASE)
 
@@ -158,10 +167,19 @@ _COVER_MIN_CHARS: Final = 200
 
 #: The audit report's signature block sits around this sentence, which the PCAOB has
 #: required in every audit report since 2017.
+#: The wording varies: "the Company's auditor", "Aditxt's auditor", "the auditor of the
+#: Company", "the Company's independent registered public accounting firm". Found on the
+#: 300-company build, where the one fixed phrase missed a third of annual reports' auditors.
 _AUDITOR_TENURE = re.compile(
-    rf"served\s+as\s+the\s+(?:company|partnership|trust|fund){_APOSTROPHE}s?\s+auditors?\s+since",
+    r"served\s+as\s+[^.]{0,80}?(?:auditors?|accounting\s+firm)\s+(?:of\s+[^.]{0,40}?\s+)?since",
     re.IGNORECASE,
 )
+#: How far around the tenure sentence the signature block reaches, and how long a line in
+#: it may be. The firm's name, city, date and PCAOB ID are short lines; the opinion and the
+#: critical audit matters above them are paragraphs, and are left out.
+_AUDIT_WINDOW_BEFORE: Final = 8
+_AUDIT_WINDOW_AFTER: Final = 4
+_AUDIT_LINE_MAX_CHARS: Final = 160
 
 
 class Block(BaseModel):
@@ -348,13 +366,34 @@ def blocks(document: bytes) -> list[Block]:
 
 
 def _heading(items: Sequence[Block], index: int) -> tuple[str, ...]:
-    """The short text blocks directly above a table, nearest last."""
+    """The short text blocks directly above a table, nearest last.
+
+    A sentence introducing the table ends the heading: "The following table sets forth the
+    components of our Consolidated Statements of Income as a percentage of net sales:" names
+    a statement without being one, and on the 300-company build it made a discussion-section
+    table outscore the statement it describes.
+    """
     lines: list[str] = []
     for block in reversed(items[max(0, index - _HEADING_BLOCKS) : index]):
         if block.is_table or len(block.text) > _HEADING_MAX_CHARS:
             break
+        if _INTRODUCING_SENTENCE.search(block.text):
+            break
         lines.append(block.text)
     return tuple(reversed(lines))
+
+
+def _share_label_scale(rows: Sequence[Sequence[str]]) -> float | None:
+    """The scale printed in a share-count row's label, like "(in thousands)" or "(000's)"."""
+    for row in rows:
+        if not row or not _SHARE_ROW.search(row[0]):
+            continue
+        match = _LABEL_SCALE.search(row[0])
+        if match is not None:
+            # The third form, "(000's)", has no word and means thousands.
+            word = match.group(1) or match.group(2) or "thousands"
+            return _SCALE_WORDS[word.lower()]
+    return None
 
 
 def _titles(text: str) -> set[str]:
@@ -506,6 +545,10 @@ def locate_statement(section: Section, items: Sequence[Block]) -> Statement | No
     scale, declared, share_scale = _scales(
         " ".join([*heading, *(" ".join(r) for r in block.rows[:_TITLE_ROWS])])
     )
+    # A scale printed in the share rows' own label is the most specific statement of it,
+    # and overrides the heading: Insulet's "(in millions, except share and per share data)"
+    # sits over "Weighted-average number of common shares outstanding (in thousands):".
+    share_scale = _share_label_scale(rows) or share_scale
     return Statement(
         section=section,
         heading=heading,
@@ -531,11 +574,24 @@ def _cover(items: Sequence[Block]) -> str:
 
 
 def _auditor(items: Sequence[Block]) -> str:
+    """The signature blocks of every audit report in the document.
+
+    Every report, because a 10-K filed after a change of auditor carries two, one per
+    auditor, and both are tagged. Short lines only, because the signature is short lines
+    and the paragraphs around it would add a page of text that holds no answer.
+    """
+    lines: list[str] = []
     for index, block in enumerate(items):
-        if not block.is_table and _AUDITOR_TENURE.search(block.text):
-            window = items[max(0, index - 3) : index + 3]
-            return "\n".join(b.text for b in window if not b.is_table)
-    return ""
+        if block.is_table or not _AUDITOR_TENURE.search(block.text):
+            continue
+        window = items[max(0, index - _AUDIT_WINDOW_BEFORE) : index + _AUDIT_WINDOW_AFTER]
+        for near in window:
+            text = near.text
+            if near.is_table or not text or text in lines:
+                continue
+            if len(text) <= _AUDIT_LINE_MAX_CHARS or near is block:
+                lines.append(text)
+    return "\n".join(lines)
 
 
 def locate(document: bytes) -> LocatedFiling:

@@ -273,3 +273,18 @@ def test_a_filer_with_only_cash_has_its_cash_taken_as_cash_and_equivalents() -> 
     )
     assert chosen is not None
     assert chosen.value == 10_603_681.0
+
+
+def test_a_concept_reported_only_for_other_periods_falls_through_to_the_next() -> None:
+    """Weis Markets, on the 300-company build: Revenues for the prior years only, the current
+    year only as contract revenue. The prior years stay as distractors."""
+    facts = [
+        duration("us-gaap:Revenues", 4_714_573_000.0, dt.date(2025, 1, 1), dt.date(2025, 12, 30)),
+        duration(REVENUE, 4_791_730_000.0, dt.date(2025, 9, 29), PERIOD_END),
+    ]
+    chosen, others = select_fact(
+        facts, FIELDS["revenue"], period_end=PERIOD_END, fiscal_period="FY"
+    )
+    assert chosen is not None
+    assert chosen.value == 4_791_730_000.0
+    assert [f.value for f in others] == [4_714_573_000.0]

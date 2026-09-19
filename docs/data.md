@@ -6,10 +6,10 @@ how the corpus is divided, and what is still unknown. It is written before the f
 than after it, so that the decisions can be argued with before thirty thousand documents
 are pulled from a public regulator on the strength of them.
 
-**Status: built and tested against fixtures; nothing has been fetched.** The fetcher is
-gated on a declared contact address (see Fair access below). Written 2026-09-14; the
-statement locator, the locatability filter, the cover-facts decision and the build added
-2026-09-18.
+**Status: built, tested against fixtures, and run live over 300 companies** (below). The
+full corpus waits on the base models' training cutoff. Written 2026-09-14; the statement
+locator, the locatability filter, the cover-facts decision and the build added 2026-09-18;
+the live builds and the bank decision 2026-09-19.
 
 ## The task
 
@@ -55,7 +55,7 @@ filing restating the same period is a different document saying a different thin
 training a model to produce a number that was not on the page it was shown is training it
 to guess.
 
-### Where the facts come from, and one open question
+### Where the facts come from
 
 Numeric facts come from the `companyfacts` API per company, cross-checked against the
 quarterly Financial Statement Data Sets in bulk. `Fact` records are deliberately
@@ -92,7 +92,7 @@ documenting them.
 
 - It **refuses to be constructed** without a contact address in `SMALLPRINT_EDGAR_CONTACT`.
   There is deliberately no default, because a default would be someone else's address or a
-  fiction. This is why nothing has been fetched yet.
+  fiction.
 - It paces itself at eight requests a second, in the client rather than at the call sites,
   and refuses to be configured above ten.
 - It backs off on 429 and 403 rather than retrying immediately, and does not retry a status
@@ -313,10 +313,45 @@ companies, and the datasheet says so.** Insurers, REITs and broker-dealers are n
 excluded; they have revenue lines, and whether their filings survive the filter is left to
 the filter.
 
+### What the 300-company build fixed
+
+Examining the larger build's drops found five more faults in this code, each with a test
+named for the filer that exposed it:
+
+| Found | Fix |
+|---|---|
+| Weis Markets tags `Revenues` for prior years only and the current year as contract revenue; Amcor tags `Revenues` by quarter only. Selection stopped at the first concept reported at all | A concept with no fact for the period falls through to the next; its other periods stay as distractors |
+| Hasbro tags `Revenues` at $4,745.9m while its statement prints "Net revenues" of $4,135.5m, its contract revenue. The Andersons are the opposite case, so no concept order is right for both | Among the synonyms reported for the period, the label is the one the statement prints; the schema's order decides when both are. The label is always a filed fact |
+| Audit reports say "served as Aditxt's auditor since", "the auditor of the Company since", and so on; the signature can sit several lines above; a change of auditor gives two reports | Wider wording, a wider window of short lines, every report collected |
+| Insulet and Linde print the share scale in the share row's label ("(in thousands):", "(000's)"), not in the heading | The label's scale overrides the heading's |
+| A discussion-section table introduced by "The following table sets forth ... our Consolidated Statements of Income as a percentage of net sales:" counted that sentence as its title | A sentence introducing a table ends its heading |
+
+Rebuilt offline with every fix and the bank exclusion: **737 kept of 1,456, or 737 of the
+1,373 filings not excluded as banks (54%).**
+
+| Reason | Filings | What they are |
+|---|---:|---|
+| `truth_missing:revenue` | 225 | Pre-revenue companies, shells, SPACs and other revenue concepts |
+| `no_income_statement` | 103 | Funds, trusts, BDCs; not yet examined at this scale |
+| `bank` | 83 | Excluded by decision |
+| `unlocatable:shares_diluted` | 62 | 46 print weighted shares only in a note, not on the statement. Dropped by the plan's rule; see below |
+| `not_fetched` | 59 | |
+| `unlocatable:period_end` | 40 | Not yet examined |
+| `unlocatable:revenue` | 36 | About 20 print no scale at all over statements in thousands (Thor). Dropped: the model would have to guess the scale |
+| `unlocatable:auditor_name` | 28 | Mostly signatures printed as images, with no text to find |
+| `no_balance_sheet` | 24 | Statements laid out without HTML tables, holding companies with one asset line |
+| other | 64 | Eleven reasons, 17 or fewer each |
+
+**A rule worth revisiting, not changed here.** Diluted weighted shares is an optional
+field, but the plan's filter drops a filing whenever any labelled fact is not on the page.
+About 3% of filings print weighted shares only in a note. Setting that one field's label to
+null when it is not on the statement would keep them; it is a change to the plan's rule,
+so it is left for a decision rather than made quietly.
+
 ## Still to build
 
-- The 40 filings with a revenue concept that was not selected, then the other unexamined
-  reasons at 300-company scale.
+- `no_income_statement` and `unlocatable:period_end` at 300-company scale.
+- The decision on optional fields not printed on the statement (above).
 - The base-model cutoff, from `docs/models.md`, which the full build needs.
 - The datasheet with the drop tally, the checksums and the Hugging Face publication.
 - A hand audit of 200 pairs before any training starts.

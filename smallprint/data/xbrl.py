@@ -162,11 +162,19 @@ def select_fact(
 ) -> tuple[Fact | None, tuple[Fact, ...]]:
     """The fact that answers this field for this report, and the other readings of its line.
 
-    Concepts are tried in the order the schema lists them and the first one the filing
-    actually reports wins. Falling through to a later synonym after a match would be worse
-    than useless: a filer that reports both `Revenues` and `SalesRevenueNet` means different
-    things by them, and the schema's order is the decision about which one the task wants.
+    Concepts are tried in the order the schema lists them and the first one with a fact for
+    this period wins. Consulting a later synonym once one has matched would be worse than
+    useless: a filer that reports both `Revenues` and `SalesRevenueNet` for the period means
+    different things by them, and the schema's order is the decision about which one the
+    task wants.
+
+    A concept the filing reports only for other periods is not a match, and the search
+    moves on. Weis Markets tags `Revenues` for its prior years and only contract revenue for
+    the current one; Amcor tags `Revenues` by quarter and the year only as contract revenue.
+    Stopping at the first concept reported at all, which this first did, dropped both. The
+    near misses are kept as distractors either way: they are the same line's other columns.
     """
+    near_misses: list[Fact] = []
     for concept in spec.concepts:
         candidates = [f for f in facts if f.concept == concept]
         if not candidates:
@@ -187,9 +195,10 @@ def select_fact(
             matches = [f for f in at_period_end if _in_band(f, fiscal_period)]
 
         if not matches:
-            # The concept is reported, but not for the period asked about. Say so by
-            # returning nothing rather than by returning the nearest thing to hand.
-            return None, tuple(candidates[:MAX_DISTRACTORS])
+            # Reported, but not for the period asked about. Never the nearest thing to hand;
+            # a later synonym may have this period, and if none does the answer is nothing.
+            near_misses.extend(candidates)
+            continue
 
         target = TARGET_DAYS[fiscal_period]
         chosen = min(
@@ -200,10 +209,10 @@ def select_fact(
                 f.filed,
             ),
         )
-        others = [f for f in candidates if f is not chosen]
+        others = [f for f in candidates if f is not chosen] + near_misses
         return chosen, tuple(others[:MAX_DISTRACTORS])
 
-    return None, ()
+    return None, tuple(near_misses[:MAX_DISTRACTORS])
 
 
 def build_truth(
@@ -257,3 +266,25 @@ def _as_distractor(spec: FieldSpec, value: float | str) -> float | str | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def period_matches(
+    facts: Sequence[Fact],
+    spec: FieldSpec,
+    *,
+    period_end: dt.date,
+    fiscal_period: str,
+) -> list[Fact]:
+    """The fact each of a field's concepts reports for this period, in the schema's order.
+
+    `select_fact` takes the first. The rest are there for the one case where the schema's
+    order is not enough: two synonyms both reported for the period with different values,
+    of which the statement prints only one (see `pair.py`).
+    """
+    out = []
+    for concept in spec.concepts:
+        single = spec.model_copy(update={"concepts": (concept,)})
+        chosen, _ = select_fact(facts, single, period_end=period_end, fiscal_period=fiscal_period)
+        if chosen is not None:
+            out.append(chosen)
+    return out

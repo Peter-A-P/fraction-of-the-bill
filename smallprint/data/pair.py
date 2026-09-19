@@ -37,7 +37,7 @@ import lxml.etree
 from pydantic import BaseModel, ConfigDict
 
 from smallprint.data.statements import LocatedFiling, locate
-from smallprint.data.xbrl import Fact, build_truth
+from smallprint.data.xbrl import Fact, build_truth, period_matches
 from smallprint.grade import GradeContext, normalise_categorical, tolerance
 from smallprint.schema import (
     FIELDS,
@@ -222,6 +222,41 @@ def _read_share_scale(truth: Extraction, located: LocatedFiling, ctx: GradeConte
     return whole if locatable(spec, shares, located, whole) else ctx
 
 
+def _printed_synonym(
+    truth: Extraction,
+    facts: Sequence[Fact],
+    located: LocatedFiling,
+    ctx: GradeContext,
+    period_end: dt.date,
+    fiscal_period: FiscalPeriod,
+) -> Extraction:
+    """Among synonyms reported for the period, the one the statement prints.
+
+    The schema's concept order is a preference, and it is usually enough. It is not when a
+    filer reports two synonyms for the same period with different values: The Andersons
+    tag contract revenue as a fraction of the top line, so `Revenues` has to come first;
+    Hasbro tag `Revenues` above the "Net revenues" their statement prints, which is their
+    contract revenue. The label is still a fact the company filed. The page decides which of
+    the filed synonyms the task means, which is what the field's own description asks for:
+    the line of the statement. If none is printed the first stays, and the filter drops it.
+    """
+    updates: dict[str, object] = {}
+    for name, spec in FIELDS.items():
+        value = getattr(truth, name)
+        if value is None or spec.kind in (FieldKind.DATE, FieldKind.CATEGORICAL):
+            continue
+        if locatable(spec, value, located, ctx):
+            continue
+        alternatives = period_matches(
+            facts, spec, period_end=period_end, fiscal_period=fiscal_period
+        )
+        for fact in alternatives[1:]:
+            if isinstance(fact.value, float) and locatable(spec, fact.value, located, ctx):
+                updates[name] = fact.value
+                break
+    return truth.model_copy(update=updates) if updates else truth
+
+
 def _cover_value(facts: Sequence[Fact], concept: str) -> str | None:
     for fact in facts:
         if fact.concept == concept and isinstance(fact.value, str):
@@ -280,6 +315,7 @@ def pair_filing(
 
     ctx = GradeContext(scale=scale, share_scale=located.income.share_scale, distractors=distractors)
     ctx = _read_share_scale(truth, located, ctx)
+    truth = _printed_synonym(truth, own, located, ctx, period_end, fiscal_period)
     for name, spec in FIELDS.items():
         value = getattr(truth, name)
         if value is not None and not locatable(spec, value, located, ctx):

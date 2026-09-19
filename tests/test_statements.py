@@ -250,3 +250,110 @@ def test_a_title_and_scale_printed_inside_the_table_are_read_there() -> None:
     assert statement is not None
     assert statement.scale == 1e6
     assert statement.heading == ()
+
+
+@pytest.mark.parametrize(
+    "tenure",
+    [
+        "We have served as Aditxt's auditor since 2021.",
+        "We have served as the auditor of the Company since 2019.",
+        "We have served as the Company's independent registered public accounting firm since 2008.",
+    ],
+)
+def test_the_audit_signature_is_found_under_the_wordings_filers_use(tenure: str) -> None:
+    """On the 300-company build the one fixed phrase missed a third of the auditors."""
+    doc = (
+        "<html><body><p>/s/ dbbmckennon</p><p>Newport Beach, California</p>"
+        f"<p>{tenure}</p></body></html>"
+    ).encode()
+    assert "/s/ dbbmckennon" in locate(doc).auditor
+
+
+def test_a_signature_several_lines_above_the_tenure_sentence_is_kept_and_prose_is_not() -> None:
+    long_paragraph = "Critical audit matters are matters arising from the audit. " * 5
+    doc = (
+        "<html><body><p>/s/ KPMG LLP</p><p>PCAOB ID 185</p><p>Toronto, Canada</p>"
+        f"<p>{long_paragraph}</p><p>March 1, 2026</p><p>Page 70</p>"
+        "<p>We have served as the Company's auditor since 2016.</p></body></html>"
+    ).encode()
+    auditor = locate(doc).auditor
+    assert "/s/ KPMG LLP" in auditor
+    assert "Critical audit matters" not in auditor
+
+
+def test_both_reports_are_read_after_a_change_of_auditor() -> None:
+    doc = (
+        "<html><body>"
+        "<p>/s/ Fruci &amp; Associates II, PLLC</p>"
+        "<p>We have served as the Company's auditor since 2025.</p>"
+        + "<p>"
+        + "Filler paragraph between the two reports, long enough to be prose. " * 4
+        + "</p>"
+        + "<p>A</p><p>B</p><p>C</p><p>D</p><p>E</p><p>F</p><p>G</p><p>H</p><p>I</p>"
+        "<p>/s/ Astra Audit &amp; Advisory LLC</p>"
+        "<p>We served as the Company's auditor from 2022 to 2024. We have served as the "
+        "auditor of the Company since 2022.</p>"
+        "</body></html>"
+    ).encode()
+    auditor = locate(doc).auditor
+    assert "Fruci" in auditor
+    assert "Astra" in auditor
+
+
+@pytest.mark.parametrize(
+    ("label", "scale"),
+    [
+        ("Weighted-average number of common shares outstanding (in thousands):", 1e3),
+        ("Weighted Average Shares Outstanding (000" + chr(0x2019) + "s):", 1e3),
+        ("Diluted shares outstanding, in millions", 1e6),
+    ],
+)
+def test_a_scale_in_the_share_rows_own_label_overrides_the_heading(
+    label: str, scale: float
+) -> None:
+    """Insulet and Linde, on the 300-company build."""
+    rows = "".join(
+        "<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>"
+        for r in (
+            ("Total revenue", "2,071.6", "1,697.1"),
+            ("Operating income", "400.1", "300.2"),
+            ("Income tax expense", "(50.0)", "(40.0)"),
+            ("Net income", "418.3", "206.3"),
+            ("Diluted net income per share", "5.87", "2.95"),
+            (label,),
+            ("Diluted", "71,213", "70,166"),
+        )
+    )
+    doc = (
+        # Declared, as filings declare it: the label carries a curly apostrophe.
+        '<html><head><meta charset="utf-8"></head><body><p>CONSOLIDATED STATEMENTS OF INCOME</p>'
+        "<p>(in millions, except share and per share data)</p>"
+        f"<table>{rows}</table></body></html>"
+    ).encode()
+    statement = locate_statement(Section.INCOME, blocks(doc))
+    assert statement is not None
+    assert statement.share_scale == scale
+
+
+def test_a_sentence_introducing_a_table_is_not_its_title() -> None:
+    """A discussion-section percentage table, introduced by a sentence naming the income
+    statement, outscored the statement itself on the 300-company build."""
+    summary = "".join(
+        f"<tr><td>{a}</td><td>{b}</td><td>{c}</td></tr>"
+        for a, b, c in (
+            ("Net sales", "100.0%", "100.0%"),
+            ("Operating income", "12.1", "11.0"),
+            ("Income tax expense", "2.0", "1.9"),
+            ("Net income", "9.1", "8.2"),
+            ("Diluted net income per share", "1.10", "0.98"),
+        )
+    )
+    doc = (
+        "<html><body><p>The following table sets forth the components of our Consolidated "
+        "Statements of Income as a percentage of net sales:</p>"
+        f"<table>{summary}</table></body></html>"
+    ).encode()
+    items = blocks(doc)
+    assert locate_statement(Section.INCOME, items) is not None
+    statement = locate_statement(Section.INCOME, items)
+    assert statement is not None and statement.heading == ()

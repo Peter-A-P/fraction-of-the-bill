@@ -202,3 +202,31 @@ def test_the_tally_names_every_loss() -> None:
         pair(facts=filings.facts(overrides={"us-gaap:Revenues": 444_444_000.0})),
     ]
     assert tally(results) == {"unlocatable:revenue": 2, "kept": 1, "mixed_scale": 1}
+
+
+def test_of_two_revenue_synonyms_for_the_period_the_printed_one_is_the_label() -> None:
+    """Hasbro, on the 300-company build: Revenues tagged at 4,745.9m, the statement's "Net
+    revenues" line 4,135.5m, which is their contract revenue. The page decides."""
+    facts = filings.facts(overrides={"us-gaap:Revenues": 555_555_000.0})
+    tagged = next(f for f in facts if f.concept == "us-gaap:Revenues" and f.value == 555_555_000.0)
+    contract = tagged.model_copy(
+        update={
+            "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+            "value": 312_450_000.0,
+        }
+    )
+    item = kept(pair(facts=[*facts, contract]))
+    assert item.truth.revenue == 312_450_000.0
+
+
+def test_when_no_synonym_is_printed_the_filing_is_still_dropped() -> None:
+    facts = filings.facts(overrides={"us-gaap:Revenues": 555_555_000.0})
+    tagged = next(f for f in facts if f.concept == "us-gaap:Revenues" and f.value == 555_555_000.0)
+    contract = tagged.model_copy(
+        update={
+            "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+            "value": 444_444_000.0,
+        }
+    )
+    result = dropped(pair(facts=[*facts, contract]))
+    assert (result.reason, result.field) == (DropReason.UNLOCATABLE, "revenue")
