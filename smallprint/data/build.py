@@ -192,9 +192,11 @@ def build_company(
             continue
         # The document's own cover tags come first, so that if the facts API ever does carry
         # the same concepts, the filing's own reading of its cover page is the one used.
-        cover = cover_facts(document, accession=entry.accession, form=entry.form, filed=entry.filed)
-        results.append(
-            pair_filing(
+        try:
+            cover = cover_facts(
+                document, accession=entry.accession, form=entry.form, filed=entry.filed
+            )
+            result = pair_filing(
                 document,
                 [*cover, *facts],
                 cik=cik,
@@ -202,7 +204,18 @@ def build_company(
                 form=entry.form,
                 filed=entry.filed,
             )
-        )
+        except Exception as error:
+            # One filing must not end a build of thirty thousand: the first full build
+            # stopped at company 429 of 1,600 on a single negative cash fact. An error no
+            # rule anticipated becomes a drop named by its type, so it is counted in the
+            # tally and can be reproduced from the cache with `data locate`, rather than
+            # either stopping the run or disappearing.
+            result = Dropped(
+                item_id=entry.accession,
+                reason=DropReason.PAIRING_ERROR,
+                field=type(error).__name__,
+            )
+        results.append(result)
     return results
 
 

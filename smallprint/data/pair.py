@@ -34,7 +34,7 @@ from enum import StrEnum
 from typing import Final, get_args
 
 import lxml.etree
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from smallprint.data.statements import LocatedFiling, locate
 from smallprint.data.xbrl import Fact, build_truth, period_matches
@@ -118,6 +118,10 @@ class DropReason(StrEnum):
     NO_PERIOD = "no_period"
     #: A required field has no fact in this filing, so the item could not be graded.
     TRUTH_MISSING = "truth_missing"
+    #: A filed fact the schema cannot hold, such as negative cash.
+    TRUTH_INVALID = "truth_invalid"
+    #: An error no rule anticipated, named by its type in `field`. Counted, never silent.
+    PAIRING_ERROR = "pairing_error"
     #: A field's fact is not printed where that field is read from.
     UNLOCATABLE = "unlocatable"
 
@@ -333,9 +337,17 @@ def pair_filing(
         return Dropped(item_id=accession, reason=DropReason.MIXED_SCALE)
     scale = declared.pop() if declared else 1.0
 
-    truth, distractors = build_truth(
-        own, accession=accession, period_end=period_end, fiscal_period=fiscal_period
-    )
+    try:
+        truth, distractors = build_truth(
+            own, accession=accession, period_end=period_end, fiscal_period=fiscal_period
+        )
+    except ValidationError as invalid:
+        # A filed fact the schema cannot hold: negative cash, found on the full build, or a
+        # malformed date. The fact is wrong or the schema is, and either way it is not a
+        # label; the field is named so the tally says which.
+        location = invalid.errors()[0].get("loc", ())
+        field = str(location[0]) if location else None
+        return Dropped(item_id=accession, reason=DropReason.TRUTH_INVALID, field=field)
     for name in REQUIRED_FIELDS:
         if getattr(truth, name) is None:
             return Dropped(item_id=accession, reason=DropReason.TRUTH_MISSING, field=name)

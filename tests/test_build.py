@@ -279,3 +279,20 @@ def test_the_build_command_needs_a_cutoff_and_runs_offline_from_a_warm_cache(
     assert result.exit_code == 0, result.output
     assert "kept: 2" in result.output
     assert (out / "items.jsonl").exists()
+
+
+def test_an_unanticipated_error_in_one_filing_is_a_named_drop_not_a_stopped_build(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import smallprint.data.build as build_module
+
+    def explode(*args: object, **kwargs: object) -> object:
+        raise KeyError("something no rule anticipated")
+
+    monkeypatch.setattr(build_module, "pair_filing", explode)
+    mock = MockEdgar()
+    with EdgarClient(
+        tmp_path, contact="someone@example.com", transport=httpx.MockTransport(mock)
+    ) as edgar:
+        _, _, report = build(edgar, first="2026Q4", last="2027Q1", cutoff=CUTOFF)
+    assert report.pairing["pairing_error:KeyError"] == 2

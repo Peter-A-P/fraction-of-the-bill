@@ -258,3 +258,10 @@ def test_only_the_named_optional_field_is_ever_nulled() -> None:
     overrides: dict[str, float | str] = {"us-gaap:CostOfRevenue": 99_999_000.0}
     result = dropped(pair(facts=filings.facts(overrides=overrides)))
     assert (result.reason, result.field) == (DropReason.UNLOCATABLE, "cost_of_revenue")
+
+
+def test_a_filed_fact_the_schema_cannot_hold_drops_the_filing_by_name() -> None:
+    """Negative cash, found on the full build, where it stopped the whole build instead."""
+    overrides: dict[str, float | str] = {"us-gaap:CashAndCashEquivalentsAtCarryingValue": -126.0}
+    result = dropped(pair(facts=filings.facts(overrides=overrides)))
+    assert (result.reason, result.field) == (DropReason.TRUTH_INVALID, "cash_and_equivalents")
