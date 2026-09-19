@@ -381,10 +381,33 @@ wrong label, with a 95% Wilson interval: with no errors in 200 the upper bound i
 1.9%, and that bound is the ceiling on how far any score measured on this corpus can be
 trusted.
 
+## The full corpus, 2026-09-19
+
+1,600 companies, filings dated 2022Q1 to 2026Q2, fetched in about two hours at the paced
+rate; the cache is 2.1 GB compressed. **19,574 filings tried, 10,716 kept (55%)**, and the
+split then drops 2,685 training-pool filings dated after the cutoff, leaving **8,031 items**:
+
+| Split | Filings | Companies |
+|---|---:|---:|
+| train | 5,154 | 597 |
+| validation | 736 | 90 |
+| test_pre_cutoff | 1,425 | 168 |
+| test_post_cutoff | 716 | 148 |
+
+The datasheet (`smallprint data datasheet`) carries the rest: label coverage per field, every
+drop reason, and the rebuild command. Auditor is labelled on 23% of items, which is the
+share of annual reports; the field is null in a quarterly report by definition.
+
+Two numbers to weigh against the plan. The data-scaling curve asks for a 20k training point
+and there are 5,154 training items, so that point needs roughly four times the companies.
+The post-cutoff test set is 716 filings from 148 filers, enough for a 95% interval of about
+two points on a field accuracy near 90%, but smaller than the 2,000 the cost table assumed.
+Both are a matter of fetching more companies, at about ten companies a minute.
+
 ## Still to build
 
-- The full corpus, split at **2025-01-31**, the latest documented cutoff of the three bases.
-- The hand audit itself, which needs a person.
+- The hand audit itself, which needs a person: `smallprint data audit-sample` has drawn the
+  200 pages and the verdict sheet.
 - The datasheet, checksums and Hugging Face publication, and the hand audit of 200 pairs.
 - The base-model cutoff, from `docs/models.md`, which the full build needs.
 - The datasheet with the drop tally, the checksums and the Hugging Face publication.
