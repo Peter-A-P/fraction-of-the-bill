@@ -228,6 +228,11 @@ whole construction: select, fetch, pair, split, write.
 - **A rebuild runs offline** from the cache with `--offline`, needs no contact address, and
   reproduces the corpus without asking the SEC for it again. A test builds once through a
   mock EDGAR and again offline, and asserts the two are identical.
+- **An offline rebuild can run in parallel** with `--workers N`: the 300-company build went
+  from 14 minutes on one core to 76 seconds on eight. Results are taken in company order, so
+  a parallel rebuild writes exactly what a sequential one does, and a test checks it. A live
+  fetch refuses more than one worker, because the pacing that keeps it under the SEC's limit
+  belongs to one client.
 
 ## What the first live build found
 

@@ -199,6 +199,13 @@ def build_command(
     offline: bool = typer.Option(
         False, help="Read the cache only. A rebuild needs no contact and fetches nothing."
     ),
+    workers: int = typer.Option(
+        1,
+        help=(
+            "Parallel processes for an offline rebuild. A live fetch is always sequential, "
+            "to stay within the SEC's rate limit."
+        ),
+    ),
 ) -> None:
     """Select, fetch, pair and split the corpus, and write it with the reasons for every drop."""
     try:
@@ -219,6 +226,7 @@ def build_command(
             companies=companies,
             seed=seed,
             progress=lambda done, total: typer.echo(f"{done:,} of {total:,} companies", err=True),
+            workers=workers,
         )
     write_build(out, items, dropped, report)
     typer.echo(f"{report.filings_selected:,} filings from {report.companies_selected:,} companies.")

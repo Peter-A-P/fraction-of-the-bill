@@ -27,6 +27,7 @@ import hashlib
 import re
 import statistics
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Final
 
@@ -219,6 +220,14 @@ def build_company(
     return results
 
 
+def _build_company_offline(
+    cache_dir: Path, cik: int, entries: Sequence[IndexEntry]
+) -> list[Item | Dropped]:
+    """One company, in a worker process, from the cache alone."""
+    with EdgarClient(cache_dir, offline=True) as edgar:
+        return build_company(edgar, cik, entries)
+
+
 def size_band(total_assets: float) -> str:
     for ceiling, label in _SIZE_BANDS:
         if total_assets < ceiling:
@@ -262,18 +271,44 @@ def build(
     companies: int | None = None,
     seed: int = 20270405,
     progress: Callable[[int, int], None] | None = None,
+    workers: int = 1,
 ) -> tuple[list[SplitItem], list[Dropped], BuildReport]:
-    """Select, fetch, pair and split. `cutoff` is the latest base-model training cutoff."""
+    """Select, fetch, pair and split. `cutoff` is the latest base-model training cutoff.
+
+    `workers` above one pairs companies in parallel processes, and only from the cache: an
+    offline rebuild is pure parsing, about half a second of one core per filing, so the full
+    corpus takes hours on one core and well under one on a laptop's worth. A live fetch stays
+    sequential, because the pacing that keeps it within the SEC's limit belongs to one
+    client, and several clients each pacing themselves would together exceed it.
+    """
+    if workers > 1 and not edgar.offline:
+        raise FairAccessViolation(
+            "parallel workers are for offline rebuilds only; a live fetch is paced by one client"
+        )
     entries = select_filings(edgar, quarter_range(first, last), companies=companies, seed=seed)
     by_company: dict[int, list[IndexEntry]] = {}
     for entry in entries:
         by_company.setdefault(entry.cik, []).append(entry)
+    ordered = sorted(by_company.items())
 
     results: list[Item | Dropped] = []
-    for done, (cik, own) in enumerate(sorted(by_company.items()), start=1):
-        results.extend(build_company(edgar, cik, own))
-        if progress is not None:
-            progress(done, len(by_company))
+    if workers > 1:
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            jobs = [
+                pool.submit(_build_company_offline, edgar.cache_dir, cik, own)
+                for cik, own in ordered
+            ]
+            # Results are taken in company order, not completion order, so a parallel rebuild
+            # writes exactly what a sequential one does.
+            for done, job in enumerate(jobs, start=1):
+                results.extend(job.result())
+                if progress is not None:
+                    progress(done, len(ordered))
+    else:
+        for done, (cik, own) in enumerate(ordered, start=1):
+            results.extend(build_company(edgar, cik, own))
+            if progress is not None:
+                progress(done, len(ordered))
 
     items = [r for r in results if isinstance(r, Item)]
     dropped = sorted((r for r in results if isinstance(r, Dropped)), key=lambda d: d.item_id)

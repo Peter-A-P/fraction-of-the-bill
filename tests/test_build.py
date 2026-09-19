@@ -296,3 +296,29 @@ def test_an_unanticipated_error_in_one_filing_is_a_named_drop_not_a_stopped_buil
     ) as edgar:
         _, _, report = build(edgar, first="2026Q4", last="2027Q1", cutoff=CUTOFF)
     assert report.pairing["pairing_error:KeyError"] == 2
+
+
+def test_a_parallel_offline_rebuild_writes_exactly_what_a_sequential_one_does(
+    built: Built,
+) -> None:
+    items, dropped, report, _, cache = built
+    with EdgarClient(cache, offline=True) as edgar:
+        again, again_dropped, again_report = build(
+            edgar, first="2026Q4", last="2027Q1", cutoff=CUTOFF, workers=2
+        )
+    assert again == items
+    assert again_dropped == dropped
+    assert again_report.pairing == report.pairing
+
+
+def test_parallel_workers_are_refused_for_a_live_fetch(tmp_path: Path) -> None:
+    """Several clients each pacing themselves would together exceed the SEC's limit."""
+    from smallprint.data.edgar import FairAccessViolation
+
+    with (
+        EdgarClient(
+            tmp_path, contact="someone@example.com", transport=httpx.MockTransport(MockEdgar())
+        ) as edgar,
+        pytest.raises(FairAccessViolation, match="offline rebuilds only"),
+    ):
+        build(edgar, first="2026Q4", last="2027Q1", cutoff=CUTOFF, workers=4)
