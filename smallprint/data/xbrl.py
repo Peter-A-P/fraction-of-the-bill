@@ -177,6 +177,12 @@ def select_fact(
 
         if wants_instant:
             matches = [f for f in at_period_end if f.is_instant]
+        elif concept.startswith("dei:"):
+            # Cover-page facts describe the document, not a flow over a period, and filers
+            # tag them against whichever context they call the document's: a 10-Q for the
+            # third quarter usually uses the nine months to date. The first live build lost
+            # three filings in ten to requiring a quarter here. The period end is the test.
+            matches = at_period_end
         else:
             matches = [f for f in at_period_end if _in_band(f, fiscal_period)]
 

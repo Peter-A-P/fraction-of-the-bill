@@ -137,21 +137,25 @@ def test_a_balance_sheet_line_is_an_instant_and_the_prior_column_is_a_distractor
 
 
 def test_the_first_concept_the_filing_reports_wins_and_later_synonyms_are_not_consulted() -> None:
-    """A filer that reports both Revenues and SalesRevenueNet means different things by them."""
+    """Total revenue over contract revenue, which can be a fraction of the top line.
+
+    The Andersons, on the first live build: $371m of contract revenue against $2,659m of
+    sales and merchandising revenues. Revenues is the total by definition.
+    """
     facts = [
-        duration(REVENUE, 10.0, dt.date(2026, 6, 28), PERIOD_END),
-        duration("us-gaap:Revenues", 99.0, dt.date(2026, 6, 28), PERIOD_END),
+        duration(REVENUE, 371.0, dt.date(2026, 6, 28), PERIOD_END),
+        duration("us-gaap:Revenues", 2659.0, dt.date(2026, 6, 28), PERIOD_END),
     ]
     chosen, others = select_fact(
         facts, FIELDS["revenue"], period_end=PERIOD_END, fiscal_period="Q3"
     )
     assert chosen is not None
-    assert chosen.value == 10.0
-    assert all(f.concept == REVENUE for f in others)
+    assert chosen.value == 2659.0
+    assert all(f.concept == "us-gaap:Revenues" for f in others)
 
 
 def test_a_later_synonym_is_used_when_the_first_is_absent() -> None:
-    facts = [duration("us-gaap:Revenues", 99.0, dt.date(2026, 6, 28), PERIOD_END)]
+    facts = [duration(REVENUE, 99.0, dt.date(2026, 6, 28), PERIOD_END)]
     chosen, _ = select_fact(facts, FIELDS["revenue"], period_end=PERIOD_END, fiscal_period="Q3")
     assert chosen is not None
     assert chosen.value == 99.0
@@ -241,3 +245,22 @@ def test_a_payload_of_the_wrong_shape_fails_loudly() -> None:
         parse_company_facts({"cik": 1})
     with pytest.raises(UnusableFacts, match="not an object"):
         parse_company_facts([1, 2, 3])
+
+
+def test_a_cover_fact_tagged_against_the_year_to_date_is_still_the_cover_fact() -> None:
+    """A Q3 10-Q tags its cover page against the nine months to date. Found on the first
+    live build, where requiring a quarter-length context dropped three filings in ten."""
+    facts = [
+        Fact(
+            concept="dei:DocumentPeriodEndDate",
+            unit="",
+            value=PERIOD_END.isoformat(),
+            start=dt.date(2025, 12, 28),
+            end=PERIOD_END,
+            accession=ACCESSION,
+            form="10-Q",
+            filed=dt.date(2026, 10, 30),
+        )
+    ]
+    chosen, _ = select_fact(facts, FIELDS["period_end"], period_end=PERIOD_END, fiscal_period="Q3")
+    assert chosen is not None

@@ -43,6 +43,21 @@ def test_an_untitled_statement_still_outscores_a_summary_with_fewer_lines() -> N
     assert "Provision for income taxes" in located.income.render()
 
 
+def test_net_loss_income_with_parentheses_is_still_net_income() -> None:
+    """Lifetime Brands labels the line "Net (loss) income"; found on the first live build."""
+    rows = "".join(
+        f"<tr><td>{label}</td><td>{a}</td><td>{b}</td></tr>"
+        for label, a, b in (
+            ("Net sales", "150,000", "140,000"),
+            ("Income from operations", "5,000", "4,000"),
+            ("Net (loss) income", "(1,000)", "900"),
+            ("Diluted (loss) income per common share", "(0.05)", "0.04"),
+        )
+    )
+    doc = f"<html><body><table>{rows}</table></body></html>".encode()
+    assert locate_statement(Section.INCOME, blocks(doc)) is not None
+
+
 def test_dollar_signs_and_parentheses_rejoin_their_numbers() -> None:
     located = locate(document())
     assert located.income is not None
@@ -171,3 +186,29 @@ def test_the_rendered_input_labels_sections_and_leaves_the_scale_where_it_was_pr
     ]
     assert positions == sorted(positions)
     assert "(In thousands, except per share data)" in text
+
+
+def test_a_title_and_scale_printed_inside_the_table_are_read_there() -> None:
+    """ONEOK's 10-K, on the first live build: company, title, years and then the scale, all
+    rows of the statement table, with the audit report's last lines above it."""
+    rows = [
+        ("ONEOK, Inc. and Subsidiaries",),
+        ("CONSOLIDATED STATEMENTS OF INCOME",),
+        ("Years Ended Dec. 31,",),
+        ("2024", "2023"),
+        ("(Millions of dollars, except per share amounts )",),
+        ("Total revenues", "21,698", "17,677"),
+        ("Operating income", "5,000", "4,000"),
+        ("Income taxes", "(900)", "(800)"),
+        ("Net income", "3,112", "2,659"),
+        ("Diluted earnings per share", "5.17", "5.48"),
+    ]
+    body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
+    doc = (
+        "<html><body><p>We have served as the Company's auditor since 2007.</p><p>66</p>"
+        f"<table>{body}</table></body></html>"
+    ).encode()
+    statement = locate_statement(Section.INCOME, blocks(doc))
+    assert statement is not None
+    assert statement.scale == 1e6
+    assert statement.heading == ()

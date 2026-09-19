@@ -77,21 +77,37 @@ def document(
     share_label: str = "Weighted-average shares outstanding, diluted",
     shares: Sequence[str] = ("14,580", "14,760", "14,560", "14,790"),
     auditor: str = "Deloitte &amp; Touche LLP",
+    state_tag: str = "DE",
 ) -> bytes:
-    period = (
-        "fiscal year ended December 31, 2026"
-        if annual
-        else "quarterly period ended September 30, 2026"
-    )
+    period = "fiscal year ended" if annual else "quarterly period ended"
+    period_date = "December 31, 2026" if annual else "September 30, 2026"
     form = "10-K" if annual else "10-Q"
 
+    context_start, context_end = (
+        ("2026-01-01", "2026-12-31") if annual else ("2026-07-01", "2026-09-30")
+    )
     hidden = (
         '<div style="display:none"><ix:header><ix:hidden>'
-        '<ix:nonNumeric name="dei:DocumentFiscalPeriodFocus">'
-        + ("FY" if annual else "Q3")
-        + "</ix:nonNumeric>"
-        f'<ix:nonFraction name="us-gaap:Revenues">{HIDDEN_SENTINEL}</ix:nonFraction>'
-        "</ix:hidden></ix:header></div>"
+        f'<ix:nonNumeric name="dei:DocumentFiscalPeriodFocus" contextRef="c-1">'
+        f"{'FY' if annual else 'Q3'}</ix:nonNumeric>"
+        f'<ix:nonNumeric name="dei:EntityIncorporationStateCountryCode" contextRef="c-1">'
+        f"{state_tag}</ix:nonNumeric>"
+        # A decoy against a dimensional context, which the cover reader must not take.
+        '<ix:nonNumeric name="dei:EntityIncorporationStateCountryCode" contextRef="c-2">'
+        "NV</ix:nonNumeric>"
+        f'<ix:nonFraction name="us-gaap:Revenues" contextRef="c-1">{HIDDEN_SENTINEL}</ix:nonFraction>'
+        "</ix:hidden><ix:resources>"
+        '<xbrli:context id="c-1"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">'
+        "0001234567</xbrli:identifier></xbrli:entity><xbrli:period>"
+        f"<xbrli:startDate>{context_start}</xbrli:startDate>"
+        f"<xbrli:endDate>{context_end}</xbrli:endDate></xbrli:period></xbrli:context>"
+        '<xbrli:context id="c-2"><xbrli:entity><xbrli:identifier scheme="http://www.sec.gov/CIK">'
+        "0001234567</xbrli:identifier><xbrli:segment>"
+        '<xbrldi:explicitMember dimension="dei:LegalEntityAxis">exw:SubsidiaryMember'
+        "</xbrldi:explicitMember></xbrli:segment></xbrli:entity><xbrli:period>"
+        f"<xbrli:startDate>{context_start}</xbrli:startDate>"
+        f"<xbrli:endDate>{context_end}</xbrli:endDate></xbrli:period></xbrli:context>"
+        "</ix:resources></ix:header></div>"
         if with_hidden_header
         else ""
     )
@@ -99,7 +115,11 @@ def document(
     cover = (
         _p("UNITED STATES SECURITIES AND EXCHANGE COMMISSION", "text-align:center")
         + _p(f"FORM {form}")
-        + _p(f"For the {period}")
+        + _p(
+            f"For the {period} "
+            '<ix:nonNumeric name="dei:DocumentPeriodEndDate" contextRef="c-1" '
+            f'format="ixt:date-monthname-day-year-en">{period_date}</ix:nonNumeric>'
+        )
         + _p("EXAMPLE WIDGETS, INC.")
         + _table(
             [
@@ -251,7 +271,9 @@ def document(
             "In our opinion, the financial statements present fairly, in all material "
             "respects, the financial position of the Company as of December 31, 2026."
         )
-        + _p(f"/s/ {auditor}")
+        + _p(
+            f'/s/ <ix:nonNumeric name="dei:AuditorName" contextRef="c-1">{auditor}</ix:nonNumeric>'
+        )
         + _p(f"We have served as the Company{RIGHT_QUOTE}s auditor since 2011.")
         + _p("San Jose, California")
         + _p("February 20, 2027")

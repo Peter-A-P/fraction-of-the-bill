@@ -8,7 +8,8 @@ are pulled from a public regulator on the strength of them.
 
 **Status: built and tested against fixtures; nothing has been fetched.** The fetcher is
 gated on a declared contact address (see Fair access below). Written 2026-09-14; the
-statement locator and the locatability filter added 2026-09-18.
+statement locator, the locatability filter, the cover-facts decision and the build added
+2026-09-18.
 
 ## The task
 
@@ -61,16 +62,26 @@ quarterly Financial Statement Data Sets in bulk. `Fact` records are deliberately
 source-agnostic: the same selection rule has to run over both, or the two are not a
 cross-check of each other at all.
 
-**Open:** `companyfacts` organises facts by unit (USD, shares, USD/shares, pure), and three
-fields of the schema are not numeric: `auditor_name`, `state_of_incorporation` and
-`fiscal_period`. The expectation is that they are not served by that API and have to come
-from the Financial Statement Data Sets submission table and the Notes Data Sets text table,
-or from the filing's own inline XBRL. This is checked against the live API on the first
-fetch, and the answer is recorded here before any filing is paired. `Fact.value` already
-accepts a string for that reason. Nothing downstream changes either way; if the three
-fields turn out to be unavailable at corpus scale they are dropped from the schema and the
-task becomes twelve fields, which is a change to `SCHEMA` and to this document in the same
-commit.
+**Decided 2026-09-18: the cover-page facts come from the filing itself.** Four fields are
+`dei` cover-page facts, and three of them are not numeric: `auditor_name`,
+`state_of_incorporation` and `fiscal_period`, with `period_end` alongside. Rather than join
+them in from the Financial Statement Data Sets, as the plan first expected, they are read
+from the filing's own inline XBRL ([`smallprint/data/ixbrl.py`](../smallprint/data/ixbrl.py)).
+Every 10-K and 10-Q since 2019 tags exactly these facts on its cover page with
+`ix:nonNumeric`, against contexts declared in the hidden header, and those tags are what the
+company filed, which is this project's definition of truth. The document is fetched anyway
+to build the model's input, so this costs no request, and it removes a second source whose
+rows would have to be matched to filings by accession.
+
+It is not a leak. The hidden header is stripped before the input is rendered, and the tags
+that remain visible are printed on the page, which is the locatability rule working as
+intended. Tags against dimensional contexts (a subsidiary, a class of shares) are ignored.
+A tagged date is parsed from the few shapes cover pages print it in, and a state tagged by
+name becomes its code; a value that fits no known shape is left out, which drops the filing
+with its reason named rather than guessing.
+
+Whether `companyfacts` also serves these concepts no longer matters to the build. If it
+does, the document's own tags come first.
 
 ## Fair access
 
@@ -193,10 +204,70 @@ country rather than printing the EDGAR code are dropped for their state field; t
 says how many. And the rule that the two statements must declare the same scale drops a
 small class of filings that could in principle be kept.
 
+## The build
+
+`smallprint data build` ([`smallprint/data/build.py`](../smallprint/data/build.py)) runs the
+whole construction: select, fetch, pair, split, write.
+
+- **Selection is by company.** Every 10-K and 10-Q filed in the quarter range, from
+  companies ranked by a keyed hash; `--companies N` takes the first N. Amendments are left
+  out, because a 10-K/A often restates only the part that changed. The selection hash is
+  keyed differently from the pool assignment, so being selected and landing in the test
+  pool are independent draws.
+- **Requests per company:** the filing history (older pages only when they reach back into
+  the range), the facts, and one document per filing, all through the fair-access client.
+- **The stratum** the pools are balanced across is the filer's size band, from the median
+  of its own balance sheets, so that it is constant for a company as pool assignment needs.
+- **Nothing that cannot be fetched stops the build.** A withdrawn document or a company with
+  no XBRL facts is a drop with a named reason, counted with the rest.
+- **`--cutoff` has no default.** It is the latest base-model training cutoff from
+  `docs/models.md`, it defines the headline test set, and a default would be a guess.
+- **Output:** `items.jsonl` (each item with its split), `dropped.jsonl`, and `report.json`
+  with the selection, the pairing tally and the split report. All sorted, so two builds
+  diff cleanly. `data/build/` is not committed; the corpus is published to Hugging Face.
+- **A rebuild runs offline** from the cache with `--offline`, needs no contact address, and
+  reproduces the corpus without asking the SEC for it again. A test builds once through a
+  mock EDGAR and again offline, and asserts the two are identical.
+
+## What the first live build found
+
+2026-09-18, a smoke build of 50 companies, filings dated 2025Q1 to 2026Q2, 236 filings,
+provisional cutoff 2025-12-31 (not the real one; the bases are not chosen). The first run
+kept **41 of 236**. Every large loss was a bug in this code rather than a property of the
+filings, and each fix has a regression test named for the filer that exposed it:
+
+| Found | Cost | Fix |
+|---|---:|---|
+| `form.idx` rows sit five characters right of the header's column labels; offsets read from the header cut the date in half | the whole build | Rows are read from the right, where fields have shapes |
+| A Q2 or Q3 10-Q tags its cover facts against the year to date, not the quarter | 75 | Cover (`dei`) facts are matched on period end alone |
+| Cover pages print "December 31 , 2024", with the comma set apart, and "03/31/2025" | 62 + 40 | Both shapes parsed and searched for |
+| The Andersons tag $371m as contract revenue against $2,659m of sales: the schema preferred the ASC 606 concept, which is only part of the top line | a wrong label, caught by the filter | `us-gaap:Revenues` first in `SCHEMA` |
+| ONEOK prints title and "(Millions of dollars ...)" as rows of the statement table | 10 | Scale read from six rows, "millions of dollars" recognised, heading dropped when the title is inside the table |
+| St. Joe prints shares whole under "(Dollars in thousands ...)" | 3 | Shares found whole when the heading scales only money |
+| Lifetime Brands labels the line "Net (loss) income" | 1 | Anchor allows the parentheses |
+
+After the fixes, rebuilt offline from the cache in 70 seconds: **141 of 236 kept (60%)**.
+What remains is mostly the corpus rather than the code:
+
+| Reason | Filings | What they are |
+|---|---:|---|
+| `truth_missing:revenue` | 41 | SPACs and pre-revenue biotechs and developers. They report no revenue fact; the task requires one |
+| `no_income_statement` | 13 | A BDC and commodity and currency trusts, whose statements are investment-company formats |
+| `unlocatable:shares_diluted` | 10 | Not yet examined |
+| `not_fetched` | 9 | Documents or facts EDGAR did not serve |
+| `truth_missing:cash_and_equivalents` | 6 | Not yet examined; banks tag cash differently |
+| other | 16 | Scattered, five reasons or fewer each |
+
+Spot checks of kept items against their text found the labels right, including the
+attributable-to-parent net income where a filer prints consolidated net income on the line
+above. The model's input runs to about 6,000 characters, well under the 3.5k-token budget
+in the plan's cost table. Parsing costs about a second of CPU per document; the live build
+is bound by the paced fetch, not by parsing.
+
 ## Still to build
 
-- The corpus driver: selecting filings from the quarterly indexes, fetching them through the
-  fair-access client, and running pairing and the splits over the lot.
-- The answer to the open question above, from the first live fetch.
+- The remaining unexamined drop reasons above, then a larger build (a few hundred
+  companies) before the full corpus.
+- The base-model cutoff, from `docs/models.md`, which the full build needs.
 - The datasheet with the drop tally, the checksums and the Hugging Face publication.
 - A hand audit of 200 pairs before any training starts.

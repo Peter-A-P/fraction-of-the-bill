@@ -92,7 +92,8 @@ _SIGNATURES: Final[dict[Section, tuple[re.Pattern[str], ...]]] = {
     Section.INCOME: tuple(
         re.compile(p, re.IGNORECASE)
         for p in (
-            r"net\s+(?:income|loss|earnings)",
+            # "Net (loss) income" is a common label, parentheses and all.
+            r"net\s+\(?(?:income|loss|earnings)",
             r"per\s+(?:common\s+|basic\s+|diluted\s+)?share|per[\s-]share",
             r"\brevenues?\b|\bnet\s+sales\b|\bsales\b",
             r"operating\s+(?:income|loss|expenses)|(?:income|loss)\s+from\s+operations",
@@ -124,6 +125,9 @@ _MIN_NUMERIC_CELLS: Final = 5
 #: period, the scale. A long block is prose, and ends the heading.
 _HEADING_BLOCKS: Final = 4
 _HEADING_MAX_CHARS: Final = 300
+#: How many of a table's first rows can carry its title and scale. ONEOK prints company,
+#: title, period, years and then the scale, all as rows of the statement table.
+_TITLE_ROWS: Final = 6
 
 _NUMERIC_CELL = re.compile(r"^[($\-\u2212\s]*\d[\d,]*(?:\.\d+)?\s*\)?%?$")
 
@@ -132,7 +136,12 @@ _SCALE_WORDS: Final[dict[str, float]] = {
     "millions": 1e6,
     "billions": 1e9,
 }
-_MONEY_SCALE = re.compile(r"\bin\s+(thousands|millions|billions)\b", re.IGNORECASE)
+_MONEY_SCALE = re.compile(
+    r"\bin\s+(thousands|millions|billions)\b"
+    # "(Millions of dollars, except per share amounts)", ONEOK's form.
+    r"|\b(thousands|millions|billions)\s+of\s+(?:u\.?s\.?\s+)?dollars\b",
+    re.IGNORECASE,
+)
 _THOUSANDS_OMITTED = re.compile(r"\b000['\u2019]?s\s+omitted|\bin\s+\$\s*000['\u2019]?s\b", re.I)
 _SHARE_SCALE = re.compile(
     r"\bshares?\b[^)]{0,40}?\bin\s+(thousands|millions|billions)\b", re.IGNORECASE
@@ -383,7 +392,8 @@ def _scales(text: str) -> tuple[float, bool, float | None]:
     """The monetary scale, whether one was printed, and the share scale if it differs."""
     money = _MONEY_SCALE.search(text)
     if money is not None:
-        scale, declared = _SCALE_WORDS[money.group(1).lower()], True
+        word = money.group(1) or money.group(2)
+        scale, declared = _SCALE_WORDS[word.lower()], True
     elif _THOUSANDS_OMITTED.search(text):
         scale, declared = 1e3, True
     else:
@@ -460,11 +470,16 @@ def locate_statement(section: Section, items: Sequence[Block]) -> Statement | No
     # closing date and city would otherwise read as part of the heading. When the title is
     # there, the heading starts at it.
     own_title = _TITLES["income" if section is Section.INCOME else "balance"]
-    titled_at = next((i for i, line in enumerate(heading) if own_title.search(line)), 0)
-    heading = heading[titled_at:]
+    titled_at = next((i for i, line in enumerate(heading) if own_title.search(line)), None)
+    if titled_at is not None:
+        heading = heading[titled_at:]
+    elif any(own_title.search(" ".join(row)) for row in block.rows[:_TITLE_ROWS]):
+        # The title is inside the table, so what sits above it belongs to something else:
+        # on ONEOK's 10-K, the last lines of the audit report and a page footer.
+        heading = ()
     rows = block.rows + _continuation(section, items, index)
     scale, declared, share_scale = _scales(
-        " ".join([*heading, *(" ".join(r) for r in block.rows[:4])])
+        " ".join([*heading, *(" ".join(r) for r in block.rows[:_TITLE_ROWS])])
     )
     return Statement(
         section=section,

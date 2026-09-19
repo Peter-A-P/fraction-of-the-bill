@@ -184,6 +184,35 @@ def test_the_form_index_can_be_filtered_to_the_forms_this_project_uses() -> None
     assert [e.form for e in entries] == ["10-K", "10-K", "10-Q"]
 
 
+#: The layout EDGAR actually serves: every data column five characters right of its label.
+#: The first parser read offsets from the header and cut the date in half on this.
+MISALIGNED_IDX = b"""Description:           Master Index of EDGAR Dissemination Feed by Form Type
+Last Data Received:    March 31, 2025
+
+Form Type   Company Name                                                  CIK         Date Filed  File Name
+---------------------------------------------------------------------------------------------------------------------------------------------
+1                Dream Exchange Holdings, Inc.                                 2057750     2025-02-14  edgar/data/2057750/9999999997-25-000550.txt         
+10-Q             1 800 FLOWERS COM INC                                         1084869     2025-01-31  edgar/data/1084869/0001437749-25-002365.txt         
+SC 13G/A         BETA  CORP, LLC /NY/                                          789019      2025-02-10  edgar/data/789019/0000789019-25-000011.txt         
+"""
+
+
+def test_the_form_index_is_read_as_served_not_as_its_header_claims() -> None:
+    entries = list(parse_form_index(MISALIGNED_IDX))
+    assert [(e.form, e.company, e.cik, e.filed.isoformat()) for e in entries] == [
+        ("1", "Dream Exchange Holdings, Inc.", 2057750, "2025-02-14"),
+        ("10-Q", "1 800 FLOWERS COM INC", 1084869, "2025-01-31"),
+        ("SC 13G/A", "BETA  CORP, LLC /NY/", 789019, "2025-02-10"),
+    ]
+    assert entries[1].accession == "0001437749-25-002365"
+
+
+def test_rows_that_no_longer_have_the_expected_shape_fail_loudly() -> None:
+    body = b"Form Type  CIK\n-----------\n10-K 320193 yesterday somewhere\n"
+    with pytest.raises(ValueError, match="format has changed"):
+        list(parse_form_index(body))
+
+
 def test_an_index_whose_format_has_changed_fails_loudly() -> None:
     with pytest.raises(ValueError, match="format has changed"):
         list(parse_form_index(b"Form Type  CIK\n10-K  320193\n"))

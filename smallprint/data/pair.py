@@ -33,6 +33,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from enum import StrEnum
 from typing import Final, get_args
 
+import lxml.etree
 from pydantic import BaseModel, ConfigDict
 
 from smallprint.data.statements import LocatedFiling, locate
@@ -83,6 +84,12 @@ STATE_NAMES: Final[Mapping[str, str]] = {
 class DropReason(StrEnum):
     """Why a filing did not become an item."""
 
+    #: EDGAR did not serve the document, the company's facts or its filing history.
+    NOT_FETCHED = "not_fetched"
+    #: The filing history does not name a primary document for this accession.
+    NO_PRIMARY_DOCUMENT = "no_primary_document"
+    #: The document is not HTML the parser can read at all.
+    UNREADABLE = "unreadable"
     #: The locator found no table that is the income statement.
     NO_INCOME_STATEMENT = "no_income_statement"
     NO_BALANCE_SHEET = "no_balance_sheet"
@@ -149,7 +156,9 @@ def _date_forms(day: dt.date) -> tuple[str, ...]:
     month = _MONTHS[day.month - 1]
     short = [month[:3], month[:3] + "."] + (["Sept.", "Sept"] if day.month == 9 else [])
     forms = [f"{m} {d}, {day.year}" for m in (month, *short) for d in (day.day, f"{day.day:02d}")]
-    return (*forms, day.isoformat())
+    # Some cover pages print the date as digits: "period ended 03/31/2025".
+    numeric = (f"{day.month:02d}/{day.day:02d}/{day.year}", f"{day.month}/{day.day}/{day.year}")
+    return (*forms, *numeric, day.isoformat())
 
 
 def _found_number(spec: FieldSpec, truth: float, located: LocatedFiling, ctx: GradeContext) -> bool:
@@ -176,7 +185,8 @@ def locatable(spec: FieldSpec, truth: object, located: LocatedFiling, ctx: Grade
     match spec.kind:
         case FieldKind.DATE:
             assert isinstance(truth, dt.date)
-            folded = " ".join(text.split()).casefold()
+            # "December 31 , 2024", with the comma set apart, is printed on real cover pages.
+            folded = " ".join(text.split()).replace(" ,", ",").casefold()
             return any(form.casefold() in folded for form in _date_forms(truth))
         case FieldKind.CATEGORICAL:
             assert isinstance(truth, str)
@@ -188,6 +198,25 @@ def locatable(spec: FieldSpec, truth: object, located: LocatedFiling, ctx: Grade
         case _:
             assert isinstance(truth, float | int)
             return _found_number(spec, float(truth), located, ctx)
+
+
+def _read_share_scale(truth: Extraction, located: LocatedFiling, ctx: GradeContext) -> GradeContext:
+    """Shares printed whole under a heading that scales only the money.
+
+    "(Dollars in thousands except per share amounts)" says nothing about share counts, and
+    many filers under such a heading print them whole. When the heading gives shares no
+    scale of their own, and the count is on the page whole but not at the money's scale,
+    the page has said how it prints shares, and the grader is told so. Found on the first
+    live build, where this dropped one filing in thirty.
+    """
+    shares = truth.shares_diluted
+    if shares is None or ctx.share_scale is not None or ctx.scale == 1.0:
+        return ctx
+    spec = FIELDS["shares_diluted"]
+    if locatable(spec, shares, located, ctx):
+        return ctx
+    whole = ctx.model_copy(update={"share_scale": 1.0})
+    return whole if locatable(spec, shares, located, whole) else ctx
 
 
 def _cover_value(facts: Sequence[Fact], concept: str) -> str | None:
@@ -225,7 +254,10 @@ def pair_filing(
     if period_end is None or fiscal_period is None:
         return Dropped(item_id=accession, reason=DropReason.NO_PERIOD)
 
-    located = locate(document)
+    try:
+        located = locate(document)
+    except (lxml.etree.ParserError, ValueError):
+        return Dropped(item_id=accession, reason=DropReason.UNREADABLE)
     if located.income is None:
         return Dropped(item_id=accession, reason=DropReason.NO_INCOME_STATEMENT)
     if located.balance is None:
@@ -244,6 +276,7 @@ def pair_filing(
             return Dropped(item_id=accession, reason=DropReason.TRUTH_MISSING, field=name)
 
     ctx = GradeContext(scale=scale, share_scale=located.income.share_scale, distractors=distractors)
+    ctx = _read_share_scale(truth, located, ctx)
     for name, spec in FIELDS.items():
         value = getattr(truth, name)
         if value is not None and not locatable(spec, value, located, ctx):

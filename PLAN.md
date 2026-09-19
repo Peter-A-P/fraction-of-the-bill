@@ -1,10 +1,10 @@
 # Plan: Frontier Quality at a Fraction of the Bill
 
-**Written:** 2026-09-07. **Revised:** 2026-09-14 (rev. 2, section 3).
+**Written:** 2026-09-07. **Revised:** 2026-09-14 (rev. 2, section 3); 2026-09-18 (rev. 3, section 3).
 **Status:** week 1 started 2026-09-14, about seven months early. The schema, the grader, the
-EDGAR fair-access client, the XBRL fact selection, the splits, the statement locator and the
-locatability filter are built and tested; nothing has been fetched, trained, quantised,
-served or spent.
+EDGAR fair-access client, the XBRL fact selection, the splits, the statement locator, the
+locatability filter and the corpus build are built and tested; nothing has been fetched,
+trained, quantised, served or spent.
 
 **Build:** three weeks, Apr 5 to Apr 25 2027, slack to Apr 30. **Package:** `smallprint`.
 **Fed by:** 03 (the gate runs the comparison and supplies intervals and the power function
@@ -167,6 +167,15 @@ on the first fetch and recorded in `docs/data.md` before any filing is paired. `
 accepts a string for that reason. If the three fields prove unavailable at corpus scale
 they are dropped and the task becomes twelve fields, which is a change to `SCHEMA`, to
 `docs/data.md` and to this section in one commit.
+
+**Rev. 3, 2026-09-18, on the same question.** Answered by a better source than either one
+above: the filing's own inline XBRL. Every 10-K and 10-Q since 2019 tags the cover-page
+facts with `ix:nonNumeric` in the document the model's input is built from, so they are
+read from there (`smallprint/data/ixbrl.py`). They are what the company filed, the document
+is fetched anyway, and no second source has to be matched to filings by accession. The
+bulk data sets go back to the cross-check role the table gives them. The schema stays at
+fifteen fields. The hidden header that carries some of these tags is stripped from the
+model's input, so reading truth from the same document is not a leak.
 
 ## 4. Methods and architecture
 

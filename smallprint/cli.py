@@ -9,12 +9,14 @@ out otherwise is whoever trusted it.
 
 from __future__ import annotations
 
+import datetime as dt
 import os
 from pathlib import Path
 
 import typer
 
 from smallprint import __version__
+from smallprint.data.build import build, write_build
 from smallprint.data.edgar import CONTACT_ENV, ContactNotDeclared, EdgarClient, declared_contact
 from smallprint.data.statements import Statement, locate
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
@@ -112,6 +114,55 @@ def locate_command(
     typer.echo(f"auditor block: {'found' if located.auditor else 'not found'}")
     if located.income is None or located.balance is None:
         raise typer.Exit(code=1)
+
+
+@data_app.command("build")
+def build_command(
+    first: str = typer.Option(..., help="First quarter of filing dates, like 2022Q1."),
+    last: str = typer.Option(..., help="Last quarter of filing dates, like 2027Q1."),
+    cutoff: str = typer.Option(
+        ...,
+        help=(
+            "The latest training cutoff of the base models, YYYY-MM-DD, from docs/models.md. "
+            "No default: the headline test set is defined by it."
+        ),
+    ),
+    companies: int | None = typer.Option(
+        None, help="Take this many companies, chosen by a keyed hash. All when omitted."
+    ),
+    seed: int = typer.Option(20270405, help="Seed for selection and pool assignment."),
+    cache_dir: Path = typer.Option(Path("data/raw"), help="Where fetched documents are kept."),
+    out: Path = typer.Option(Path("data/build"), help="Where the corpus is written."),
+    offline: bool = typer.Option(
+        False, help="Read the cache only. A rebuild needs no contact and fetches nothing."
+    ),
+) -> None:
+    """Select, fetch, pair and split the corpus, and write it with the reasons for every drop."""
+    try:
+        cutoff_date = dt.date.fromisoformat(cutoff)
+    except ValueError as bad:
+        raise typer.BadParameter(f"not a date: {cutoff!r}", param_hint="--cutoff") from bad
+    try:
+        edgar = EdgarClient(cache_dir, offline=offline)
+    except ContactNotDeclared as refusal:
+        typer.echo(f"Not configured: {refusal}")
+        raise typer.Exit(code=1) from refusal
+    with edgar:
+        items, dropped, report = build(
+            edgar,
+            first=first,
+            last=last,
+            cutoff=cutoff_date,
+            companies=companies,
+            seed=seed,
+            progress=lambda done, total: typer.echo(f"{done:,} of {total:,} companies", err=True),
+        )
+    write_build(out, items, dropped, report)
+    typer.echo(f"{report.filings_selected:,} filings from {report.companies_selected:,} companies.")
+    for reason, count in report.pairing.items():
+        typer.echo(f"  {reason}: {count:,}")
+    typer.echo(str(report.split))
+    typer.echo(f"Written to {out}.")
 
 
 def main() -> None:

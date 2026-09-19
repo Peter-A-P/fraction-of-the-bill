@@ -229,6 +229,16 @@ class EdgarClient:
         """A company's filing history, including the accession numbers and primary documents."""
         return self.get_json(f"{DATA_HOST}/submissions/CIK{cik:010d}.json")
 
+    def submissions_page(self, name: str) -> object:
+        """An older page of a company's filing history, named in the first page's `files`.
+
+        The first page holds only the most recent thousand or so filings. A large filer's
+        insider and current reports push its 2022 10-Qs off it.
+        """
+        if not re.fullmatch(r"CIK\d{10}-submissions-\d{3}\.json", name):
+            raise ValueError(f"not a submissions page name: {name!r}")
+        return self.get_json(f"{DATA_HOST}/submissions/{name}")
+
     def company_facts(self, cik: int) -> object:
         """Every XBRL fact a company has ever filed. This is where truth comes from."""
         return self.get_json(f"{DATA_HOST}/api/xbrl/companyfacts/CIK{cik:010d}.json")
@@ -266,13 +276,25 @@ class IndexEntry(BaseModel):
         return Path(self.path).stem
 
 
+#: One row of a form index, read from the right. The CIK, the date and the path have fixed
+#: shapes; the company name is whatever lies between them and the form type, and the form
+#: type ends at the first run of two or more spaces (form types contain single spaces, as in
+#: "SC 13G/A", never double ones).
+_INDEX_ROW = re.compile(
+    r"^(?P<form>\S(?:\S| (?! ))*)\s{2,}(?P<company>.*?)\s+(?P<cik>\d+)\s+"
+    r"(?P<filed>\d{4}-\d{2}-\d{2})\s+(?P<path>edgar/\S+)\s*$"
+)
+
+
 def parse_form_index(body: bytes, forms: frozenset[str] | None = None) -> Iterator[IndexEntry]:
     """Parse a quarterly `form.idx` into entries, optionally keeping only some forms.
 
-    The file is fixed-width with a header that ends in a line of dashes, and the company
-    name column contains spaces, commas and occasionally the word that looks like a column
-    separator. Splitting on whitespace loses roughly one company in fifty, so this reads the
-    column offsets from the header line instead of guessing them.
+    The file looks fixed-width, but its header does not line up with its rows: in the files
+    EDGAR actually serves, every data column sits five characters to the right of the label
+    above it. Reading offsets from the header, which this function first did against a
+    fixture that happened to be aligned, cuts the date in half on the first real file. So
+    each row is read from the right, where the fields have shapes, and the company name
+    (spaces, commas, slashes and all) is what is left in the middle.
     """
     text = body.decode("latin-1")
     lines = text.splitlines()
@@ -280,26 +302,23 @@ def parse_form_index(body: bytes, forms: frozenset[str] | None = None) -> Iterat
     header_at = next((i for i, line in enumerate(lines) if set(line.strip()) == {"-"}), None)
     if header_at is None or header_at == 0:
         raise ValueError("form.idx has no dashed separator line; the format has changed")
-    columns = lines[header_at - 1]
-    starts = [columns.index(name) for name in ("Form Type", "CIK", "Date Filed", "File Name")]
-    company_start = columns.index("Company Name")
 
-    for line in lines[header_at + 1 :]:
-        if not line.strip():
+    rows = [line for line in lines[header_at + 1 :] if line.strip()]
+    matched = 0
+    for line in rows:
+        row = _INDEX_ROW.match(line)
+        if row is None:
             continue
-        form = line[starts[0] : company_start].strip()
+        matched += 1
+        form = row.group("form")
         if forms is not None and form not in forms:
-            continue
-        company = line[company_start : starts[1]].strip()
-        cik = line[starts[1] : starts[2]].strip()
-        filed = line[starts[2] : starts[3]].strip()
-        path = line[starts[3] :].strip()
-        if not cik.isdigit():
             continue
         yield IndexEntry(
             form=form,
-            cik=int(cik),
-            company=company,
-            filed=dt.date.fromisoformat(filed),
-            path=path,
+            cik=int(row.group("cik")),
+            company=row.group("company").strip(),
+            filed=dt.date.fromisoformat(row.group("filed")),
+            path=row.group("path"),
         )
+    if rows and not matched:
+        raise ValueError("no form.idx row has the expected shape; the format has changed")

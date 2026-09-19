@@ -13,9 +13,19 @@ from typing import Any
 import filings
 import pytest
 
-from smallprint.data.pair import Dropped, DropReason, Item, pair_filing, printed_numbers, tally
+from smallprint.data.pair import (
+    Dropped,
+    DropReason,
+    Item,
+    locatable,
+    pair_filing,
+    printed_numbers,
+    tally,
+)
+from smallprint.data.statements import LocatedFiling
 from smallprint.data.xbrl import Fact
-from smallprint.grade import grade_item
+from smallprint.grade import GradeContext, grade_item
+from smallprint.schema import FIELDS
 
 
 def pair(
@@ -119,6 +129,17 @@ def test_shares_printed_whole_under_an_except_share_heading_are_found() -> None:
     assert item.context.share_scale == 1.0
 
 
+def test_shares_printed_whole_under_a_heading_that_scales_only_money_are_found() -> None:
+    """St. Joe's statements, on the first live build: dollars in thousands, shares whole."""
+    item = kept(
+        pair(
+            scale_note="(Dollars in thousands except per share amounts)",
+            shares=("14,580,000", "14,760,000", "14,560,000", "14,790,000"),
+        )
+    )
+    assert item.context.share_scale == 1.0
+
+
 def test_shares_printed_in_thousands_under_an_except_share_heading_are_dropped() -> None:
     """The heading says shares are whole; the page prints them in thousands. The label is not there."""
     result = dropped(pair(scale_note="(In thousands, except share and per share data)"))
@@ -154,6 +175,17 @@ def test_a_filing_missing_a_required_fact_is_dropped_by_name() -> None:
 def test_facts_from_another_filing_are_not_used() -> None:
     other = [f.model_copy(update={"accession": "0001234567-26-000001"}) for f in filings.facts()]
     assert dropped(pair(facts=other)).reason is DropReason.NO_PERIOD
+
+
+@pytest.mark.parametrize(
+    "printed", ["September 30 , 2026", "09/30/2026", "9/30/2026", "Sept. 30, 2026"]
+)
+def test_the_period_end_is_found_as_cover_pages_actually_print_it(printed: str) -> None:
+    """The first two shapes cost 40 filings in 236 on the first live build."""
+    located = LocatedFiling(
+        cover=f"For the quarterly period ended {printed}", income=None, balance=None, auditor=""
+    )
+    assert locatable(FIELDS["period_end"], filings.Q3_END, located, GradeContext())
 
 
 def test_printed_numbers_reads_magnitudes_and_dashes_for_zero() -> None:

@@ -120,9 +120,13 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
             "Total revenue for the period, in whole units of the reporting currency. The top "
             "line of the income statement, for the current period only."
         ),
+        # Revenues first. It is the total by definition; the contract-revenue concept is
+        # what ASC 606 revenue is tagged with, and a filer with other revenue (commodity
+        # derivatives, leases, interest) tags only part of its top line with it. The first
+        # live build found a filer whose contract revenue was $371m of $2,659m of sales.
         concepts=(
-            "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
             "us-gaap:Revenues",
+            "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
             "us-gaap:SalesRevenueNet",
             "us-gaap:RevenueFromContractWithCustomerIncludingAssessedTax",
         ),
