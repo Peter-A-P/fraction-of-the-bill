@@ -264,3 +264,12 @@ def test_a_cover_fact_tagged_against_the_year_to_date_is_still_the_cover_fact() 
     ]
     chosen, _ = select_fact(facts, FIELDS["period_end"], period_end=PERIOD_END, fiscal_period="Q3")
     assert chosen is not None
+
+
+def test_a_filer_with_only_cash_has_its_cash_taken_as_cash_and_equivalents() -> None:
+    facts = [instant("us-gaap:Cash", 10_603_681.0)]
+    chosen, _ = select_fact(
+        facts, FIELDS["cash_and_equivalents"], period_end=PERIOD_END, fiscal_period="Q3"
+    )
+    assert chosen is not None
+    assert chosen.value == 10_603_681.0

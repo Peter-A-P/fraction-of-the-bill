@@ -9,10 +9,10 @@ month on API calls, this is the project that finds most of it.
 its named failure modes and paired bootstrap intervals, the SEC fair-access client, XBRL
 fact selection, the company-level splits, the statement locator that finds what the model
 is shown inside a filing, the locatability filter that keeps a filing only when its
-labels are printed where they are read from, and the corpus build that runs all of it over
-EDGAR and reproduces offline from its cache. **Nothing has been fetched, trained,
-quantised, served or spent.** The fetcher is deliberately gated on a declared contact
-address, as the SEC's access policy requires. The plan is in [PLAN.md](PLAN.md); the
+labels are printed where they are read from, the corpus build that runs all of it over
+EDGAR and reproduces offline from its cache, and the load-test, cost-per-call and
+break-even arithmetic ([docs/cost.md](docs/cost.md)). A smoke build over 50 companies has
+been fetched; **nothing has been trained, quantised, served or spent.** The plan is in [PLAN.md](PLAN.md); the
 dataset design and the open questions are in [docs/data.md](docs/data.md).
 
 ## Result

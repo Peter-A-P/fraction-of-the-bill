@@ -229,6 +229,9 @@ SCHEMA: Final[tuple[FieldSpec, ...]] = (
         concepts=(
             "us-gaap:CashAndCashEquivalentsAtCarryingValue",
             "us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+            # A filer with no cash equivalents prints one line, "Cash", and tags it so. The
+            # first live build found one filing it on every report.
+            "us-gaap:Cash",
         ),
     ),
     FieldSpec(

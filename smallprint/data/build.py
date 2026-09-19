@@ -55,6 +55,13 @@ _SIZE_BANDS: Final[tuple[tuple[float, str], ...]] = (
     (1e10, "1b_to_10b"),
 )
 
+#: Banks and savings institutions, excluded by decision (docs/data.md, 2026-09-19). They
+#: report interest income and gains on loans with no single revenue line, so the task's
+#: required top line has no fact to grade against, and defining one for them would be a
+#: second task. National and state commercial banks, commercial banks not elsewhere
+#: classified, and federally and state chartered savings institutions.
+BANK_INDUSTRY_CODES: Final[frozenset[int]] = frozenset({6021, 6022, 6029, 6035, 6036})
+
 _FETCH_ERRORS: Final = (httpx.HTTPError, FairAccessViolation, UnusableFacts, ValueError)
 
 
@@ -113,13 +120,27 @@ def _documents_in(table: object) -> dict[str, str]:
     return {a: d for a, d in zip(accessions, documents, strict=False) if d}
 
 
-def primary_documents(edgar: EdgarClient, cik: int, *, since: dt.date) -> dict[str, str]:
+def industry_code(payload: object) -> int | None:
+    """The company's Standard Industrial Classification code, from its filing history."""
+    if not isinstance(payload, Mapping):
+        return None
+    sic = payload.get("sic")
+    if isinstance(sic, int):
+        return sic
+    return int(sic) if isinstance(sic, str) and sic.isdigit() else None
+
+
+def primary_documents(
+    edgar: EdgarClient, cik: int, *, since: dt.date, payload: object | None = None
+) -> dict[str, str]:
     """Accession number to primary document name, back as far as `since`.
 
     Older pages are fetched only when they reach back into the range, because a large
-    filer's history runs to many pages of filings this build never reads.
+    filer's history runs to many pages of filings this build never reads. `payload` is the
+    first page if the caller already has it.
     """
-    payload = edgar.submissions(cik)
+    if payload is None:
+        payload = edgar.submissions(cik)
     if not isinstance(payload, Mapping):
         raise UnusableFacts(f"submissions for {cik} is not an object")
     filings = payload.get("filings")
@@ -143,8 +164,18 @@ def build_company(
 ) -> list[Item | Dropped]:
     """Every selected filing of one company, paired or dropped by name."""
     try:
+        history = edgar.submissions(cik)
+    except _FETCH_ERRORS:
+        return [Dropped(item_id=e.accession, reason=DropReason.NOT_FETCHED) for e in entries]
+    # Before the facts and documents are fetched, so that an excluded company costs one
+    # request rather than one per filing.
+    if industry_code(history) in BANK_INDUSTRY_CODES:
+        return [Dropped(item_id=e.accession, reason=DropReason.BANK) for e in entries]
+    try:
         facts: list[Fact] = parse_company_facts(edgar.company_facts(cik))
-        documents = primary_documents(edgar, cik, since=min(e.filed for e in entries))
+        documents = primary_documents(
+            edgar, cik, since=min(e.filed for e in entries), payload=history
+        )
     except _FETCH_ERRORS:
         return [Dropped(item_id=e.accession, reason=DropReason.NOT_FETCHED) for e in entries]
 

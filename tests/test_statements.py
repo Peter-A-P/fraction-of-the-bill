@@ -99,7 +99,8 @@ def test_a_table_titled_as_another_statement_is_never_taken() -> None:
     assert locate_statement(Section.INCOME, blocks(doc)) is None
 
 
-def test_a_comprehensive_income_statement_is_not_the_income_statement() -> None:
+def test_a_standalone_comprehensive_income_statement_is_not_the_income_statement() -> None:
+    """It starts from net income and has no per-share lines."""
     rows = "".join(
         f"<tr><td>{label}</td><td>{a}</td><td>{b}</td></tr>"
         for label, a, b in (
@@ -107,7 +108,7 @@ def test_a_comprehensive_income_statement_is_not_the_income_statement() -> None:
             ("Foreign currency translation, net of income tax", "(50)", "20"),
             ("Unrealised gains on securities", "10", "5"),
             ("Total other comprehensive income (loss)", "(40)", "25"),
-            ("Comprehensive income from operations of the period, per share", "0.10", "0.09"),
+            ("Comprehensive income", "960", "925"),
         )
     )
     doc = (
@@ -115,6 +116,43 @@ def test_a_comprehensive_income_statement_is_not_the_income_statement() -> None:
         f"<table>{rows}</table></body></html>"
     ).encode()
     assert locate_statement(Section.INCOME, blocks(doc)) is None
+
+
+def test_a_combined_statement_of_comprehensive_income_is_the_income_statement() -> None:
+    """Deckers, on the first live build: the income statement is titled "comprehensive
+    income", and excluding it handed the choice to the discussion section's results table."""
+    statement_rows = (
+        ("Net sales", "1,827,166", "1,560,264"),
+        ("Income from operations", "566,971", "478,391"),
+        ("Income tax expense", "(130,000)", "(110,000)"),
+        ("Net income", "456,653", "396,154"),
+        ("Diluted net income per share", "3.00", "2.52"),
+        ("Weighted-average common shares outstanding, diluted", "152,386", "157,000"),
+        ("Other comprehensive loss, net of tax", "(5,000)", "(3,000)"),
+    )
+    results_rows = (
+        ("Net sales", "1,827,166", "1,560,264"),
+        ("Income from operations", "566,971", "478,391"),
+        ("Net income", "456,653", "396,154"),
+        ("Diluted", "3.00", "2.52"),
+    )
+
+    def table(rows: tuple[tuple[str, str, str], ...]) -> str:
+        body = "".join(f"<tr><td>{a}</td><td>{b}</td><td>{c}</td></tr>" for a, b, c in rows)
+        return f"<table>{body}</table>"
+
+    doc = (
+        "<html><body><p>RESULTS OF OPERATIONS</p>"
+        + table(results_rows)
+        + "<p>CONDENSED CONSOLIDATED STATEMENTS OF COMPREHENSIVE INCOME</p>"
+        + "<p>(amounts in thousands, except per share data)</p>"
+        + table(statement_rows)
+        + "</body></html>"
+    ).encode()
+    statement = locate_statement(Section.INCOME, blocks(doc))
+    assert statement is not None
+    assert any("Weighted-average" in row[0] for row in statement.rows)
+    assert statement.heading[0] == "CONDENSED CONSOLIDATED STATEMENTS OF COMPREHENSIVE INCOME"
 
 
 def test_a_table_of_contents_naming_every_statement_is_not_a_statement() -> None:

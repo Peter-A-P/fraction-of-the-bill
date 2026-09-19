@@ -264,10 +264,59 @@ above. The model's input runs to about 6,000 characters, well under the 3.5k-tok
 in the plan's cost table. Parsing costs about a second of CPU per document; the live build
 is bound by the paced fetch, not by parsing.
 
+Two more fixes followed from the last unexamined reasons, taking the smoke build to **152 of
+236 (64%)**: a combined "statement of comprehensive income" that carries per-share lines is
+the income statement (Deckers' is titled so, and the locator had taken the discussion
+section's results table instead), and `us-gaap:Cash` is the last fallback for cash and
+equivalents (a filer with no equivalents tags its one line so). Lifetime Brands prints no
+weighted shares on its income statement at all, and is dropped as the plan's rule says.
+
+## The 300-company build
+
+2026-09-19, 300 companies, same range and provisional cutoff: 1,456 filings, fetched in
+about an hour at the paced rate, 3.9 GB of cache in all, rebuilt offline in 14 minutes.
+**715 kept (49%).** Lower than the smoke build, because a wider draw reaches more kinds of
+filer:
+
+| Reason | Filings | |
+|---|---:|---|
+| `truth_missing:revenue` | 280 | Broken down below |
+| `no_income_statement` | 105 | Not yet examined at this scale; in the smoke build, funds and trusts |
+| `unlocatable:shares_diluted` | 66 | Not yet examined at this scale |
+| `unlocatable:revenue` | 64 | Not yet examined at this scale |
+| `not_fetched` | 59 | |
+| `unlocatable:period_end` | 40 | |
+| `unlocatable:auditor_name` | 34 | New at this scale |
+| `no_balance_sheet` | 26 | New at this scale |
+| other | 72 | Twelve reasons, 17 or fewer each |
+
+The 280 filings (71 companies) with no revenue label, by what they do tag:
+
+| | Filings | |
+|---|---:|---|
+| No revenue concept at all | 95 | Pre-revenue companies and shells. Correctly dropped |
+| SPACs | 41 | Correctly dropped |
+| Banks and other lenders | about 54 | Interest income and gains on loans, no single revenue line. **Excluded by decision, below** |
+| A revenue concept the selection did not take | 40 | Probably a bug in period selection. To examine first |
+| Other revenue concepts | about 50 | Broker-dealer revenue net of interest, and others |
+
+### Banks are out of scope (decided 2026-09-19)
+
+Banks and savings institutions report interest income, fee income and gains on loans, and
+no single line that is their revenue. The task requires a revenue label and grades it
+against one tagged fact, so for a bank there is nothing to grade against; defining bank
+revenue (interest plus non-interest income, say) would be a second task with its own
+truth rule. They are excluded by industry code before anything but their filing history is
+fetched (`BANK_INDUSTRY_CODES` in `build.py`: 6021, 6022, 6029, 6035, 6036), and counted
+under their own drop reason, `bank`. **The corpus therefore underweights financial
+companies, and the datasheet says so.** Insurers, REITs and broker-dealers are not
+excluded; they have revenue lines, and whether their filings survive the filter is left to
+the filter.
+
 ## Still to build
 
-- The remaining unexamined drop reasons above, then a larger build (a few hundred
-  companies) before the full corpus.
+- The 40 filings with a revenue concept that was not selected, then the other unexamined
+  reasons at 300-company scale.
 - The base-model cutoff, from `docs/models.md`, which the full build needs.
 - The datasheet with the drop tally, the checksums and the Hugging Face publication.
 - A hand audit of 200 pairs before any training starts.

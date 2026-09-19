@@ -86,6 +86,9 @@ class DropReason(StrEnum):
 
     #: EDGAR did not serve the document, the company's facts or its filing history.
     NOT_FETCHED = "not_fetched"
+    #: A bank or savings institution, out of scope by decision (docs/data.md, 2026-09-19):
+    #: it reports interest income and gains on loans, with no single revenue line to grade.
+    BANK = "bank"
     #: The filing history does not name a primary document for this accession.
     NO_PRIMARY_DOCUMENT = "no_primary_document"
     #: The document is not HTML the parser can read at all.

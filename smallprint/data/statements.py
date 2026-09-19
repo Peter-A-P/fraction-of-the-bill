@@ -365,20 +365,36 @@ def _numeric_cells(rows: Sequence[Sequence[str]]) -> int:
     return sum(1 for row in rows for cell in row if _NUMERIC_CELL.match(cell))
 
 
+def _statement_titles(section: Section, title_text: str, labels: str) -> set[str]:
+    """The statements a table's heading names, with combined statements resolved.
+
+    Many filers print one "statement of comprehensive income" that is the income statement
+    with other comprehensive income appended. It carries per-share lines; a standalone
+    comprehensive income statement, which starts from net income, does not. Deckers titles
+    its income statement this way, and on the first live build the locator took the
+    discussion section's results table instead.
+    """
+    titles = _titles(title_text)
+    per_share = _SIGNATURES[Section.INCOME][1]
+    if section is Section.INCOME and "comprehensive" in titles and per_share.search(labels):
+        titles = (titles - {"comprehensive"}) | {"income"}
+    return titles
+
+
 def _score(section: Section, block: Block, heading: Sequence[str]) -> int | None:
     """How much a table looks like `section`, or None if it cannot be that statement."""
     assert block.rows is not None
     if _numeric_cells(block.rows) < _MIN_NUMERIC_CELLS:
         return None
     title_text = " ".join([*heading, *(" ".join(r) for r in block.rows[:3])])
-    titles = _titles(title_text)
+    labels = " ".join(row[0] for row in block.rows if row)
+    titles = _statement_titles(section, title_text, labels)
     own = "income" if section is Section.INCOME else "balance"
     if titles and own not in titles:
         # Titled as another statement. The cash flow statement has net income and cash and
         # cash equivalents; it is still the cash flow statement.
         return None
 
-    labels = " ".join(row[0] for row in block.rows if row)
     signatures = _SIGNATURES[section]
     if not signatures[0].search(labels):
         return None
@@ -431,11 +447,12 @@ def _continuation(
             continue
         assert block.rows is not None
         heading = _heading(items, j)
-        titles = _titles(" ".join([*heading, *(" ".join(r) for r in block.rows[:3])]))
+        labels = " ".join(row[0] for row in block.rows if row)
+        title_text = " ".join([*heading, *(" ".join(r) for r in block.rows[:3])])
+        titles = _statement_titles(section, title_text, labels)
         own = "income" if section is Section.INCOME else "balance"
         if titles and own not in titles:
             return ()
-        labels = " ".join(row[0] for row in block.rows if row)
         matched = sum(1 for pattern in _SIGNATURES[section] if pattern.search(labels))
         if matched >= 2 and _numeric_cells(block.rows) >= _MIN_NUMERIC_CELLS:
             return block.rows
@@ -469,11 +486,19 @@ def locate_statement(section: Section, items: Sequence[Block]) -> Statement | No
     # In an annual report the audit opinion runs straight into the statements, and its
     # closing date and city would otherwise read as part of the heading. When the title is
     # there, the heading starts at it.
-    own_title = _TITLES["income" if section is Section.INCOME else "balance"]
-    titled_at = next((i for i, line in enumerate(heading) if own_title.search(line)), None)
+    own_titles = (
+        (_TITLES["income"], _TITLES["comprehensive"])
+        if section is Section.INCOME
+        else (_TITLES["balance"],)
+    )
+
+    def is_title(line: str) -> bool:
+        return any(t.search(line) for t in own_titles)
+
+    titled_at = next((i for i, line in enumerate(heading) if is_title(line)), None)
     if titled_at is not None:
         heading = heading[titled_at:]
-    elif any(own_title.search(" ".join(row)) for row in block.rows[:_TITLE_ROWS]):
+    elif any(is_title(" ".join(row)) for row in block.rows[:_TITLE_ROWS]):
         # The title is inside the table, so what sits above it belongs to something else:
         # on ONEOK's 10-K, the last lines of the audit report and a page footer.
         heading = ()

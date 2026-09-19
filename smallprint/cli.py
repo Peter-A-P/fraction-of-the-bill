@@ -16,6 +16,8 @@ from pathlib import Path
 import typer
 
 from smallprint import __version__
+from smallprint.bench.breakeven import BreakEvenInputs, curve
+from smallprint.bench.cost import GpuPrice, PriceKind
 from smallprint.data.build import build, write_build
 from smallprint.data.edgar import CONTACT_ENV, ContactNotDeclared, EdgarClient, declared_contact
 from smallprint.data.statements import Statement, locate
@@ -163,6 +165,62 @@ def build_command(
         typer.echo(f"  {reason}: {count:,}")
     typer.echo(str(report.split))
     typer.echo(f"Written to {out}.")
+
+
+@app.command()
+def breakeven(
+    gpu: str = typer.Option(..., help="The GPU, as the price table names it."),
+    provider: str = typer.Option(..., help="Who rents it."),
+    kind: PriceKind = typer.Option(..., help="Spot or on-demand."),
+    usd_per_hour: float = typer.Option(..., help="The GPU-hour rate in US dollars."),
+    checked: str = typer.Option(
+        ..., help="The date the rate was read, YYYY-MM-DD. Every price carries its date."
+    ),
+    source: str = typer.Option(..., help="Where the rate was read."),
+    requests_per_second: float = typer.Option(..., help="Measured throughput on that GPU."),
+    api_usd_per_call: float = typer.Option(..., help="The API's cost per call, from the ledger."),
+    fixed_usd_per_month: float = typer.Option(
+        0.0, help="Any fixed monthly cost of self-hosting to count. Printed either way."
+    ),
+) -> None:
+    """The monthly volume at which self-hosting stops costing more, over utilisation.
+
+    Every input is an argument so that a reader can substitute their own rate, throughput,
+    API cost and fixed costs; nothing here is a default except the fixed cost of zero.
+    """
+    try:
+        checked_on = dt.date.fromisoformat(checked)
+    except ValueError as bad:
+        raise typer.BadParameter(f"not a date: {checked!r}", param_hint="--checked") from bad
+    inputs = BreakEvenInputs(
+        price=GpuPrice(
+            gpu=gpu,
+            provider=provider,
+            kind=kind,
+            usd_per_hour=usd_per_hour,
+            checked=checked_on,
+            source=source,
+        ),
+        requests_per_second=requests_per_second,
+        api_usd_per_call=api_usd_per_call,
+        fixed_usd_per_month=fixed_usd_per_month,
+    )
+    typer.echo(f"{inputs.price}")
+    typer.echo(
+        f"Throughput {requests_per_second:,.2f} req/s; API US${api_usd_per_call:.6f} per call; "
+        f"fixed US${fixed_usd_per_month:,.2f} per month; {inputs.hours_per_month} h per month."
+    )
+    typer.echo("")
+    typer.echo(
+        f"{'utilisation':>11}  {'self $/1k':>10}  {'API $/1k':>10}  {'break-even per month':>22}  gpus"
+    )
+    for point in curve(inputs):
+        volume = "never" if point.volume_per_month is None else f"{point.volume_per_month:,.0f}"
+        gpus = "" if point.gpus_at_break_even is None else str(point.gpus_at_break_even)
+        typer.echo(
+            f"{point.utilisation:>11.0%}  {point.self_hosted_usd_per_call * 1000:>10.4f}  "
+            f"{point.api_usd_per_call * 1000:>10.4f}  {volume:>22}  {gpus}"
+        )
 
 
 def main() -> None:

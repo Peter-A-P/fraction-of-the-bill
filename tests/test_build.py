@@ -33,6 +33,8 @@ from smallprint.data.xbrl import Fact
 
 NO_FACTS_CIK = 7654321
 NO_FACTS_ACCESSION = "0007654321-26-000003"
+BANK_CIK = 5550001
+BANK_ACCESSION = "0005550001-26-000009"
 
 HEADER = (
     "Description:           Master Index of EDGAR Dissemination Feed by Form Type\n"
@@ -52,7 +54,8 @@ FORM_INDEX = {
         "10-Q", "EXAMPLE WIDGETS, INC.", filings.CIK, "2026-11-04", filings.QUARTERLY_ACCESSION
     )
     + index_line("8-K", "EXAMPLE WIDGETS, INC.", filings.CIK, "2026-11-05", "0001234567-26-000050")
-    + index_line("10-Q", "NO FACTS CORP", NO_FACTS_CIK, "2026-11-10", NO_FACTS_ACCESSION),
+    + index_line("10-Q", "NO FACTS CORP", NO_FACTS_CIK, "2026-11-10", NO_FACTS_ACCESSION)
+    + index_line("10-Q", "FIRST EXAMPLE BANCORP", BANK_CIK, "2026-11-12", BANK_ACCESSION),
     (2027, 1): HEADER
     + index_line(
         "10-K", "EXAMPLE WIDGETS, INC.", filings.CIK, "2027-02-25", filings.ANNUAL_ACCESSION
@@ -119,6 +122,9 @@ def routes() -> dict[str, bytes]:
     out |= {
         f"{data}/submissions/CIK0001234567.json": json.dumps(submissions).encode(),
         f"{data}/submissions/CIK0001234567-submissions-001.json": json.dumps(older).encode(),
+        f"{data}/submissions/CIK{BANK_CIK:010d}.json": json.dumps(
+            {"sic": "6022", "sicDescription": "State commercial banks", "filings": {}}
+        ).encode(),
         f"{data}/api/xbrl/companyfacts/CIK0001234567.json": json.dumps(
             company_facts_json(facts)
         ).encode(),
@@ -162,15 +168,22 @@ def test_only_ten_ks_and_ten_qs_are_selected(
     built: Built,
 ) -> None:
     _, _, report, _, _ = built
-    assert report.filings_selected == 3  # not the 8-K, not the 10-K/A
-    assert report.companies_selected == 2
+    assert report.filings_selected == 4  # not the 8-K, not the 10-K/A
+    assert report.companies_selected == 3
 
 
 def test_every_selected_filing_is_kept_or_dropped_by_name(
     built: Built,
 ) -> None:
     _, _, report, _, _ = built
-    assert report.pairing == {"kept": 2, "not_fetched": 1}
+    assert report.pairing == {"kept": 2, "bank": 1, "not_fetched": 1}
+
+
+def test_a_bank_is_dropped_by_name_for_the_price_of_one_request(built: Built) -> None:
+    _, _, _, mock, _ = built
+    assert [u for u in mock.requested if str(BANK_CIK) in u] == [
+        f"https://data.sec.gov/submissions/CIK{BANK_CIK:010d}.json"
+    ]
 
 
 def test_the_history_is_paged_back_only_as_far_as_the_range(

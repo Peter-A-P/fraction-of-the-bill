@@ -1,10 +1,11 @@
 # Plan: Frontier Quality at a Fraction of the Bill
 
-**Written:** 2026-09-07. **Revised:** 2026-09-14 (rev. 2, section 3); 2026-09-18 (rev. 3, section 3).
+**Written:** 2026-09-07. **Revised:** 2026-09-14 (rev. 2, section 3); 2026-09-18 (rev. 3, section 3); 2026-09-19 (rev. 4, section 2.8).
 **Status:** week 1 started 2026-09-14, about seven months early. The schema, the grader, the
 EDGAR fair-access client, the XBRL fact selection, the splits, the statement locator, the
-locatability filter and the corpus build are built and tested; nothing has been fetched,
-trained, quantised, served or spent.
+locatability filter, the corpus build and the load, cost and break-even arithmetic are built
+and tested. A 50-company smoke build has been fetched from EDGAR; nothing has been trained,
+quantised, served or spent.
 
 **Build:** three weeks, Apr 5 to Apr 25 2027, slack to Apr 30. **Package:** `smallprint`.
 **Fed by:** 03 (the gate runs the comparison and supplies intervals and the power function
@@ -112,6 +113,13 @@ at measured throughput, so it depends on utilisation. The break-even is publishe
 curve over utilisation from 10% to 90%, for spot and on-demand prices, against each
 frontier model's ledger cost per call, with every input in a table so a reader substitutes
 their own volume, price and utilisation.
+
+**Rev. 4, 2026-09-19, on building the arithmetic.** Made exact in `docs/cost.md`: GPUs are
+rented whole, so self-hosted cost is a staircase, and with no fixed costs the break-even
+volume is one GPU-month of rent in API calls at every utilisation that one GPU can carry.
+Utilisation decides whether self-hosting breaks even at all and, through fixed costs, how
+far out. The curve publishes, per utilisation, cost per call, whether and where it breaks
+even, and the GPUs needed, so the phrase "a function of utilisation" means what it says.
 
 ### 2.9 Out of scope, on purpose
 
