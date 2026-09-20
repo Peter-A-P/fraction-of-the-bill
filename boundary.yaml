@@ -1,0 +1,49 @@
+# The gateway configuration for this project. Every model call goes through it, frontier
+# and self-hosted alike, so cost per call has one source.
+#
+# There are no rates in this file. `prices: builtin` uses the dated price files that ship
+# inside boundary itself, so the version pin in pyproject.toml decides the costing and a
+# published cost table is reproducible from a checkout alone. There are no credentials in
+# it either: a provider entry names the environment variable its key is read from and
+# never the key.
+version: 1
+
+prices: builtin
+caps: caps.yaml
+
+providers:
+  anthropic:
+    kind: anthropic
+    base_url: https://api.anthropic.com
+    api_key_env: ANTHROPIC_API_KEY
+  openai:
+    kind: openai_compat
+    base_url: https://api.openai.com/v1
+    api_key_env: OPENAI_API_KEY
+
+# The three frontier baselines, chosen 2026-09-20. The set spans the price range on
+# purpose, because the two things a baseline is for pull in opposite directions: the
+# ceiling is the quality bar the fine-tunes must reach, and the floor is the cost anchor
+# the break-even has to beat. See docs/baseline.md.
+#
+# Aliases resolve in standard mode only. A measurement runs in pass-through mode, which
+# takes the explicit provider/model-id form, so the runner is given those; these entries
+# are here to name the three in one place and for development calls.
+routes:
+  ceiling:
+    provider: openai
+    model: gpt-5.6-sol
+  middle:
+    provider: anthropic
+    model: claude-sonnet-5
+  floor:
+    provider: openai
+    model: gpt-5.6-luna
+
+ledger:
+  path: data/ledger.sqlite
+
+# Off. Every published number is measured in pass-through mode, which never consults the
+# cache; leaving it off means a development call cannot quietly answer from it either.
+cache:
+  enabled: false

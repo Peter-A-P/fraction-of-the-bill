@@ -20,6 +20,10 @@ The full corpus is built: **8,031 items from 1,600 companies**, 19,574 filings t
 post-cutoff test set 716 filings from 148 filers ([docs/data.md](docs/data.md)). The
 200-item hand audit is drawn and waiting to be read.
 
+The three frontier baselines are chosen and the gateway is configured: `gpt-5.6-sol` as
+the quality ceiling, `claude-sonnet-5` as a second vendor, and `gpt-5.6-luna` as the cost
+anchor the break-even has to beat ([docs/baseline.md](docs/baseline.md)).
+
 **Nothing has been trained, quantised or served, no model has been run over the corpus,
 and nothing has been spent.** The plan is in [PLAN.md](PLAN.md); the dataset design and the
 open questions are in [docs/data.md](docs/data.md), the prompt and the runner in

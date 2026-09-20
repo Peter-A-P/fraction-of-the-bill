@@ -1,0 +1,21 @@
+# Spend caps, in USD. The second line of defence behind the vendor console caps.
+#
+# THE AUTHORITY FOR THESE NUMBERS IS THE GATEWAY PROJECT'S OWN caps.yaml, in
+# Peter-A-P/compliant-ai-gateway. This copy exists because boundary requires a caps file
+# beside the configuration it is given and that repository is not checked out on this
+# machine. If the two ever disagree, the gateway's copy is right and this one is stale.
+version: 1
+
+# Copied from the gateway's caps.yaml, where it was raised from 350 to 400 on 2026-09-19
+# to make room for this project's line.
+portfolio_monthly_usd: 400
+
+projects:
+  # What the frontier baselines actually cost, measured from the pinned price list over
+  # the 716 post-cutoff test items: the three chosen models, zero-shot and two-shot, come
+  # to about US$36 in total. The monthly figure leaves room for reruns and for the
+  # distillation set; the per-run figure is above the most expensive single run in the
+  # plan, which is the ceiling model two-shot at about US$20.
+  fraction-of-the-bill:
+    monthly_usd: 100
+    per_run_usd: 30

@@ -24,6 +24,10 @@ data/edgar/
 data/xbrl/
 data/build/
 data/audit/
+# Baseline runs: predictions, the pass-through raw bytes and the ledger. Evidence for
+# the tables, too large and too numerous to commit; the report command publishes the
+# summaries.
+data/baseline/
 
 # Models, adapters, checkpoints, quantised weights (published to Hugging Face, never here)
 checkpoints/

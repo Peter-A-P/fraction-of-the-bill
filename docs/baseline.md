@@ -107,31 +107,77 @@ answer is not measured on the task, so the failure count is printed beside the a
 
 Every number in `summary.json` carries a 95% interval, bootstrapped over filings.
 
+## Which models, and why those
+
+Chosen 2026-09-20. The set spans the price range on purpose, because the two jobs a
+baseline does pull in opposite directions.
+
+**The quality bar.** "A 4B model an organisation owns matches frontier quality" is only
+interesting against the best thing money buys, so one model is the top of the range.
+
+**The cost anchor.** The break-even asks at what volume self-hosting beats paying per
+call. If the only API in the comparison is the most expensive one, self-hosting wins
+trivially and the finding is worth nothing. The anchor is the cheapest API that does this
+task acceptably, because that is what a team running a hundred thousand extractions a day
+would be paying.
+
+| Role | Model | US$/Mtok in/out | A 716-item run, zero-shot | Two-shot |
+|---|---|---|---:|---:|
+| Ceiling | `openai/gpt-5.6-sol` | 4 / 20 | US$11.13 | US$19.97 |
+| Middle, second vendor | `anthropic/claude-sonnet-5` | 2 / 10 | US$5.57 | US$9.98 |
+| Floor, the cost anchor | `openai/gpt-5.6-luna` | 0.2 / 1.2 | US$0.59 | US$1.03 |
+
+Rates are from the price list boundary v0.3.0 ships, dated 2026-09-14. The run costs are
+estimates from the measured prompt sizes above and an assumed 250 output tokens, which is
+the JSON alone; a model answering with reasoning on spends several times that on the
+output side. What the tables publish comes from the ledger, not from this estimate. Two
+vendors rather than one, so the bar is not a single lab's quirk on a single task.
+
+**What the floor implies, stated before it is measured.** Luna costs about US$0.83 per
+1,000 extractions. A rented GPU at US$2 an hour serving five requests a second at 50%
+utilisation costs about US$0.22 per 1,000. So the honest expectation is that self-hosting
+wins by something like four times, not by the fifty times the framing of a project called
+"a fraction of the bill" might suggest, and the reasons to do it are control, latency and
+data residency as much as price. The break-even curve is where that gets settled.
+
+Rejected: `gpt-5-mini` and `gpt-5`, which were in the first draft of this table. They are
+a generation and a half old, and they were in it because they were the identifiers
+easiest to recognise rather than because they were the right comparison.
+
 ## The gateway
 
 Calls go through [`boundary`](https://github.com/Peter-A-P/compliant-ai-gateway), pinned
 at **v0.3.0** in the `gateway` extra. That release adds the two things this project needs
 beyond ordinary chat: `ttft_ms` on a streamed call, which is the latency axis, and the
 self-hosted price overlay, which is how a GPU-hour rate becomes a cost per call in the
-same ledger as a vendor bill.
+same ledger as a vendor bill. Install it with `uv sync --extra gateway`.
 
-This repository holds no `boundary.yaml`. The configuration names providers, credential
-sources and price files, and a copy of it here would be a second place for a rate to be
-wrong. `--config` points at one. It must:
+The configuration is [`boundary.yaml`](../boundary.yaml) in this repository, with
+[`caps.yaml`](../caps.yaml) beside it. An earlier draft of this page said the repository
+would hold neither, on the grounds that a copy of the configuration is a second place for
+a rate to be wrong. That reasoning does not apply to this file, because it holds no rates:
+`prices: builtin` uses the dated price files inside the pinned library, so the version pin
+decides the costing and a published cost table is reproducible from a checkout alone. It
+holds no credentials either. A provider entry names the environment variable its key is
+read from, never the key, and the two variables are `ANTHROPIC_API_KEY` and
+`OPENAI_API_KEY`.
 
-- give the project the name `fraction-of-the-bill`, which is the key its spend cap is
-  filed under in the gateway's caps file, currently US$100 a month and US$30 a run;
-- name the vendor price files, so every row is costed and dated.
+`caps.yaml` is the one real duplication. boundary needs a caps file beside the
+configuration it is given, and a caps file has to state the portfolio figure as well as
+this project's, so the portfolio's US$400 appears here as well as in the gateway
+repository, which owns it. The file says so at the top: if the two disagree, the gateway's
+copy is right.
 
-Install the extra with `uv sync --extra gateway`.
+The project name is `fraction-of-the-bill`, which is the key the spend cap is filed under:
+US$100 a month, US$30 a run.
 
 ## Running one
 
     smallprint baseline prompt --style few_shot --build-dir data/build/full
-    smallprint baseline run --model anthropic/claude-haiku-4-5-20251001 \
+    smallprint baseline run --model openai/gpt-5.6-luna \
       --build-dir data/build/full --split test_post_cutoff --style zero_shot \
-      --out data/baseline/haiku-zero --config ../boundary.yaml --limit 20
-    smallprint baseline report --run-dir data/baseline/haiku-zero --fields
+      --out data/baseline/luna-zero --limit 20
+    smallprint baseline report --run-dir data/baseline/luna-zero --fields
 
 `--limit` runs the first N items and is how a smoke run costs cents rather than dollars.
 The run is resumable, so a smoke run of 20 becomes the full run by dropping the flag.
