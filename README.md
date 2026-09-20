@@ -5,15 +5,25 @@ frontier API on a high-volume extraction task at a small fraction of the per-cal
 the exact volume at which the switch pays for itself. For a team spending five figures a
 month on API calls, this is the project that finds most of it.
 
-**Status: building, started 2026-09-14.** Built and tested so far: the fifteen-field extraction schema, the programmatic grader with
-its named failure modes and paired bootstrap intervals, the SEC fair-access client, XBRL
-fact selection, the company-level splits, the statement locator that finds what the model
-is shown inside a filing, the locatability filter that keeps a filing only when its
-labels are printed where they are read from, the corpus build that runs all of it over
-EDGAR and reproduces offline from its cache, and the load-test, cost-per-call and
-break-even arithmetic ([docs/cost.md](docs/cost.md)). A smoke build over 50 companies has
-been fetched; **nothing has been trained, quantised, served or spent.** The plan is in [PLAN.md](PLAN.md); the
-dataset design and the open questions are in [docs/data.md](docs/data.md).
+**Status: building, started 2026-09-14.** Built and tested so far: the fifteen-field
+extraction schema, the programmatic grader with its named failure modes and paired
+bootstrap intervals, the SEC fair-access client, XBRL fact selection, the company-level
+splits, the statement locator that finds what the model is shown inside a filing, the
+locatability filter that keeps a filing only when its labels are printed where they are
+read from, the corpus build that runs all of it over EDGAR and reproduces offline from its
+cache, the datasheet and checksums written from a build's own outputs, the hand-audit
+tooling, the prompt and its fingerprint, the baseline runner that takes a model over a
+split through the gateway and grades what comes back, and the load-test, cost-per-call and
+break-even arithmetic ([docs/cost.md](docs/cost.md)).
+
+The full corpus is built: **8,031 items from 1,600 companies**, 19,574 filings tried, the
+post-cutoff test set 716 filings from 148 filers ([docs/data.md](docs/data.md)). The
+200-item hand audit is drawn and waiting to be read.
+
+**Nothing has been trained, quantised or served, no model has been run over the corpus,
+and nothing has been spent.** The plan is in [PLAN.md](PLAN.md); the dataset design and the
+open questions are in [docs/data.md](docs/data.md), the prompt and the runner in
+[docs/baseline.md](docs/baseline.md).
 
 ## Result
 

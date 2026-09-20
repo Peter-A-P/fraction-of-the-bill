@@ -14,15 +14,29 @@ import os
 from pathlib import Path
 
 import typer
+from boundary import Mode
 
 from smallprint import __version__
+from smallprint.baseline import (
+    DEFAULT_MAX_TOKENS,
+    Prediction,
+    open_gateway,
+    read_manifest,
+    read_predictions,
+    read_split,
+    summarise,
+    write_summary,
+)
+from smallprint.baseline import run as baseline_run_items
 from smallprint.bench.breakeven import BreakEvenInputs, curve
 from smallprint.bench.cost import GpuPrice, PriceKind
 from smallprint.data import audit as hand_audit
-from smallprint.data.build import build, write_build
+from smallprint.data.build import SplitItem, build, write_build
 from smallprint.data.datasheet import read_items, verify, write_datasheet
 from smallprint.data.edgar import CONTACT_ENV, ContactNotDeclared, EdgarClient, declared_contact
+from smallprint.data.split import Split
 from smallprint.data.statements import Statement, locate
+from smallprint.prompts import PromptStyle, build_prompt
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
 
 app = typer.Typer(
@@ -31,6 +45,8 @@ app = typer.Typer(
 )
 data_app = typer.Typer(help="The corpus: fair access, the cache, and what has been fetched.")
 app.add_typer(data_app, name="data")
+baseline_app = typer.Typer(help="Running a model over held-out filings, through the gateway.")
+app.add_typer(baseline_app, name="baseline")
 
 
 @app.command()
@@ -290,6 +306,127 @@ def breakeven(
             f"{point.utilisation:>11.0%}  {point.self_hosted_usd_per_call * 1000:>10.4f}  "
             f"{point.api_usd_per_call * 1000:>10.4f}  {volume:>22}  {gpus}"
         )
+
+
+@baseline_app.command("prompt")
+def baseline_prompt(
+    style: PromptStyle = typer.Option(PromptStyle.ZERO_SHOT, help="Zero-shot or few-shot."),
+    build_dir: Path = typer.Option(Path("data/build"), help="Where few-shot examples come from."),
+    k: int = typer.Option(2, help="How many examples, few-shot only."),
+    thinking: bool = typer.Option(False, help="Open the system prompt with the think token."),
+    full: bool = typer.Option(False, help="Print the whole prompt, examples included."),
+) -> None:
+    """Print the prompt a run would send, and its fingerprint.
+
+    Cheap to look at and worth looking at: every accuracy number in the project is a
+    number about this text, and two runs are comparable only if their fingerprints match.
+    """
+    pool = _training_pool(build_dir) if style is PromptStyle.FEW_SHOT else []
+    prompt = build_prompt(style, pool=pool, k=k, thinking=thinking)
+    typer.echo(prompt.system if full else prompt.system.split("Rules:")[0].rstrip())
+    if full:
+        for text, answer in prompt.examples:
+            typer.echo("")
+            typer.echo("--- example user ---")
+            typer.echo(text)
+            typer.echo("--- example answer ---")
+            typer.echo(answer)
+    typer.echo("")
+    typer.echo(
+        f"Style {prompt.style.value}, {len(prompt.examples)} examples, "
+        f"fingerprint {prompt.fingerprint[:16]}."
+    )
+    if prompt.example_ids:
+        typer.echo(f"Examples: {', '.join(prompt.example_ids)}")
+
+
+def _training_pool(build_dir: Path) -> list[SplitItem]:
+    return [s for s in read_items(build_dir) if s.split is Split.TRAIN]
+
+
+@baseline_app.command("run")
+def baseline_run(
+    model: str = typer.Option(..., help="An alias from the routes file, or provider/model-id."),
+    out: Path = typer.Option(..., help="Where the predictions, the manifest and the raw bytes go."),
+    config: Path = typer.Option(Path("boundary.yaml"), help="The gateway configuration."),
+    build_dir: Path = typer.Option(Path("data/build"), help="A build written by data build."),
+    split: str = typer.Option(
+        Split.TEST_POST_CUTOFF.value, help="Which split to run. The headline is post-cutoff."
+    ),
+    style: PromptStyle = typer.Option(PromptStyle.ZERO_SHOT, help="Zero-shot or few-shot."),
+    k: int = typer.Option(2, help="How many examples, few-shot only."),
+    thinking: bool = typer.Option(False, help="Measure the model with reasoning turned on."),
+    limit: int | None = typer.Option(None, help="Run only the first N items. For a smoke run."),
+    mode: Mode = typer.Option(
+        Mode.PASSTHROUGH.value,
+        help="Pass-through for anything published: no retries, no cache, bytes kept.",
+    ),
+    max_tokens: int = typer.Option(DEFAULT_MAX_TOKENS, help="Ceiling on the answer."),
+    run_id: str | None = typer.Option(None, help="Defaults to the model, style and the date."),
+) -> None:
+    """Run one model over one split and write a prediction per filing. Resumable.
+
+    Every call goes through the gateway, so what this costs is read from the ledger rather
+    than estimated. Re-running against the same directory sends only the filings that have
+    no prediction yet.
+    """
+    items = read_split(build_dir, split, limit=limit)
+    pool = _training_pool(build_dir) if style is PromptStyle.FEW_SHOT else []
+    prompt = build_prompt(style, pool=pool, k=k, thinking=thinking)
+    identifier = run_id or f"{style.value}-{model.replace('/', '-')}-{dt.date.today().isoformat()}"
+
+    def progress(n: int, total: int, prediction: Prediction) -> None:
+        if n == 1 or n % 25 == 0 or n == total:
+            typer.echo(f"  {n:,}/{total:,} {prediction.item_id} {prediction.status}")
+
+    gateway = open_gateway(config, raw_store=out / "raw")
+    try:
+        typer.echo(
+            f"{model} on {len(items):,} {split} items, {style.value}, {mode.value} mode, "
+            f"prompt {prompt.fingerprint[:16]}."
+        )
+        manifest = baseline_run_items(
+            gateway,
+            model=model,
+            items=items,
+            prompt=prompt,
+            out_dir=out,
+            build_dir=build_dir,
+            run_id=identifier,
+            mode=mode,
+            max_tokens=max_tokens,
+            on_result=progress,
+        )
+    finally:
+        gateway.close()
+    predictions = read_predictions(out)
+    typer.echo(f"{len(predictions):,} predictions in {out}. Run {manifest.run_id}.")
+    typer.echo(str(summarise(manifest, predictions, items)))
+    write_summary(out, summarise(manifest, predictions, items))
+
+
+@baseline_app.command("report")
+def baseline_report(
+    run_dir: Path = typer.Option(..., help="A directory written by baseline run."),
+    build_dir: Path | None = typer.Option(None, help="Defaults to the build the run names."),
+    fields: bool = typer.Option(False, help="Per-field accuracy and the named failure modes."),
+) -> None:
+    """Grade a finished run and print what it measured, with an interval on every number."""
+    manifest = read_manifest(run_dir)
+    source = build_dir if build_dir is not None else Path(manifest.build_dir)
+    items = read_split(source, manifest.split)
+    predictions = read_predictions(run_dir)
+    summary = summarise(manifest, predictions, items)
+    typer.echo(str(summary))
+    if fields:
+        typer.echo("")
+        for report in summary.fields:
+            reasons = ", ".join(f"{k} {v}" for k, v in report.reasons.items()) or "none"
+            typer.echo(f"  {report.field:<24} {report.accuracy}")
+            typer.echo(f"  {'':<24} {reasons}")
+    path = write_summary(run_dir, summary)
+    typer.echo("")
+    typer.echo(f"Written to {path}.")
 
 
 def main() -> None:

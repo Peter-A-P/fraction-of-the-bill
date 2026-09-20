@@ -358,6 +358,20 @@ def _bootstrap(samples: np.ndarray, resamples: int, seed: int) -> tuple[float, f
     return (float(low), float(high))
 
 
+def mean_ci(values: Sequence[float], *, resamples: int = 10_000, seed: int = 0) -> Interval:
+    """The mean of a sample with its 95% bootstrap interval.
+
+    Public because accuracy is not the only proportion reported over the same filings:
+    exact match, the share of answers that would not parse, and the share of calls the
+    gateway could not cost are all means over items, and all of them carry an interval.
+    """
+    data = np.array(values, dtype=float)
+    if data.size == 0:
+        return Interval(point=float("nan"), low=float("nan"), high=float("nan"), n=0)
+    low, high = _bootstrap(data, resamples, seed)
+    return Interval(point=float(data.mean()), low=low, high=high, n=int(data.size))
+
+
 def accuracy_ci(
     grades: Sequence[ItemGrade],
     field: str | None = None,
@@ -373,16 +387,10 @@ def accuracy_ci(
     ones and report an interval roughly a third too narrow.
     """
     if field is None:
-        per_item = np.array([g.accuracy for g in grades], dtype=float)
-        n = len(grades)
+        per_item = [g.accuracy for g in grades]
     else:
-        values = [float(o.correct) for g in grades for o in g.outcomes if o.field == field]
-        per_item = np.array(values, dtype=float)
-        n = len(values)
-    if per_item.size == 0:
-        return Interval(point=float("nan"), low=float("nan"), high=float("nan"), n=0)
-    low, high = _bootstrap(per_item, resamples, seed)
-    return Interval(point=float(per_item.mean()), low=low, high=high, n=n)
+        per_item = [float(o.correct) for g in grades for o in g.outcomes if o.field == field]
+    return mean_ci(per_item, resamples=resamples, seed=seed)
 
 
 def paired_delta_ci(

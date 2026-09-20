@@ -115,6 +115,24 @@ def _nearest_rank(p: float) -> Callable[[np.ndarray], float]:
     return statistic
 
 
+def mean_measured(values: Sequence[float], *, unit: str, seed: int = 0) -> Measured:
+    """The mean of a sample with its 95% interval. Used for money as well as for time."""
+    if not values:
+        raise ValueError("a mean of no values is undefined")
+    return _bootstrap(values, lambda data: float(data.mean()), seed=seed, unit=unit)
+
+
+def percentile_measured(
+    values: Sequence[float], p: float, *, unit: str = "ms", seed: int = 0
+) -> Measured:
+    """One nearest-rank percentile with its 95% interval, for a set of calls that was not a
+    load test: the frontier baselines are paced by the vendor rather than by a closed loop,
+    so they have latencies worth reporting but no throughput to report with them."""
+    if not values:
+        raise ValueError("a percentile of no values is undefined")
+    return _bootstrap(values, _nearest_rank(p), seed=seed, unit=unit)
+
+
 def summarise(
     timings: Sequence[RequestTiming],
     *,

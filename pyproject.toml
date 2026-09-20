@@ -27,6 +27,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The 04 gateway, the one route every model call takes, frontier and self-hosted alike, so
+# that cost per call has a single ledger. Pinned to a git tag rather than a version range
+# because it is not on PyPI and because the ledger schema is part of this project's
+# results: v0.3.0 is the release that adds streaming with time to first token and the
+# self-hosted price overlay, both of which the latency and cost axes need. An extra rather
+# than a base dependency so that `smallprint data build` installs without git access.
+gateway = [
+  "boundary @ git+https://github.com/Peter-A-P/compliant-ai-gateway.git@v0.3.0",
+]
 # Training, quantisation and serving are not installed on the laptop. Each extra is
 # installed on the rented GPU that runs that stage, and nothing in the base package
 # imports from them, so `smallprint data build` and `smallprint report` work everywhere.
@@ -38,6 +47,9 @@ serve = []
 
 [dependency-groups]
 dev = [
+  # The baseline runner is tested against a stub gateway, but it is typed against the real
+  # one, so mypy --strict needs the package present.
+  "smallprint[gateway]",
   # The EDGAR client's fair-access behaviour is tested against httpx's own MockTransport,
   # not against sec.gov: a suite that hammers a public regulator to prove it is polite to
   # that regulator has missed the point, and CI would run it on every push.
@@ -54,6 +66,11 @@ smallprint = "smallprint.cli:main"
 [build-system]
 requires = ["hatchling>=1,<2"]
 build-backend = "hatchling.build"
+
+# The gateway extra is a git URL, which hatchling refuses to record in metadata unless
+# told to. It is deliberate here: the gateway is not published to PyPI.
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["smallprint"]
