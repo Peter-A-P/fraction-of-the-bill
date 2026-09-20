@@ -101,7 +101,8 @@ def test_a_run_records_one_prediction_a_filing_and_the_manifest_says_how(tmp_pat
 
     assert len(gateway.requests) == 4
     assert gateway.mode is Mode.PASSTHROUGH  # a measurement, so no retries and no cache
-    assert gateway.requests[0].temperature == 0.0
+    # No temperature at all: every model in the set refuses a value.
+    assert gateway.requests[0].temperature is None
     assert gateway.requests[0].system == zero_shot().system
     assert manifest.finished_at is not None
     assert manifest.prompt_fingerprint == zero_shot().fingerprint

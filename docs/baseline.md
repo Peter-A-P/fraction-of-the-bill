@@ -123,16 +123,20 @@ would be paying.
 
 | Role | Model | US$/Mtok in/out | A 716-item run, zero-shot | Two-shot |
 |---|---|---|---:|---:|
-| Ceiling | `openai/gpt-5.6-sol` | 4 / 20 | US$14.24 | US$25.30 |
-| Middle, second vendor | `anthropic/claude-sonnet-5` | 2 / 10 | US$7.12 | US$12.65 |
-| Floor, the cost anchor | `openai/gpt-5.6-luna` | 0.2 / 1.2 | US$0.76 | US$1.31 |
+| Ceiling | `openai/gpt-5.6-sol` | 4 / 20 | US$10.74 | US$22.21 |
+| Middle, second vendor | `anthropic/claude-sonnet-5` | 2 / 10 | US$7.96 | US$16.76 |
+| Floor, the cost anchor | `openai/gpt-5.6-luna` | 0.2 / 1.2 | US$0.64 | US$1.17 |
 
 Rates are from the price list boundary v0.3.0 ships, dated 2026-09-14. The run costs are
-worked from the token counts the vendor actually returned on the smoke run below, a median
-3,301 in and 334 out, rather than from the characters-over-four guess this page carried
-first; that guess was 25% low on the input side. Six runs come to about **US$61**, and the
-ceiling model two-shot at US$25.30 is 84% of the US$30 per-run cap. Two vendors rather
-than one, so the bar is not a single lab's quirk on a single task.
+projections from the rehearsal below: tokens per character measured per model against the
+character count of every item in the split, and mean output tokens measured per model and
+style. Six runs come to about **US$59**, and the most expensive single run is 74% of the
+US$30 per-run cap. Two vendors rather than one, so the bar is not a single lab's quirk on
+a single task.
+
+The two vendors do not count the same text the same way. Anthropic's tokeniser takes
+**0.41 tokens per character** of these prompts against OpenAI's **0.28**, about 47% more,
+which is worth knowing before reading anything into two vendors' prices per million.
 
 **What the floor implies, stated before it is measured.** Luna costs about US$0.83 per
 1,000 extractions. A rented GPU at US$2 an hour serving five requests a second at 50%
@@ -196,12 +200,15 @@ those models refuse a temperature other than the default: "Unsupported value:
 'temperature' does not support 0.0 with this model. Only the default (1) value is
 supported."
 
-**So temperature is not the same across the table, and cannot be.** Anthropic accepts 0;
-the current OpenAI models accept only 1. `--vendor-temperature` sends none and takes the
-vendor's default, the manifest records which of the two a run used, and two runs that
-differ in it cannot resume one another. It means the OpenAI rows are measured at a
-temperature that samples and the Anthropic rows at one that does not, which is a real
-asymmetry in the results table and is stated there rather than smoothed over.
+**So no frontier run pins its temperature, because none of them may.** The rehearsal
+found Anthropic refusing it too: "`temperature` is deprecated for this model." All three
+models in the set reject a value, so the runner now sends none by default and takes the
+vendor's default, and the manifest records what was sent. A measurement would rather pin
+it, so that a rerun differed by the vendor's nondeterminism alone and not by ours as well;
+that is no longer on offer from the frontier, and pretending otherwise by passing a value
+that gets rejected is worse than saying so. A served open-weights model does accept it,
+and the quantisation deltas are small enough that sampling noise would swamp them, so
+those runs will pass `--temperature 0` explicitly.
 
 **A run that fails everywhere is now retried rather than stuck.** The first attempt wrote
 twenty failed predictions, and resuming skipped all twenty as "done". A filing that was
@@ -223,6 +230,20 @@ and equity"), and the grader named it correctly. This is the single most useful 
 smoke run produced: the frontier model's exact-match rate is dragged from a 94% field
 score to 45% almost entirely by deriving a figure it was told not to derive, which is
 exactly the behaviour a fine-tune on this corpus should train out.
+
+## The rehearsal, 2026-09-20
+
+Before spending US$59, 36 calls costing **US$0.51**: six filings spanning the whole length
+range of the split, from 3,507 to 12,782 characters, through all three models in both
+styles. A twenty-item run on one model could not have found what this was looking for.
+Anthropic had never been called at all, which is how the deprecated-temperature rejection
+turned up. The ceiling model had never been called, and if it reasoned it would have run
+into the 2,048-token ceiling. The two-shot prompt had never gone out.
+
+All 36 answered, all 36 parsed, none truncated: the largest answer was 659 output tokens
+against a 2,048 ceiling. Field accuracy on those six items was 95.6% for luna, 95.6% for
+sol and 97.8% to 98.9% for sonnet, which is six items and settles nothing, but it does say
+the ceiling model is not obviously ahead on this task.
 
 **Time to first token is not measured yet, and cannot be in this mode.** Streaming is
 where `ttft_ms` comes from, and boundary v0.3.0 refuses to stream in pass-through mode,

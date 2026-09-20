@@ -363,13 +363,11 @@ def baseline_run(
         help="Pass-through for anything published: no retries, no cache, bytes kept.",
     ),
     max_tokens: int = typer.Option(DEFAULT_MAX_TOKENS, help="Ceiling on the answer."),
-    temperature: float = typer.Option(TEMPERATURE, help="Sent with every call."),
-    vendor_temperature: bool = typer.Option(
-        False,
-        "--vendor-temperature",
+    temperature: float | None = typer.Option(
+        TEMPERATURE,
         help=(
-            "Send no temperature and take the vendor's default. Required by models that "
-            "refuse any other value, which the current OpenAI ones do."
+            "Sent with every call. Omitted when not given, which is what all three "
+            "frontier models require; a served open-weights model takes 0."
         ),
     ),
     run_id: str | None = typer.Option(None, help="Defaults to the model, style and the date."),
@@ -405,7 +403,7 @@ def baseline_run(
             run_id=identifier,
             mode=mode,
             max_tokens=max_tokens,
-            temperature=None if vendor_temperature else temperature,
+            temperature=temperature,
             on_result=progress,
         )
     finally:

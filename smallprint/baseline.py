@@ -56,16 +56,18 @@ from smallprint.prompts import Prompt, PromptStyle
 #: cannot produce JSON, and because a reasoning model spends its thinking inside it.
 DEFAULT_MAX_TOKENS: Final = 2048
 
-#: Zero, because this is a measurement and not a sample of the model's range. Vendors do
-#: not promise determinism at zero and some do not honour it at all; what it buys is that
-#: a rerun differs by the vendor's nondeterminism alone and not by ours as well.
+#: No temperature at all, by default: the field is left out of the request and the vendor's
+#: own default applies. This is not a preference, it is what the current models accept.
+#: Every one of the three frontier models in this project's set refuses a value. OpenAI's
+#: answer "Unsupported value: 'temperature' does not support 0.0 with this model. Only the
+#: default (1) value is supported."; Anthropic's claude-sonnet-5 answers "`temperature` is
+#: deprecated for this model." A measurement would rather pin it: a rerun would then differ
+#: by the vendor's nondeterminism alone and not by ours as well. That is no longer on offer
+#: from the frontier, so the runs say so and the manifest records what was sent.
 #:
-#: `None` means send no temperature and take the vendor's default. Some models refuse any
-#: other value: the current OpenAI ones answer "Unsupported value: 'temperature' does not
-#: support 0.0 with this model. Only the default (1) value is supported." That is a real
-#: asymmetry between the rows of the results table, not a detail, so it is a run's own
-#: setting and the manifest records which of the two it was.
-TEMPERATURE: Final = 0.0
+#: A served open-weights model does accept it, and the quantisation deltas are small enough
+#: that sampling noise would swamp them, so those runs pass --temperature 0 explicitly.
+TEMPERATURE: Final[float | None] = None
 
 PREDICTIONS: Final = "predictions.jsonl"
 MANIFEST: Final = "run.json"
