@@ -63,15 +63,16 @@ Within the training pool, two rules:
 
 Whole prompt, system text and examples included, over the 716 post-cutoff test items:
 
-| Style | Median characters | p90 | Roughly, in tokens |
-|---|---:|---:|---:|
-| Zero-shot | 10,549 | 12,824 | 2,600 |
-| Two-shot | 22,889 | 25,164 | 5,700 |
+| Style | Median characters | p90 | Tokens, OpenAI | Tokens, Anthropic |
+|---|---:|---:|---:|---:|
+| Zero-shot | 10,549 | 12,824 | 2,900 | 4,300 |
+| Two-shot | 22,889 | 25,164 | 6,600 | 9,800 |
 
-The token column is characters over four and is an estimate; the ledger records what each
-vendor actually counted, and that is what the cost table uses. `PLAN.md` section 6 budgeted
-3.5k tokens in per call, so the zero-shot runs come in under the estimate and the two-shot
-runs over it; the plan's total is not changed by this and is not amended.
+The token columns are the measured tokens per character for each vendor's tokeniser, 0.28
+and 0.41, applied to the median; the ledger records what each vendor actually counted and
+that is what the cost table uses. `PLAN.md` section 6 budgeted 3.5k tokens in per call, so
+the zero-shot runs land near the estimate and the two-shot runs above it; the plan's total
+is not changed by this and is not amended.
 
 ## How a run behaves
 
@@ -83,8 +84,9 @@ mode exists for development and the manifest records which mode was used, so a n
 measured with the cache on cannot be published as if it were not. `summary.json` reports
 how many answers came from the cache.
 
-**Temperature zero.** Not because vendors promise determinism at zero, which they do not,
-but so that a rerun differs by the vendor's nondeterminism alone.
+**No temperature.** Not a preference: all three frontier models reject a value outright.
+The runner leaves the field out and the vendor's default applies, and the manifest records
+that. See the rehearsal below.
 
 **Resumable.** Predictions are appended one line at a time and the manifest is written
 before the first call, so an interrupted run over two thousand filings is finished rather
