@@ -132,6 +132,21 @@ def test_an_interrupted_run_is_finished_rather_than_paid_for_twice(tmp_path: Pat
     assert manifest.finished_at is not None
 
 
+def test_a_run_that_failed_everywhere_is_retried_rather_than_stuck(tmp_path: Path) -> None:
+    """The first smoke run returned 400 on every call: the provider rejected a parameter.
+    A resume has to call again, or a fixable misconfiguration poisons the directory."""
+    go(StubGateway(lambda i: reply(None, status=400, cost=None)), tmp_path)
+    assert all(not p.ok for p in baseline.read_predictions(tmp_path))
+
+    second = StubGateway(lambda i: reply(RIGHT))
+    manifest = go(second, tmp_path)
+    assert len(second.requests) == 4  # every one of them, not none of them
+    predictions = baseline.read_predictions(tmp_path)
+    assert len(predictions) == 4  # the latest attempt per filing, not both attempts
+    assert all(p.ok for p in predictions)
+    assert baseline.summarise(manifest, predictions, items()).accuracy.point == 1.0
+
+
 def test_resuming_with_a_different_prompt_is_refused(tmp_path: Path) -> None:
     go(StubGateway(lambda i: reply(RIGHT)), tmp_path)
     with pytest.raises(ValueError, match="prompt_fingerprint"):

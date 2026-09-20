@@ -19,9 +19,11 @@ with the cache on cannot be published as if it were not.
 
 **A run resumes.** Predictions are appended as they arrive and the manifest is written
 before the first call, so an interrupted run over two thousand filings continues rather
-than starting again and paying again. Resuming into a directory whose manifest describes a
-different model, prompt or mode is refused: that is two runs, not one, and averaging them
-would be the quiet kind of wrong.
+than starting again and paying again. A filing that was answered is never called twice; a
+filing whose last attempt failed is, because the usual reason a run fails is one the next
+run has fixed. Resuming into a directory whose manifest describes a different model,
+prompt or mode is refused: that is two runs, not one, and averaging them would be the
+quiet kind of wrong.
 """
 
 from __future__ import annotations
@@ -32,7 +34,6 @@ from pathlib import Path
 from typing import Final, Protocol
 
 from boundary import ChatRequest, ChatResponse, Gateway, Mode
-from boundary.config import load_config
 from pydantic import BaseModel, ConfigDict
 
 from smallprint.bench.load import Measured, mean_measured, percentile_measured
@@ -58,6 +59,12 @@ DEFAULT_MAX_TOKENS: Final = 2048
 #: Zero, because this is a measurement and not a sample of the model's range. Vendors do
 #: not promise determinism at zero and some do not honour it at all; what it buys is that
 #: a rerun differs by the vendor's nondeterminism alone and not by ours as well.
+#:
+#: `None` means send no temperature and take the vendor's default. Some models refuse any
+#: other value: the current OpenAI ones answer "Unsupported value: 'temperature' does not
+#: support 0.0 with this model. Only the default (1) value is supported." That is a real
+#: asymmetry between the rows of the results table, not a detail, so it is a run's own
+#: setting and the manifest records which of the two it was.
 TEMPERATURE: Final = 0.0
 
 PREDICTIONS: Final = "predictions.jsonl"
@@ -69,14 +76,15 @@ PROJECT: Final = "fraction-of-the-bill"
 
 
 def open_gateway(config: Path, *, raw_store: Path) -> Gateway:
-    """The gateway, configured from a `boundary.yaml` that this repository does not hold.
+    """The gateway, from `boundary.yaml` and the gitignored `.env` beside it.
 
-    The configuration names the providers, the credential sources and the price files, and
-    a copy of it here would be a second place for a rate to be wrong. `raw_store` is where
-    pass-through keeps the request and response bytes; it belongs with the run, so that a
-    published number and the bytes behind it are in one directory.
+    `from_config` rather than the constructor, because it is the entry point that reads
+    the `.env` file: keys are never in the configuration, and a real environment variable
+    always wins over the file. `raw_store` is where pass-through keeps the request and
+    response bytes; it belongs with the run, so that a published number and the bytes
+    behind it are in one directory.
     """
-    return Gateway(load_config(config), project=PROJECT, raw_store=raw_store)
+    return Gateway.from_config(config, project=PROJECT, raw_store=raw_store)
 
 
 class Caller(Protocol):
@@ -136,7 +144,7 @@ class RunManifest(BaseModel):
     example_ids: tuple[str, ...] = ()
     mode: Mode
     max_tokens: int
-    temperature: float
+    temperature: float | None
     build_dir: str
     requested: int
     started_at: dt.datetime
@@ -162,11 +170,23 @@ def _now() -> dt.datetime:
 
 
 def read_predictions(out_dir: Path) -> list[Prediction]:
+    """Every filing's latest prediction, in the order the filings were first attempted.
+
+    Latest rather than every row, because a resumed run calls again for the filings whose
+    last attempt failed, and the file is append-only so both attempts are in it. The
+    earlier row stays on disk as the record that the attempt happened; what is graded is
+    what the model last answered.
+    """
     path = out_dir / PREDICTIONS
     if not path.exists():
         return []
+    latest: dict[str, Prediction] = {}
     with path.open(encoding="utf-8") as handle:
-        return [Prediction.model_validate_json(line) for line in handle if line.strip()]
+        for line in handle:
+            if line.strip():
+                prediction = Prediction.model_validate_json(line)
+                latest[prediction.item_id] = prediction
+    return list(latest.values())
 
 
 def read_manifest(out_dir: Path) -> RunManifest:
@@ -212,7 +232,7 @@ def run(
     run_id: str,
     mode: Mode = Mode.PASSTHROUGH,
     max_tokens: int = DEFAULT_MAX_TOKENS,
-    temperature: float = TEMPERATURE,
+    temperature: float | None = TEMPERATURE,
     on_result: Callable[[int, int, Prediction], None] | None = None,
 ) -> RunManifest:
     """Run `model` over `items`, appending a prediction per filing. Resumable.
@@ -256,7 +276,11 @@ def run(
         manifest = existing.model_copy(update={"requested": len(items), "finished_at": None})
     _write_manifest(out_dir, manifest)
 
-    done = {p.item_id for p in read_predictions(out_dir)}
+    # Only an answered filing is done. A filing whose last attempt failed is called again,
+    # because the usual reason a whole run fails is one the next run has fixed: a rejected
+    # parameter, an expired key, a vendor having an afternoon. Errors are not billed, so
+    # this cannot spend twice on the same filing in any case that matters.
+    done = {p.item_id for p in read_predictions(out_dir) if p.ok}
     remaining = [s for s in items if s.item.item_id not in done]
     purpose = f"baseline:{prompt.style.value}"
 

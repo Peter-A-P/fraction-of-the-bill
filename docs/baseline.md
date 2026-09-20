@@ -123,15 +123,16 @@ would be paying.
 
 | Role | Model | US$/Mtok in/out | A 716-item run, zero-shot | Two-shot |
 |---|---|---|---:|---:|
-| Ceiling | `openai/gpt-5.6-sol` | 4 / 20 | US$11.13 | US$19.97 |
-| Middle, second vendor | `anthropic/claude-sonnet-5` | 2 / 10 | US$5.57 | US$9.98 |
-| Floor, the cost anchor | `openai/gpt-5.6-luna` | 0.2 / 1.2 | US$0.59 | US$1.03 |
+| Ceiling | `openai/gpt-5.6-sol` | 4 / 20 | US$14.24 | US$25.30 |
+| Middle, second vendor | `anthropic/claude-sonnet-5` | 2 / 10 | US$7.12 | US$12.65 |
+| Floor, the cost anchor | `openai/gpt-5.6-luna` | 0.2 / 1.2 | US$0.76 | US$1.31 |
 
 Rates are from the price list boundary v0.3.0 ships, dated 2026-09-14. The run costs are
-estimates from the measured prompt sizes above and an assumed 250 output tokens, which is
-the JSON alone; a model answering with reasoning on spends several times that on the
-output side. What the tables publish comes from the ledger, not from this estimate. Two
-vendors rather than one, so the bar is not a single lab's quirk on a single task.
+worked from the token counts the vendor actually returned on the smoke run below, a median
+3,301 in and 334 out, rather than from the characters-over-four guess this page carried
+first; that guess was 25% low on the input side. Six runs come to about **US$61**, and the
+ceiling model two-shot at US$25.30 is 84% of the US$30 per-run cap. Two vendors rather
+than one, so the bar is not a single lab's quirk on a single task.
 
 **What the floor implies, stated before it is measured.** Luna costs about US$0.83 per
 1,000 extractions. A rented GPU at US$2 an hour serving five requests a second at 50%
@@ -182,7 +183,54 @@ US$100 a month, US$30 a run.
 `--limit` runs the first N items and is how a smoke run costs cents rather than dollars.
 The run is resumable, so a smoke run of 20 becomes the full run by dropping the flag.
 
+## What the first smoke run found, 2026-09-20
+
+Twenty post-cutoff items on `gpt-5.6-luna`, zero-shot, pass-through. Three attempts,
+sixty ledger rows, forty of them errors, **US$0.0207 in total**. Everything below is why a
+smoke run of twenty exists before a run of seven hundred.
+
+**Two provider rejections, both 400 on every call.** First, `max_tokens` is not accepted
+by the current OpenAI models: "Use `max_completion_tokens` instead." boundary has a
+provider setting for exactly this, `max_tokens_field`, now set in `boundary.yaml`. Second,
+those models refuse a temperature other than the default: "Unsupported value:
+'temperature' does not support 0.0 with this model. Only the default (1) value is
+supported."
+
+**So temperature is not the same across the table, and cannot be.** Anthropic accepts 0;
+the current OpenAI models accept only 1. `--vendor-temperature` sends none and takes the
+vendor's default, the manifest records which of the two a run used, and two runs that
+differ in it cannot resume one another. It means the OpenAI rows are measured at a
+temperature that samples and the Anthropic rows at one that does not, which is a real
+asymmetry in the results table and is stated there rather than smoothed over.
+
+**A run that fails everywhere is now retried rather than stuck.** The first attempt wrote
+twenty failed predictions, and resuming skipped all twenty as "done". A filing that was
+answered is still never called twice; a filing whose last attempt failed is called again,
+because the usual reason a whole run fails is one the next run has fixed. Errors are not
+billed, so this cannot spend twice in any case that matters.
+
+**The result, on twenty items.** Field accuracy 94.3% (91.7% to 96.7%), every field right
+on 45% of filings, nothing unparseable, US$1.00 per 1,000 calls against an estimate of
+US$0.83, median latency 2.66 s. Thirteen of the fifteen fields were at or near 100%.
+
+**One failure mode accounts for almost all of it, and it is a real one.** On
+`total_liabilities` the model scored 45%, with eleven of twenty marked `hallucinated`:
+truth null, model confident. Those filers print only "Total liabilities and shareholders'
+equity" and tag no `us-gaap:Liabilities` fact, so a correct reading of the page answers
+null. The model subtracted equity from the total and returned the difference. The prompt
+forbids that in two places, rule 4 and the field's own description ("Not total liabilities
+and equity"), and the grader named it correctly. This is the single most useful thing the
+smoke run produced: the frontier model's exact-match rate is dragged from a 94% field
+score to 45% almost entirely by deriving a figure it was told not to derive, which is
+exactly the behaviour a fine-tune on this corpus should train out.
+
+**Time to first token is not measured yet, and cannot be in this mode.** Streaming is
+where `ttft_ms` comes from, and boundary v0.3.0 refuses to stream in pass-through mode,
+which is the mode every published accuracy number runs in. So the latency column for the
+frontier models will need either a separate, clearly labelled streaming run in standard
+mode with retries off, or a change in the gateway. Not decided.
+
 ## Not measured yet
 
-No baseline has been run. Nothing has been spent through the gateway on this project. The
-result tables in the README stay empty until a run fills them.
+No full baseline has been run: the spend so far is two cents. The result tables in the
+README stay empty until a run fills them.

@@ -24,8 +24,11 @@ The three frontier baselines are chosen and the gateway is configured: `gpt-5.6-
 the quality ceiling, `claude-sonnet-5` as a second vendor, and `gpt-5.6-luna` as the cost
 anchor the break-even has to beat ([docs/baseline.md](docs/baseline.md)).
 
-**Nothing has been trained, quantised or served, no model has been run over the corpus,
-and nothing has been spent.** The plan is in [PLAN.md](PLAN.md); the dataset design and the
+A twenty-item smoke run through the gateway works, at a total spend of **US$0.02**: the
+cheapest of the three scores 94.3% on fields and 45% on whole filings, and almost all of
+the gap is one behaviour, deriving total liabilities from a line the statement does not
+print. **Nothing has been trained, quantised or served, and no full baseline has been
+run.** The plan is in [PLAN.md](PLAN.md); the dataset design and the
 open questions are in [docs/data.md](docs/data.md), the prompt and the runner in
 [docs/baseline.md](docs/baseline.md).
 

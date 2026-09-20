@@ -19,6 +19,7 @@ from boundary import Mode
 from smallprint import __version__
 from smallprint.baseline import (
     DEFAULT_MAX_TOKENS,
+    TEMPERATURE,
     Prediction,
     open_gateway,
     read_manifest,
@@ -362,6 +363,15 @@ def baseline_run(
         help="Pass-through for anything published: no retries, no cache, bytes kept.",
     ),
     max_tokens: int = typer.Option(DEFAULT_MAX_TOKENS, help="Ceiling on the answer."),
+    temperature: float = typer.Option(TEMPERATURE, help="Sent with every call."),
+    vendor_temperature: bool = typer.Option(
+        False,
+        "--vendor-temperature",
+        help=(
+            "Send no temperature and take the vendor's default. Required by models that "
+            "refuse any other value, which the current OpenAI ones do."
+        ),
+    ),
     run_id: str | None = typer.Option(None, help="Defaults to the model, style and the date."),
 ) -> None:
     """Run one model over one split and write a prediction per filing. Resumable.
@@ -395,6 +405,7 @@ def baseline_run(
             run_id=identifier,
             mode=mode,
             max_tokens=max_tokens,
+            temperature=None if vendor_temperature else temperature,
             on_result=progress,
         )
     finally:

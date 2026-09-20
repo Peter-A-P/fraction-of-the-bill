@@ -20,6 +20,10 @@ providers:
     kind: openai_compat
     base_url: https://api.openai.com/v1
     api_key_env: OPENAI_API_KEY
+    # The current OpenAI models reject `max_tokens` outright: "Unsupported parameter:
+    # 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."
+    # Found by the first smoke run, which returned 400 on all twenty calls.
+    max_tokens_field: max_completion_tokens
 
 # The three frontier baselines, chosen 2026-09-20. The set spans the price range on
 # purpose, because the two things a baseline is for pull in opposite directions: the
