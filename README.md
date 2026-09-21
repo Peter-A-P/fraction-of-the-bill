@@ -13,8 +13,13 @@ locatability filter that keeps a filing only when its labels are printed where t
 read from, the corpus build that runs all of it over EDGAR and reproduces offline from its
 cache, the datasheet and checksums written from a build's own outputs, the hand-audit
 tooling, the prompt and its fingerprint, the baseline runner that takes a model over a
-split through the gateway and grades what comes back, and the load-test, cost-per-call and
-break-even arithmetic ([docs/cost.md](docs/cost.md)).
+split through the gateway and grades what comes back, the load-test, cost-per-call and
+break-even arithmetic ([docs/cost.md](docs/cost.md)), the training code with its
+checkpointing ([docs/training.md](docs/training.md)), the three bases pinned to exact
+revisions, the self-hosted price overlay the gateway validates, the quantisation gate,
+the server command lines and the closed-loop load client
+([docs/serving.md](docs/serving.md)), and the model-card generator. All of it is tested
+without a GPU; the rented card only has to run it.
 
 The full corpus is built: **8,031 items from 1,600 companies**, 19,574 filings tried, the
 post-cutoff test set 716 filings from 148 filers ([docs/data.md](docs/data.md)). The
