@@ -51,9 +51,17 @@ What a grid buys is interactions between the factors; what it would cost is the 
 seeds on the chosen configuration, which is the part that says whether any difference is
 real at all. The seeds are worth more than the interactions.
 
-The 2B sweep over the full corpus is 8 runs, 646 steps each at the default two epochs, 13
-checkpoints each: **4.2 GPU hours at 3.5 seconds a step**. That rate is measured on the
-card by the first run and passed in; `gpu_hours` refuses to invent one.
+The sweep for one size is 8 runs: five at the full pool, 646 steps each at the default two
+epochs, and the three volume points at 126, 314 and 626 steps, **4,296 steps** in all, 13
+checkpoints on a full run. Two more seeds on the chosen recipe add 1,292. A step is 16
+sequences of about 3,100 tokens, roughly 50,000 tokens.
+
+**Correction.** An earlier version of this page said the 2B sweep was 4.2 GPU hours, at 3.5
+seconds a step. That rate was an example typed into `train plan` to show the arithmetic,
+not a measurement, and it is not plausible: it is about 14,000 tokens a second of QLoRA on
+one card. The throughput has not been measured and will not be until the first run on the
+rented card; `gpu_hours` refuses to invent it for exactly this reason. The budgeting range
+in [gpu-prices.md](gpu-prices.md) is stated as a range and labelled as an estimate.
 
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
 training pool holds 5,154 filings, so the 20k point needs a corpus expansion of about

@@ -34,3 +34,51 @@ produce.
 - The break-even curve over utilisation, for both spot and on-demand prices.
 - Which size runs on which card, and therefore how much of the budget the 8B at 4k context
   takes.
+
+## A survey for the decision, 2026-09-21
+
+**Not the day-one table.** This is what the budget decision was made against. The binding
+table above is still written on the morning of the first rental, from the providers' pages
+that day, and replaces these numbers for every cost this project publishes.
+
+| Card | VRAM | Runpod Community | Runpod Secure | Lambda on-demand | GCP |
+|---|---:|---:|---:|---:|---|
+| RTX 4090 | 24 GB | US$0.34 | US$0.74 | not offered | not offered |
+| L4 | 24 GB | US$0.44 | US$0.49 | not offered | about US$0.71 on-demand, spot not read |
+| L40S | 48 GB | US$0.79 | US$1.09 | not offered | |
+| A100 80 GB | 80 GB | US$1.19 | US$1.59 | US$1.99 (40 GB) | about US$3.67 on-demand |
+| H100 SXM | 80 GB | US$2.69 | US$3.49 | US$4.29 | |
+
+Per GPU hour. Runpod and Lambda from their own pricing pages on 2026-09-21. The GCP
+figures are from a third-party index, because Google's pricing pages render their tables
+in the browser and could not be read here; GCP spot prices in particular have to be read
+from the console on the day, and the portfolio rule compares spot against the
+marketplaces. Runpod network storage is US$0.07 per GB a month under a terabyte.
+
+**All three bases fit a 24 GB card for QLoRA.** In 4-bit they load at roughly a quarter of
+their bf16 size on disk (10, 16 and 15 GB, see [models.md](models.md)), which leaves room
+for activations at a 4k-token sequence with gradient checkpointing. A 24 GB card is the
+cheapest class that works; 48 and 80 GB buy speed and batch size, not feasibility.
+
+**What the work needs, as a range.** The throughput is not measured and is not assumed
+anywhere in the code. For budgeting only: each size's sweep and seeds are about 5,600
+optimiser steps of about 50,000 tokens, roughly 280 million tokens a size. At a plausible
+2,000 to 6,000 tokens a second of QLoRA on a 24 GB card, depending on the size, training
+the three is **65 to 115 GPU hours**. Quantising, evaluating every format and the load
+tests add perhaps 20 to 30. With a third again for the things that go wrong, **110 to 190
+hours on a 24 GB card**, which is **US$40 to US$140** at the rates above, depending on the
+card and the tier. An 80 GB card runs it in perhaps 60% of the time at two to four times
+the rate.
+
+**How the estimate becomes a number.** The first run on the rented card is a short smoke
+run that measures seconds per step for each size. `train plan --seconds-per-step` then
+prints the real schedule, and the full sweep does not start until that number has been
+seen. The two-epoch default is itself a candidate for halving: if the validation loss has
+flattened after one, the second epoch is the most expensive thing in the schedule.
+
+**Two tiers, two jobs.** Training has no bearing on any published number except accuracy,
+so it can run on the cheapest card that fits, on the cheaper tier, with checkpoints
+uploaded from step one against the risk of losing the machine. Serving is different: the
+throughput measured there is the denominator of every self-hosted cost per call, so it has
+to be measured on a card and tier a business would actually deploy on, and the price in the
+break-even has to be one a business would actually pay.
