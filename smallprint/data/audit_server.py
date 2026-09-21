@@ -56,8 +56,8 @@ _SIGNED: Final[frozenset[str]] = frozenset(
 #: A cell that prints zero as a dash, which is how statements print a zero.
 _DASHES: Final[frozenset[str]] = frozenset({"-", "$-", "$ -", chr(0x2013), chr(0x2014)})
 
-#: How many places a label is shown found. More is noise: a value that recurs five times
-#: is a subtotal repeated down the statement, and the first is the one to check.
+#: How many places a label is shown found, closest to it first. More is noise: a value that
+#: recurs five times is a subtotal repeated down the statement.
 _MAX_MATCHES: Final = 3
 
 
@@ -178,29 +178,35 @@ def _find_number(spec: FieldSpec, truth: float, item: SplitItem) -> list[Match]:
     scale = _scale_for(spec, item)
     allowed = tolerance(spec, truth, item.item.context)
     target = abs(truth)
-    found = []
+    found: list[tuple[float, Match]] = []
     for offset, section, line in _lines(item.item.text):
         if section is not spec.section:
             continue
         if target == 0:
-            found.extend(_dash_cells(line, offset))
+            found.extend((0.0, m) for m in _dash_cells(line, offset))
         for number in _NUMBER.finditer(line):
             value = float(number.group(0).replace(",", "")) * scale
             if abs(value - target) > allowed:
                 continue
             before = line[: number.start()].rstrip().rstrip("$").rstrip()
             found.append(
-                Match(
-                    line=line,
-                    start=number.start(),
-                    end=number.end(),
-                    text_start=offset + number.start(),
-                    text_end=offset + number.end(),
-                    column=_column(line, number.start()),
-                    parenthesised=before.endswith("("),
+                (
+                    abs(value - target),
+                    Match(
+                        line=line,
+                        start=number.start(),
+                        end=number.end(),
+                        text_start=offset + number.start(),
+                        text_end=offset + number.end(),
+                        column=_column(line, number.start()),
+                        parenthesised=before.endswith("("),
+                    ),
                 )
             )
-    return found
+    # Closest first, in page order among equals: within the tolerance a neighbouring row can
+    # match too, "Basic" a line above "Diluted", and the exact one must not be cut off.
+    found.sort(key=lambda hit: hit[0])
+    return [m for _, m in found]
 
 
 def _dash_cells(line: str, offset: int) -> list[Match]:

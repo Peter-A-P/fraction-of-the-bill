@@ -126,6 +126,15 @@ def test_a_zero_printed_as_a_dash_is_found() -> None:
     assert found["operating_income"].matches[0].column == 1
 
 
+def test_the_exact_row_is_shown_first_when_a_neighbour_is_within_tolerance_too() -> None:
+    page = PAGE.replace(
+        "Diluted weighted average shares | 100 | 98",
+        "Basic | 1,003 | 1,002 | 1,001 | 1,004\nDiluted | 1,000 | 990",
+    )
+    shares = by_field(item(page, shares_diluted=1_000_000.0))["shares_diluted"]
+    assert shares.matches[0].line.startswith("Diluted")
+
+
 def test_a_state_code_is_found_as_the_state_not_inside_other_words() -> None:
     page = PAGE.replace("FORM 10-K", "FORM 10-K\nRAYONIER INC.").replace(
         "Delaware |", "North Carolina |"
