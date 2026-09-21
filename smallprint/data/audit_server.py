@@ -36,6 +36,7 @@ from pydantic import BaseModel, ConfigDict
 from smallprint.data.audit import AUDIT_COLUMNS, VERDICTS, read_sheet, wilson
 from smallprint.data.build import SplitItem
 from smallprint.data.pair import NULL_WHEN_LINE_ABSENT, STATE_NAMES, date_forms
+from smallprint.data.statements import scale_heading
 from smallprint.grade import normalise_categorical, tolerance
 from smallprint.schema import FIELDS, SCHEMA, FieldKind, FieldSpec, Section
 
@@ -87,6 +88,9 @@ class FieldEvidence(BaseModel):
     label: str | None
     #: The label as the page would print it after the reporting scale, for a number.
     printed_as: str | None
+    #: The heading line that prints the scale, "(in thousands, except per share amounts)",
+    #: since the row the value is found on does not say it.
+    scale_line: Match | None = None
     matches: tuple[Match, ...]
     #: Things worth a second look. Never a verdict.
     flags: tuple[str, ...]
@@ -120,6 +124,50 @@ def _scale_for(spec: FieldSpec, item: SplitItem) -> float:
             return context.share_scale if context.share_scale is not None else context.scale
         case _:
             return context.scale
+
+
+_NAMES: Final[dict[Section, str]] = {
+    Section.INCOME: "income statement",
+    Section.BALANCE: "balance sheet",
+}
+
+#: A scale word in a parenthesised heading, "(thousands, except per share data)". Looser
+#: than the build's reading, and only used to show the reader where a scale is printed.
+_LOOSE_SCALE = re.compile(r"\((?:[^)]*?\b)?(thousands|millions|billions)\b", re.IGNORECASE)
+
+
+def _scale_line(spec: FieldSpec, item: SplitItem) -> tuple[Match, Section] | None:
+    """The line that prints the field's scale, and the section it is in.
+
+    Its own section first. A statement that prints none was given the other statement's
+    scale by the build, and the reader is shown that one.
+    """
+    kinds = [False]
+    if spec.kind is FieldKind.SHARE_COUNT and item.item.context.share_scale is not None:
+        kinds = [True, False]  # a scale of the shares' own, else the heading's
+    others = [s for s in (Section.INCOME, Section.BALANCE) if s is not spec.section]
+    lines = _lines(item.item.text)
+    for section in [spec.section, *others]:
+        for shares in kinds:
+            for loose in (False, True):
+                for offset, where, line in lines:
+                    if where is not section:
+                        continue
+                    found = (
+                        _LOOSE_SCALE.search(line) if loose else scale_heading(line, shares=shares)
+                    )
+                    if found is not None:
+                        match = Match(
+                            line=line,
+                            start=found.start(),
+                            end=found.end(),
+                            text_start=offset + found.start(),
+                            text_end=offset + found.end(),
+                            column=None,
+                            parenthesised=False,
+                        )
+                        return match, section
+    return None
 
 
 def _number(value: float) -> str:
@@ -267,6 +315,7 @@ def evidence_for(spec: FieldSpec, item: SplitItem) -> FieldEvidence:
     flags: list[str] = []
     matches: list[Match] = []
     printed_as = None
+    scale_line = None
 
     if truth is None:
         if spec.name in item.item.not_on_page:
@@ -282,6 +331,13 @@ def evidence_for(spec: FieldSpec, item: SplitItem) -> FieldEvidence:
         label = _number(value)
         if scale != 1.0:
             printed_as = f"{_number(value / scale)} at a scale of {_number(scale)}"
+            heading = _scale_line(spec, item)
+            if heading is None:
+                flags.append("No scale printed anywhere. Check the scale by hand.")
+            else:
+                scale_line, where = heading
+                if where is not spec.section:
+                    flags.append(f"Its statement prints no scale; the {_NAMES[where]}'s is used.")
         matches = _find_number(spec, value, item)
         if not matches:
             flags.append("Not found in its section. Look for it by hand.")
@@ -322,6 +378,7 @@ def evidence_for(spec: FieldSpec, item: SplitItem) -> FieldEvidence:
         section=spec.section,
         label=label,
         printed_as=printed_as,
+        scale_line=scale_line,
         matches=tuple(matches[:_MAX_MATCHES]),
         flags=tuple(flags),
     )
@@ -511,6 +568,7 @@ td.field{font-family:ui-monospace,monospace;white-space:nowrap;cursor:pointer}
 td.label{font-family:ui-monospace,monospace;white-space:nowrap}
 .line{font-family:ui-monospace,monospace;font-size:12.5px;white-space:pre-wrap;word-break:break-word}
 mark{background:var(--mark);color:inherit;padding:0 1px;border-radius:2px}
+.scale{color:var(--muted)}
 .col{font-size:11px;color:var(--muted);margin-left:6px}
 .flag{color:var(--warn);font-size:12.5px}
 .sub{color:var(--muted);font-size:12px}
@@ -558,7 +616,9 @@ function render(){const rows=$('rows');rows.innerHTML='';
 item.fields.forEach((f,i)=>{const tr=document.createElement('tr');
 if(f.flags.length)tr.classList.add('flagged');if(wrong.has(f.field))tr.classList.add('wrong');
 if(i===cursor)tr.classList.add('cursor');
-const where=f.matches.map(m=>'<div class="line">'+marked(m.line,m.start,m.end)+
+const scale=f.scale_line?'<div class="line scale">'+marked(f.scale_line.line,
+f.scale_line.start,f.scale_line.end)+'<span class="col">the scale, from the heading</span></div>':'';
+const where=scale+f.matches.map(m=>'<div class="line">'+marked(m.line,m.start,m.end)+
 (m.column?'<span class="col">column '+m.column+'</span>':'')+'</div>').join('');
 const flags=f.flags.map(x=>'<div class="flag">'+esc(x)+'</div>').join('');
 tr.innerHTML='<td class="field">'+(wrong.has(f.field)?'&#10007; ':'')+esc(f.field)+

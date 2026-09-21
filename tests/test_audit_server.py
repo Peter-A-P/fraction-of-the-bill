@@ -79,6 +79,21 @@ def test_every_label_is_shown_beside_the_row_it_was_read_from() -> None:
     assert not any(f.flags for f in found.values())
 
 
+def test_a_scaled_label_is_shown_with_the_heading_that_prints_its_scale() -> None:
+    found = by_field(item())
+    heading = found["revenue"].scale_line
+    assert heading is not None and heading.line == "(in thousands)"
+    assert heading.line[heading.start : heading.end] == "in thousands"
+    assert found["eps_basic"].scale_line is None  # per-share amounts are never scaled
+
+
+def test_a_statement_printing_no_scale_of_its_own_is_pointed_at() -> None:
+    page = PAGE.replace("[INCOME STATEMENT]\n(in thousands)\n", "[INCOME STATEMENT]\n", 1)
+    revenue = by_field(item(page))["revenue"]
+    assert revenue.scale_line is not None and revenue.scale_line.line == "(in thousands)"
+    assert any("balance sheet" in f for f in revenue.flags)
+
+
 def test_a_date_printed_with_its_comma_set_apart_is_still_found() -> None:
     period = by_field(item())["period_end"]
     assert "December 31 , 2025" in period.matches[0].line

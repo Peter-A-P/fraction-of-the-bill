@@ -449,6 +449,16 @@ def _score(section: Section, block: Block, heading: Sequence[str]) -> int | None
     return matched + (_TITLE_WEIGHT if own in titles else 0)
 
 
+def scale_heading(line: str, *, shares: bool = False) -> re.Match[str] | None:
+    """Where a line prints the statement's scale, for showing a reader where it came from.
+
+    With `shares`, only a scale the heading gives share counts of their own.
+    """
+    if shares:
+        return _SHARE_SCALE.search(line)
+    return _MONEY_SCALE.search(line) or _THOUSANDS_OMITTED.search(line)
+
+
 def _scales(text: str) -> tuple[float, bool, float | None]:
     """The monetary scale, whether one was printed, and the share scale if it differs."""
     money = _MONEY_SCALE.search(text)

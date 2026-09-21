@@ -386,13 +386,17 @@ leave the slow part to the auditor, which is finding fifteen numbers in six thou
 characters. The server does the finding: each label is shown beside the row of the
 statement where its value is printed, with the number marked and its column named, so
 checking a field is reading one line and a filing with nothing wrong is one keystroke.
-On the 200 drawn items it locates every labelled field; 194 of the 200 carry no hint at
-all beyond why a null is null.
+A scaled number is also shown with the heading line that prints its scale, "(in thousands,
+except per share amounts)", because the row it is found on does not say it: a label of
+406,000 beside a row printing $406 is right only because of a line near the top of the
+statement. On the 200 drawn items it locates every labelled field and the scale heading of
+every scaled one; 192 of the 200 carry no hint at all beyond why a null is null.
 
 It also points at what deserves a second look, without deciding anything: a value found
 only in a later column, a loss not printed in parentheses (only for the fields whose sign
 means something; cost of revenue is asked for positive and printed in parentheses, by
-design), a label not found in its own section, a quarterly report labelled as a year, and
+design), a label not found in its own section, a statement that prints no scale of its own and
+was given the other statement's (three of the 200), a quarterly report labelled as a year, and
 the reason for every null. Verdicts are written into `audit.csv` as they are given, through
 a temporary file and a rename so a crash cannot leave half a sheet, and each is checked
 with the same rules `audit-report` applies, so a verdict the report would refuse is refused
