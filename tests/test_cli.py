@@ -94,12 +94,13 @@ def test_locate_fails_when_a_statement_is_not_found(tmp_path: Path) -> None:
 def test_no_command_promises_work_that_does_not_exist() -> None:
     """train, quantise, serve and bench are absent rather than stubbed. Help must not offer them.
 
-    breakeven is present: it computes from inputs the reader supplies. So is baseline: it
-    runs a model over held-out filings through the gateway and grades what comes back.
+    breakeven is present: it computes from inputs the reader supplies. So is baseline,
+    which runs a model over held-out filings through the gateway, and report, which writes
+    the results table from the runs that exist.
     """
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for absent in ("train", "quantise", "serve", "bench ", "report"):
+    for absent in ("train", "quantise", "serve", "bench "):
         assert absent not in result.output
-    for present in ("data", "baseline", "breakeven", "schema"):
+    for present in ("data", "baseline", "breakeven", "schema", "report"):
         assert present in result.output

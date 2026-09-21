@@ -38,6 +38,7 @@ from smallprint.data.edgar import CONTACT_ENV, ContactNotDeclared, EdgarClient, 
 from smallprint.data.split import Split
 from smallprint.data.statements import Statement, locate
 from smallprint.prompts import PromptStyle, build_prompt
+from smallprint.report import baselines
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
 
 app = typer.Typer(
@@ -436,6 +437,25 @@ def baseline_report(
     path = write_summary(run_dir, summary)
     typer.echo("")
     typer.echo(f"Written to {path}.")
+
+
+@app.command()
+def report(
+    runs: Path = typer.Option(Path("data/baseline"), help="A directory of run directories."),
+    build_dir: Path = typer.Option(Path("data/build"), help="The build the runs were made on."),
+    split: str = typer.Option(Split.TEST_POST_CUTOFF.value, help="Which split the runs cover."),
+    against: str | None = typer.Option(
+        None, help="Pair every delta with this run, as 'model style'. Default: the cheapest."
+    ),
+    out: Path | None = typer.Option(None, help="Write the markdown here instead of printing it."),
+) -> None:
+    """The results table, written from the runs. Nobody edits these tables by hand."""
+    markdown = baselines(runs, build_dir, split, against=against)
+    if out is None:
+        typer.echo(markdown)
+        return
+    out.write_text(markdown + "\n", encoding="utf-8", newline="\n")
+    typer.echo(f"Written to {out}.")
 
 
 def main() -> None:

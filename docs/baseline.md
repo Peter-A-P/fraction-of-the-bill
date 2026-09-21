@@ -253,7 +253,49 @@ which is the mode every published accuracy number runs in. So the latency column
 frontier models will need either a separate, clearly labelled streaming run in standard
 mode with retries off, or a change in the gateway. Not decided.
 
+## The six runs, 2026-09-20
+
+All three models over all 716 post-cutoff filings, zero-shot and two-shot: 4,296 calls,
+US$59.63, no failures, one answer in 4,296 that would not parse. The table is in
+[results-baseline.md](results-baseline.md), written by `smallprint report`, and the three
+findings are these.
+
+**The cheapest model is as accurate as the most expensive one.** Paired over the same
+filings, `gpt-5.6-sol` zero-shot is -0.3% (-0.8% to +0.2%) against `gpt-5.6-luna`
+zero-shot, and `claude-sonnet-5` zero-shot is -0.1% (-0.4% to +0.1%). Two intervals
+straddling zero, from models costing 18 and 14 times as much. Only `gpt-5.6-sol` two-shot
+clears it, by +0.7% (+0.4% to +0.9%), at 35 times the price. Field accuracy on this task
+saturates around 96% and the money buys nothing above it.
+
+**Whole filings are where paying more shows.** Every field right on one filing goes from
+57.8% for luna zero-shot to 66.5% for sol two-shot, nearly nine filings in every hundred.
+Fifteen fields at 96% each leaves a lot of filings with one thing wrong, and which
+fifteenths go wrong is not the same across models. This is the number a user of an
+extractor actually feels, and it is the one the fine-tunes have to move.
+
+**Worked examples are worth it for one model out of three.** Two-shot minus zero-shot,
+paired: luna -0.0% (-0.3% to +0.3%), sonnet +0.2% (-0.1% to +0.5%), sol +1.0% (+0.6% to
++1.5%). Two nothings and one real gain, at roughly twice the input cost in every case. So
+the headline comparison uses zero-shot, and sol two-shot is carried as the best frontier
+result anyone paid for.
+
+**What the bar actually is.** The fine-tunes have to reach **96.3% of fields and 57.8% of
+filings, at US$0.87 per 1,000 calls**, which is luna zero-shot. Not the most expensive
+model: the cheapest one that does the job, because that is what a team running this
+volume would be paying, and self-hosting has to beat what they would otherwise spend
+rather than what they could have spent.
+
+**The failure is one behaviour, not fifteen.** Sorted worst first, luna's misses are
+`cost_of_revenue` 85.8%, `total_liabilities` 90.6%, `eps_basic` 92.0%, and in each case
+the reason is `hallucinated`: the filing does not report the field and the model answers
+anyway, deriving cost of revenue from gross profit, total liabilities by subtraction, per
+share figures the statement omits. 85 of 716 on the first one. The prompt forbids it
+twice, and the frontier models do it anyway. Abstention is the behaviour a fine-tune on
+this corpus should be able to buy, and it is worth more in production than a point of
+accuracy: an abstention can be routed to a person, an invention cannot. The one field
+that fails differently is `shares_diluted`, with 18 scale errors, thousands read as units.
+
 ## Not measured yet
 
-No full baseline has been run: the spend so far is two cents. The result tables in the
-README stay empty until a run fills them.
+The pre-cutoff contamination gap, which needs the same models over `test_pre_cutoff`, and
+time to first token, which needs the streaming question above settled.

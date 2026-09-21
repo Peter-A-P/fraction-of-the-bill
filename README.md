@@ -24,23 +24,40 @@ The three frontier baselines are chosen and the gateway is configured: `gpt-5.6-
 the quality ceiling, `claude-sonnet-5` as a second vendor, and `gpt-5.6-luna` as the cost
 anchor the break-even has to beat ([docs/baseline.md](docs/baseline.md)).
 
-A twenty-item smoke run through the gateway works, at a total spend of **US$0.02**: the
-cheapest of the three scores 94.3% on fields and 45% on whole filings, and almost all of
-the gap is one behaviour, deriving total liabilities from a line the statement does not
-print. **Nothing has been trained, quantised or served, and no full baseline has been
-run.** The plan is in [PLAN.md](PLAN.md); the dataset design and the
-open questions are in [docs/data.md](docs/data.md), the prompt and the runner in
+All three have now been measured on the whole post-cutoff test set, zero-shot and
+two-shot: 4,296 calls, **US$59.63**, in the table below. **Nothing has been trained,
+quantised or served.** The plan is in [PLAN.md](PLAN.md); the dataset design and the open
+questions are in [docs/data.md](docs/data.md), the prompt and the runner in
 [docs/baseline.md](docs/baseline.md).
 
 ## Result
 
-Not yet measured. The build fills these tables.
+The small models are not trained yet, so the first table is empty. The frontier bar they
+have to reach is measured.
 
 **Quality, on held-out filings published after the base models' training cutoff**
 
 | Model | Size | Field accuracy (95% CI) | Non-inferior to best API (delta, CI) | Pre-cutoff gap |
 |---|---|---|---|---|
 | _not yet_ | | | | |
+
+**The frontier baselines, the bar the above has to reach.** Written by `smallprint report`
+from the runs; not edited by hand. 716 post-cutoff filings, every call through the
+gateway, US$59.63.
+
+| Model | Prompt | Fields correct (95% CI) | Every field right | Paired delta vs openai/gpt-5.6-luna zero_shot | Cost per 1,000 | Latency p50 | p99 |
+|---|---|---|---|---|---:|---:|---:|
+| `openai/gpt-5.6-luna` | zero-shot | 96.3% (95.9% to 96.6%) | 57.8% (54.2% to 61.5%) | baseline | US$0.87 | 2.33 s | 4.96 s |
+| `openai/gpt-5.6-luna` | few-shot | 96.2% (95.8% to 96.7%) | 59.5% (55.9% to 63.1%) | -0.0% (-0.3% to +0.3%) | US$1.62 | 2.18 s | 4.59 s |
+| `anthropic/claude-sonnet-5` | zero-shot | 96.1% (95.7% to 96.6%) | 57.4% (53.8% to 61.0%) | -0.1% (-0.4% to +0.1%) | US$11.96 | 3.04 s | 8.95 s |
+| `openai/gpt-5.6-sol` | zero-shot | 96.0% (95.4% to 96.5%) | 64.1% (60.6% to 67.6%) | -0.3% (-0.8% to +0.2%) | US$15.48 | 2.76 s | 6.49 s |
+| `anthropic/claude-sonnet-5` | few-shot | 96.4% (95.9% to 96.8%) | 61.2% (57.5% to 64.7%) | +0.1% (-0.3% to +0.4%) | US$22.92 | 3.32 s | 9.86 s |
+| `openai/gpt-5.6-sol` | few-shot | 97.0% (96.6% to 97.3%) | 66.5% (63.0% to 69.8%) | +0.7% (+0.4% to +0.9%) | US$30.44 | 2.93 s | 6.53 s |
+
+The cheapest model in the set matches the most expensive one on field accuracy. Whole
+filings are where paying more shows: the ceiling model gets 8.7 more of every hundred
+filings entirely right, for 35 times the price. Detail and failure modes in
+[docs/results-baseline.md](docs/results-baseline.md).
 
 **Quantisation cost, serving and money**
 
