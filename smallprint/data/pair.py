@@ -176,7 +176,7 @@ _MONTHS: Final[tuple[str, ...]] = (
 )  # fmt: skip
 
 
-def _date_forms(day: dt.date) -> tuple[str, ...]:
+def date_forms(day: dt.date) -> tuple[str, ...]:
     month = _MONTHS[day.month - 1]
     short = [month[:3], month[:3] + "."] + (["Sept.", "Sept"] if day.month == 9 else [])
     forms = [f"{m} {d}, {day.year}" for m in (month, *short) for d in (day.day, f"{day.day:02d}")]
@@ -211,7 +211,7 @@ def locatable(spec: FieldSpec, truth: object, located: LocatedFiling, ctx: Grade
             assert isinstance(truth, dt.date)
             # "December 31 , 2024", with the comma set apart, is printed on real cover pages.
             folded = " ".join(text.split()).replace(" ,", ",").casefold()
-            return any(form.casefold() in folded for form in _date_forms(truth))
+            return any(form.casefold() in folded for form in date_forms(truth))
         case FieldKind.CATEGORICAL:
             assert isinstance(truth, str)
             folded = f" {normalise_categorical(text)} "

@@ -381,6 +381,23 @@ wrong label, with a 95% Wilson interval: with no errors in 200 the upper bound i
 1.9%, and that bound is the ceiling on how far any score measured on this corpus can be
 trusted.
 
+**`smallprint data audit-serve`** is the faster way to fill the sheet. The Markdown pages
+leave the slow part to the auditor, which is finding fifteen numbers in six thousand
+characters. The server does the finding: each label is shown beside the row of the
+statement where its value is printed, with the number marked and its column named, so
+checking a field is reading one line and a filing with nothing wrong is one keystroke.
+On the 200 drawn items it locates every labelled field; 194 of the 200 carry no hint at
+all beyond why a null is null.
+
+It also points at what deserves a second look, without deciding anything: a value found
+only in a later column, a loss not printed in parentheses (only for the fields whose sign
+means something; cost of revenue is asked for positive and printed in parentheses, by
+design), a label not found in its own section, a quarterly report labelled as a year, and
+the reason for every null. Verdicts are written into `audit.csv` as they are given, through
+a temporary file and a rename so a crash cannot leave half a sheet, and each is checked
+with the same rules `audit-report` applies, so a verdict the report would refuse is refused
+when it is given. The server listens on 127.0.0.1 only.
+
 ## The full corpus, 2026-09-19
 
 1,600 companies, filings dated 2022Q1 to 2026Q2, fetched in about two hours at the paced

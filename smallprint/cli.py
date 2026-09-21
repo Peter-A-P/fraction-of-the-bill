@@ -168,6 +168,37 @@ def audit_sample(
     typer.echo(f"{len(chosen)} items. Pages in {out / 'items'}; verdicts go in {sheet}.")
 
 
+@data_app.command("audit-serve")
+def audit_serve(
+    build_dir: Path = typer.Option(Path("data/build"), help="The build the sample was drawn from."),
+    sheet: Path = typer.Option(Path("data/audit/audit.csv"), help="The verdict sheet."),
+    port: int = typer.Option(8765, help="Local port. Bound to 127.0.0.1 only."),
+    open_browser: bool = typer.Option(True, "--open/--no-open", help="Open it in a browser."),
+) -> None:
+    """The hand audit in a browser: each label beside the line it was read from.
+
+    Verdicts are written into the sheet as they are given, so stopping and starting again
+    resumes where you stopped. Ctrl+C to finish.
+    """
+    import webbrowser
+
+    from smallprint.data.audit_server import AuditApp, server
+
+    ids = {row["item_id"] for row in hand_audit.read_sheet(sheet)}
+    app_state = AuditApp(sheet, [s for s in read_items(build_dir) if s.item.item_id in ids])
+    httpd = server(app_state, port=port)
+    url = f"http://127.0.0.1:{httpd.server_address[1]}/"
+    typer.echo(f"Auditing {len(app_state.items)} items from {sheet} at {url}. Ctrl+C to stop.")
+    if open_browser:
+        webbrowser.open(url)
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        typer.echo("Stopped. Verdicts are in the sheet; smallprint data audit-report reads them.")
+    finally:
+        httpd.server_close()
+
+
 @data_app.command("audit-report")
 def audit_report(
     sheet: Path = typer.Option(Path("data/audit/audit.csv"), help="The filled verdict sheet."),
