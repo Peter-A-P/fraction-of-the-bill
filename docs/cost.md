@@ -36,6 +36,35 @@ in. Utilisation is the share of rented time spent serving at the measured rate. 
 reader's input, not a measurement. Every GPU price carries the date it was read and its
 source, and a price without a date is refused.
 
+## The overlay: one cost, split into the gateway's two rates
+
+The gateway costs every call per million input and per million output tokens, because that
+is how vendors bill. A GPU bills by the hour. So a self-hosted host's rates are derived and
+written as a dated file in the gateway's own price format, in the directory
+`self_hosted_prices` names ([`overlay.py`](../smallprint/serve/overlay.py)).
+
+The cost of a call is fixed by the rent and the throughput; how it divides between input
+and output tokens is not, and it matters, because a long prompt with a short answer costs a
+GPU something different from the reverse. The split charges each kind of token for the GPU
+time it used. Reading the prompt is the time to first token, writing the answer is the
+rest, so:
+
+    prefill share = TTFT p50 / end-to-end p50, from the load test
+    input  rate   = cost per call * prefill share       / mean input tokens  * 1e6
+    output rate   = cost per call * (1 - prefill share) / mean output tokens * 1e6
+
+One invariant holds by construction and is tested: a request with the mean token counts
+costs exactly the rent per call. Decoding is where the time goes, so an output token comes
+out priced many times an input one, as it does on every vendor's list.
+
+The file's `source` field carries the derivation: card, provider, hourly rate, the day it
+was read and where, the throughput, the utilisation, the prefill share. The tests build a
+real `Gateway` on the written file and let its own validation decide, so a file the gateway
+would refuse fails here first. It refuses an overlay naming a provider not flagged
+`self_hosted`, which is the gateway keeping one copy of every vendor rate. A dated file is
+never rewritten under the same date, because a ledger row already costed from it would
+then cite a date whose rates had changed underneath it.
+
 ## The break-even
 
 GPUs are rented whole, by the hour, so self-hosted monthly cost is a staircase
