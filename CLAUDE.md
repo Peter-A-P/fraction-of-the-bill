@@ -3,8 +3,10 @@
 This repository is Frontier Quality at a Fraction of the Bill, package `smallprint`:
 fine-tuning three small open-weights models on structured extraction from SEC filings with
 XBRL truth, quantising them, serving them on rented GPUs, and publishing the
-quality-latency-cost frontier and the break-even against frontier APIs. Built April 2027.
-The plan is in [PLAN.md](PLAN.md).
+quality-latency-cost frontier and the break-even against frontier APIs. Started
+2026-09-14 and built as fast as the work allows: the original April 2027 schedule and the
+week-by-week dates in the plan are void. Treat PLAN.md section 5 as the order of work only,
+and never wait on a calendar date. The plan is in [PLAN.md](PLAN.md).
 
 ## Read first
 
