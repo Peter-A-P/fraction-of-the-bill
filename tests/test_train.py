@@ -194,3 +194,14 @@ def test_every_base_is_pinned_to_a_revision_not_a_branch() -> None:
         assert re.fullmatch(r"[0-9a-f]{40}", base.revision), base.repo
         assert re.fullmatch(r"[0-9a-f]{40}", base.baseline_revision), base.baseline_repo
         assert base.revision != base.baseline_revision
+
+
+def test_step_time_is_the_trainers_clock_over_this_sessions_steps() -> None:
+    """Wall time since start would count loading the model, most of a twenty-step smoke
+    run; the global step of a resumed run counts steps another machine did."""
+    from smallprint.train.qlora import step_seconds
+
+    assert step_seconds(100.0, 20, 0) == 5.0
+    assert step_seconds(100.0, 70, 50) == 5.0  # resumed at 50, ran 20 here
+    assert step_seconds(None, 20, 0) is None
+    assert step_seconds(100.0, 50, 50) is None  # nothing ran in this session

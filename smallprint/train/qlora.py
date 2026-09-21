@@ -75,6 +75,20 @@ def _versions() -> dict[str, str]:
     return found
 
 
+def step_seconds(train_runtime: float | None, global_step: int, resumed_from: int) -> float | None:
+    """Seconds per optimiser step, on the trainer's own clock, over the steps this session ran.
+
+    Not wall time since the run started: that includes downloading and loading the model,
+    which on a twenty-step smoke run is most of it, and the smoke run's figure is what every
+    GPU-hour estimate is then multiplied out from. And over this session's steps only, since
+    a resumed run's global step counts the steps a previous machine did.
+    """
+    steps = global_step - resumed_from
+    if train_runtime is None or steps <= 0:
+        return None
+    return train_runtime / steps
+
+
 def require_gpu_stack() -> None:
     """Fail early and legibly, rather than four frames into a trainer."""
     try:
@@ -214,14 +228,17 @@ def train(
     trainer.save_model(str(out_dir / "adapter"))
 
     metrics = trainer.evaluate() if validation else {}
-    elapsed = (dt.datetime.now(dt.UTC) - record.started_at).total_seconds()
     finished = record.model_copy(
         update={
             "finished_at": dt.datetime.now(dt.UTC),
             "steps": int(result.global_step),
             "train_loss": float(result.training_loss),
             "validation_loss": metrics.get("eval_loss"),
-            "seconds_per_step": elapsed / max(int(result.global_step), 1),
+            "seconds_per_step": step_seconds(
+                result.metrics.get("train_runtime"),
+                int(result.global_step),
+                record.resumed_from_step,
+            ),
         }
     )
     finished.write(out_dir)
