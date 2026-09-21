@@ -1,8 +1,8 @@
 # Base models, their licences and their cutoffs
 
 **Chosen, 2026-09-19: Gemma 4 E2B, Gemma 4 E4B and OLMo 3 7B.** The split's cutoff is
-**2025-01-31**, the latest of the three. Nothing may be fine-tuned until the revision and
-digest of the weights it uses are recorded here.
+**2025-01-31**, the latest of the three. Revisions and weight digests were resolved and
+recorded on 2026-09-21, so this gate is clear.
 
 A gate, not a placeholder. Three things have to be recorded here before a training run
 starts, and two of them decide whether the project's headline number means anything.
@@ -43,10 +43,31 @@ is after every base model's cutoff and all three sizes are measured on identical
 | Context | 128k | 128k | 65k |
 | Reasoning | Opt-in by a `<\|think\|>` token in the system prompt | same | The base has none; a separate Think variant exists and is not used |
 | Training data | Not released | Not released | **Released (Dolma 3)**, so contamination can be checked against the corpus directly |
-| Revision and digest | Recorded at first download | Recorded at first download | Recorded at first download |
+| Base revision | `d29ff6b45f081a49ee2733a859c9c9c2d95d1a6f` | `411aa17b749aa952df1359d2dcea73917a544d9a` | `a81bae42db3975be1671e27b9c9a56da1a9f980f` |
+| Weights on disk, bf16 | 10.25 GB, one file | 15.99 GB, one file | 14.60 GB, three files |
+| Untuned baseline revision | `3e22461f65e89153144f8adb70e3b8c2cc9845a7` | `ee0ef6023621cff504d758262d4e04895a5af4a2` | `6e5971d9eba42665f5bd5a0fcf047f299ce1dccc` |
 
 Licences and cutoffs were read from the model cards and Hugging Face pages on 2026-09-19.
 Month-only cutoffs take the month's last day, so the split uses 2025-01-31, after all three.
+
+**Revisions and digests, resolved 2026-09-21** from the Hugging Face API, which also
+confirmed all six repositories ungated and Apache 2.0 on the day. A run passes the
+revision to `from_pretrained`, so a later push to any of these repositories cannot change
+what a recorded run trained on, and `RunRecord` stores it. The sha256 of each weight file
+at the base revision, for checking a download:
+
+| Base | File | sha256 |
+|---|---|---|
+| Gemma 4 E2B | `model.safetensors` | `76dc84a5a805a2c8b91e9ccc00b8dbf8f4a99bf0d56ab25832f6e6addd4f7f57` |
+| Gemma 4 E4B | `model.safetensors` | `43fb96cec3045b72852c787540300dc5b258634b7a025f7c80355ac0788b9651` |
+| OLMo 3 7B | `model-00001-of-00003.safetensors` | `0490d6668e613a29b23367e3a7aa9cc6aced3d162694445bb969ed7622b3c4e2` |
+| OLMo 3 7B | `model-00002-of-00003.safetensors` | `e127ea479fb6e208fe9d48d23b11212b5722f4873f6eef9c009b7a855866c641` |
+| OLMo 3 7B | `model-00003-of-00003.safetensors` | `f3ddff10052ffe5de5c6b4cad45c422c0d898acc6beb21b1b8531244adfb3c70` |
+
+The on-disk sizes say what a card has to hold. Gemma's "E2B" is 10 GB in bf16 because the
+per-layer embeddings are counted in the file and not in the name; in 4-bit for QLoRA the
+three load at roughly a quarter of those sizes, so all three train on a 24 GB card, which
+is the class the GPU decision is between.
 
 **Reasoning.** The fine-tunes train the base checkpoints to emit the JSON directly, with no
 thinking tokens, so reasoning costs no latency and no money. The untuned Gemma baselines are

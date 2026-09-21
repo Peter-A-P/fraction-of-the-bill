@@ -47,7 +47,7 @@ from smallprint.train.dataset import read as read_examples
 from smallprint.train.dataset import write as write_examples
 from smallprint.train.qlora import describe as describe_run
 from smallprint.train.qlora import train as train_qlora
-from smallprint.train.recipe import TrainConfig, gpu_hours, sweep
+from smallprint.train.recipe import BASES, Base, TrainConfig, gpu_hours, sweep
 
 app = typer.Typer(
     add_completion=False,
@@ -449,6 +449,13 @@ def baseline_report(
     typer.echo(f"Written to {path}.")
 
 
+def _base(size: str) -> Base:
+    """The base for a size label, or a clear refusal naming the three that exist."""
+    if size not in BASES:
+        raise typer.BadParameter(f"{size!r} is not one of {', '.join(BASES)}", param_hint="--size")
+    return BASES[size]
+
+
 @train_app.command("dataset")
 def train_dataset(
     build_dir: Path = typer.Option(Path("data/build"), help="A build written by data build."),
@@ -476,15 +483,14 @@ def train_dataset(
 @train_app.command("plan")
 def train_plan(
     dataset_dir: Path = typer.Option(Path("data/train"), help="Written by train dataset."),
-    base: str = typer.Option(..., help="The base checkpoint, as docs/models.md records it."),
-    size: str = typer.Option(..., help="Which of the three sizes this is, for the tables."),
+    size: str = typer.Option(..., help="2b, 4b or 7b, as docs/models.md records them."),
     seconds_per_step: float | None = typer.Option(
         None, help="Measured on the card. Given, this prints GPU hours; never assumed."
     ),
 ) -> None:
     """The ablation schedule: every run, its steps and its checkpoints, before renting anything."""
     _, manifest = read_examples(dataset_dir)
-    runs = sweep(TrainConfig(base=base, size=size))
+    runs = sweep(TrainConfig(base=_base(size).repo, size=size))
     typer.echo(f"{len(runs)} runs over {manifest.train:,} training examples")
     for config in runs:
         typer.echo(
@@ -499,10 +505,8 @@ def train_plan(
 @train_app.command("run")
 def train_run(
     dataset_dir: Path = typer.Option(Path("data/train"), help="Written by train dataset."),
-    base: str = typer.Option(..., help="The base checkpoint."),
-    size: str = typer.Option(..., help="Which of the three sizes this is."),
+    size: str = typer.Option(..., help="2b, 4b or 7b. The base and its revision follow."),
     out: Path = typer.Option(..., help="Where the checkpoints and the adapter go."),
-    revision: str | None = typer.Option(None, help="The exact base revision. Recorded."),
     rank: int = typer.Option(16, help="LoRA rank. Alpha follows at twice the rank."),
     learning_rate: float = typer.Option(1e-4, help="Peak learning rate."),
     epochs: int = typer.Option(2, help="Passes over the training pool."),
@@ -515,8 +519,9 @@ def train_run(
 ) -> None:
     """Fine-tune one base. Needs the GPU extra; this does not run on the laptop, by rule."""
     examples, manifest = read_examples(dataset_dir)
+    chosen = _base(size)
     config = TrainConfig(
-        base=base,
+        base=chosen.repo,
         size=size,
         rank=rank,
         alpha=2 * rank,
@@ -531,7 +536,7 @@ def train_run(
         f"{config.run_id}: {config.steps(manifest.train):,} steps, resuming from {store.resume_step()}."
     )
     record = train_qlora(
-        config, examples, manifest, out_dir=out, store=store, base_revision=revision
+        config, examples, manifest, out_dir=out, store=store, base_revision=chosen.revision
     )
     typer.echo(describe_run(record))
 

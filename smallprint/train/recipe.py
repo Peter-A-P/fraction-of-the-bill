@@ -7,7 +7,7 @@ than starting a second copy beside the first. Change any field and it is a diffe
 which is the same rule the prompt fingerprint follows and for the same reason.
 
 The ablations are one factor at a time from a base recipe rather than a full grid. Rank,
-learning rate and data volume across three values each is 27 runs as a grid and 7 as a
+learning rate and data volume across three values each is 27 runs as a grid and 8 as a
 sweep, and a grid of 27 on three model sizes is not a week of GPU time this project has.
 What a grid would buy is interactions between the factors; what it would cost is the three
 seeds on the chosen configuration, which is the part that says whether a difference is
@@ -30,6 +30,44 @@ LEARNING_RATES: Final[tuple[float, ...]] = (5e-5, 1e-4, 2e-4)
 #: training filings, so the third point needs a corpus expansion that is deferred until
 #: this curve says more data would buy anything. See docs/training.md.
 VOLUMES: Final[tuple[int, ...]] = (1_000, 2_500, 5_000)
+
+
+class Base(BaseModel):
+    """One of the three sizes: the checkpoint that is fine-tuned, and the untuned
+    instruction model measured beside it, each pinned to the revision it was resolved at."""
+
+    model_config = ConfigDict(frozen=True)
+
+    repo: str
+    revision: str
+    baseline_repo: str
+    baseline_revision: str
+
+
+#: The three bases, resolved from the Hugging Face API on 2026-09-21 and recorded with
+#: their weight digests in docs/models.md. A base named without its revision is not
+#: reproducible: a later push to the repository would change what a recorded run trained
+#: on. Keyed by the label the tables print.
+BASES: Final[dict[str, Base]] = {
+    "2b": Base(
+        repo="google/gemma-4-E2B",
+        revision="d29ff6b45f081a49ee2733a859c9c9c2d95d1a6f",
+        baseline_repo="google/gemma-4-E2B-it",
+        baseline_revision="3e22461f65e89153144f8adb70e3b8c2cc9845a7",
+    ),
+    "4b": Base(
+        repo="google/gemma-4-E4B",
+        revision="411aa17b749aa952df1359d2dcea73917a544d9a",
+        baseline_repo="google/gemma-4-E4B-it",
+        baseline_revision="ee0ef6023621cff504d758262d4e04895a5af4a2",
+    ),
+    "7b": Base(
+        repo="allenai/Olmo-3-1025-7B",
+        revision="a81bae42db3975be1671e27b9c9a56da1a9f980f",
+        baseline_repo="allenai/Olmo-3-7B-Instruct",
+        baseline_revision="6e5971d9eba42665f5bd5a0fcf047f299ce1dccc",
+    ),
+}
 
 
 class TrainConfig(BaseModel):
@@ -102,8 +140,9 @@ class TrainConfig(BaseModel):
 def sweep(base: TrainConfig) -> list[TrainConfig]:
     """One factor at a time from `base`: rank, then learning rate, then volume.
 
-    The base recipe appears once, not once per factor, so a sweep of three values on three
-    factors is seven runs rather than nine.
+    The base recipe appears once rather than once per factor. With the default base, which
+    is already rank 16 and 1e-4 and uses every filing, that is eight runs: the base, two
+    more ranks, two more learning rates and three volumes.
     """
     runs = [base]
     seen = {base.run_id}

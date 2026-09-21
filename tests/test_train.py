@@ -182,3 +182,15 @@ def test_the_run_record_round_trips(tmp_path: Path) -> None:
     from smallprint.train.qlora import read_record
 
     assert read_record(tmp_path).config.run_id == BASE.run_id
+
+
+def test_every_base_is_pinned_to_a_revision_not_a_branch() -> None:
+    """A base named without its revision is not reproducible: a later push to the
+    repository would change what a recorded run trained on."""
+    import re
+
+    assert set(recipe.BASES) == {"2b", "4b", "7b"}
+    for base in recipe.BASES.values():
+        assert re.fullmatch(r"[0-9a-f]{40}", base.revision), base.repo
+        assert re.fullmatch(r"[0-9a-f]{40}", base.baseline_revision), base.baseline_repo
+        assert base.revision != base.baseline_revision
