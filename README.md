@@ -59,6 +59,14 @@ filings are where paying more shows: the ceiling model gets 8.7 more of every hu
 filings entirely right, for 35 times the price. Detail and failure modes in
 [docs/results-baseline.md](docs/results-baseline.md).
 
+**No contamination premium.** The same model on the 1,425 filings published *before* the
+training cutoff scores 94.2%, which is 2.0 points **worse** than the post-cutoff set, not
+better. Memorising a filing does not help you copy a number off the page you were handed.
+
+**What a frontier model is actually bad at.** 99.0% of fields right when the filing
+reports them; **74.6% when it does not**, where the right answer is null and the model
+answers anyway. The weakness is abstention, not reading.
+
 **Quantisation cost, serving and money**
 
 | Model | Format | Accuracy delta vs bf16 (95% CI) | Req/s at c=32 | TTFT p99 ms | Cost per 1,000 | Break-even volume at 50% utilisation |

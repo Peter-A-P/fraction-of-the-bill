@@ -295,7 +295,46 @@ this corpus should be able to buy, and it is worth more in production than a poi
 accuracy: an abstention can be routed to a person, an invention cannot. The one field
 that fails differently is `shares_diluted`, with 18 scale errors, thousands read as units.
 
+## The contamination gap, 2026-09-20: there is not one
+
+`gpt-5.6-luna` zero-shot over all 1,425 pre-cutoff filings, US$1.24. These are filings
+published before the base models' training cutoff, so they may be in a pre-training
+corpus; the post-cutoff set cannot be. If memorisation were helping, the pre-cutoff set
+would score higher.
+
+It scores **lower**: 94.2% (93.8% to 94.7%) against 96.3% post-cutoff, a difference of
+**-2.0% (-2.6% to -1.4%)**. Unpaired, because the two sets are different filings, though
+132 of the filers appear in both.
+
+So there is no contamination premium to subtract on this task, and the reason is what the
+task is. The answer is printed on the page the model is given. Having read the filing in
+2024 does not help you copy a number out of it in 2026, and the thing the model actually
+gets wrong is not recall.
+
+**Where the older filings are harder, and how much of it is the corpus.** Split every
+field by whether the filing reports it at all:
+
+| | Field is reported | Field is not reported | Share unreported |
+|---|---|---|---:|
+| Pre-cutoff | 98.2% (98.0 to 98.4) | 68.1% (66.4 to 69.8) | 13.1% |
+| Post-cutoff | 99.0% (98.8 to 99.2) | 74.6% (72.0 to 77.0) | 11.1% |
+
+The pre-cutoff set has more unreported fields, and unreported fields are where the model
+falls over. Re-weighting the pre-cutoff set to the post-cutoff mix moves it from 94.2% to
+94.8%, so about a third of the gap is composition and the rest is that the older filings
+are genuinely a little harder, mostly on knowing when to say nothing.
+
+**The single clearest number in this whole exercise is in that table.** A frontier model
+gets 99% of fields right when the filing reports them and **74.6%** when it does not. The
+weakness is not reading, it is abstention, and it is worth more in production than a point
+of accuracy: an abstention can be routed to a person, an invention cannot.
+
+Measured on one model. Whether the fine-tunes show a contamination gap is a separate
+question and the split stays as it is, because the methodology is right even where this
+model shows nothing to correct for.
+
 ## Not measured yet
 
-The pre-cutoff contamination gap, which needs the same models over `test_pre_cutoff`, and
-time to first token, which needs the streaming question above settled.
+Time to first token, which needs the streaming question above settled, and the
+contamination gap for the other two frontier models, which costs US$12 and US$22 and
+would be worth running only if the fine-tunes turn out to show a gap this one does not.
