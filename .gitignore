@@ -26,8 +26,9 @@ data/build/
 data/audit/
 # Baseline runs: predictions, the pass-through raw bytes and the ledger. Evidence for
 # the tables, too large and too numerous to commit; the report command publishes the
-# summaries.
-data/baseline/
+# summaries. The glob rather than one directory: a run written to data/baseline-pre/
+# was committed by accident on 2026-09-20 because the rule named only data/baseline/.
+data/baseline*/
 # Training files: regenerated from a build in seconds by smallprint train dataset.
 data/train/
 
