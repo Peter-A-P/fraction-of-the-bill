@@ -36,7 +36,7 @@ The numbers a stranger can check:
 | Non-inferiority of each fine-tuned size against the best frontier model, run through the 03 gate with a stated delta and the interval shown | Whether "matches the API" is true, and for which size |
 | Accuracy on filings published after the base models' training cutoff against filings from before it | The contamination gap: what the pre-training already knew |
 | Quality cost of quantisation: accuracy delta of AWQ, GPTQ and GGUF against bf16 merged weights, per size, paired CIs | Whether "quantisation is free" survives measurement |
-| Data-scaling curve: accuracy against training examples (1k, 5k, 20k) per size, three seeds | How much data the result actually needs, with training variance shown |
+| Data-scaling curve: accuracy against training examples (1k, 2.5k, 5k) per size, three seeds, extended to 20k only if accuracy is still climbing at 5k | How much data the result actually needs, with training variance shown |
 | Distillation against ground truth: accuracy when trained on frontier-model outputs against XBRL truth at equal data volume, and the share of frontier errors the distilled model inherits | When distillation is the right tool and what it costs |
 | Serving: requests per second, output tokens per second, time to first token p50 and p99, end-to-end p99, at concurrency 1, 8, 32 and 64, per size and format, GPU stated | The latency axis, on real hardware |
 | Cost per 1,000 extractions: frontier from the gateway ledger, self-hosted from the GPU-hour price at measured throughput and stated utilisation | The cost axis, in dollars |

@@ -1,0 +1,141 @@
+"""The training recipe: what a run is, and what a set of runs varies.
+
+A `TrainConfig` is the whole of a run. It has a deterministic identifier derived from its
+own contents, so two people who write the same recipe get the same run id, a checkpoint
+directory is addressable without a registry, and a rerun of the same recipe resumes rather
+than starting a second copy beside the first. Change any field and it is a different run,
+which is the same rule the prompt fingerprint follows and for the same reason.
+
+The ablations are one factor at a time from a base recipe rather than a full grid. Rank,
+learning rate and data volume across three values each is 27 runs as a grid and 7 as a
+sweep, and a grid of 27 on three model sizes is not a week of GPU time this project has.
+What a grid would buy is interactions between the factors; what it would cost is the three
+seeds on the chosen configuration, which is the part that says whether a difference is
+real at all. The seeds are worth more.
+"""
+
+from __future__ import annotations
+
+import hashlib
+from collections.abc import Sequence
+from typing import Final, Self
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+#: LoRA ranks to sweep. 8 is the smallest that is usually enough for a format-following
+#: task; 64 is where the adapter stops being small relative to the base.
+RANKS: Final[tuple[int, ...]] = (8, 16, 64)
+LEARNING_RATES: Final[tuple[float, ...]] = (5e-5, 1e-4, 2e-4)
+#: The data-scaling curve. The plan asked for 1k, 5k and 20k; the corpus holds 5,154
+#: training filings, so the third point needs a corpus expansion that is deferred until
+#: this curve says more data would buy anything. See docs/training.md.
+VOLUMES: Final[tuple[int, ...]] = (1_000, 2_500, 5_000)
+
+
+class TrainConfig(BaseModel):
+    """One QLoRA run, entire."""
+
+    model_config = ConfigDict(frozen=True)
+
+    #: The base checkpoint, as docs/models.md records it.
+    base: str
+    #: Which of the three sizes this is, for the tables. Not derived from `base`: the
+    #: label is what the Pareto chart prints and a repository path is not a label.
+    size: str
+
+    rank: int = Field(default=16, ge=1)
+    alpha: int = Field(default=32, ge=1)
+    dropout: float = Field(default=0.05, ge=0.0, lt=1.0)
+    learning_rate: float = Field(default=1e-4, gt=0)
+    epochs: int = Field(default=2, ge=1)
+    #: Examples per optimiser step is batch_size * grad_accum. Both are here because the
+    #: first is bounded by the card and the second is not, and the tables report the
+    #: effective size rather than either.
+    batch_size: int = Field(default=1, ge=1)
+    grad_accum: int = Field(default=16, ge=1)
+    max_seq_len: int = Field(default=8192, ge=512)
+    warmup_ratio: float = Field(default=0.03, ge=0.0, lt=1.0)
+    seed: int = 0
+    #: Training filings to use. None means every one in the pool.
+    volume: int | None = Field(default=None, ge=1)
+    #: Every this many optimiser steps a checkpoint is written and uploaded. Small on
+    #: purpose: the repository's rule is that a run checkpoints from the first step,
+    #: because a spot instance can be reclaimed during the first one.
+    save_steps: int = Field(default=50, ge=1)
+    #: 4-bit base weights. The Q in QLoRA, and the reason a 7B trains on a 24 GB card.
+    load_in_4bit: bool = True
+
+    @model_validator(mode="after")
+    def _alpha_follows_rank(self) -> Self:
+        if self.alpha < self.rank:
+            raise ValueError(
+                f"alpha {self.alpha} below rank {self.rank}: the scaling factor alpha/rank "
+                "would shrink the adapter's contribution as rank grows, which makes a rank "
+                "sweep measure two things at once"
+            )
+        return self
+
+    @property
+    def examples_per_step(self) -> int:
+        return self.batch_size * self.grad_accum
+
+    def steps(self, n_examples: int) -> int:
+        """Optimiser steps for a pool of this size. Partial final batches count."""
+        if n_examples <= 0:
+            raise ValueError("no examples")
+        per_epoch = -(-min(n_examples, self.volume or n_examples) // self.examples_per_step)
+        return per_epoch * self.epochs
+
+    def checkpoints(self, n_examples: int) -> int:
+        """How many checkpoints a run writes, the one at step 1 included."""
+        return 1 + self.steps(n_examples) // self.save_steps
+
+    @property
+    def run_id(self) -> str:
+        """A name derived from the recipe, so the same recipe is the same run everywhere."""
+        payload = self.model_dump_json()
+        digest = hashlib.blake2b(payload.encode(), digest_size=4).hexdigest()
+        volume = "all" if self.volume is None else f"{self.volume}"
+        return f"{self.size}-r{self.rank}-lr{self.learning_rate:g}-n{volume}-s{self.seed}-{digest}"
+
+
+def sweep(base: TrainConfig) -> list[TrainConfig]:
+    """One factor at a time from `base`: rank, then learning rate, then volume.
+
+    The base recipe appears once, not once per factor, so a sweep of three values on three
+    factors is seven runs rather than nine.
+    """
+    runs = [base]
+    seen = {base.run_id}
+    for field, values in (
+        ("rank", RANKS),
+        ("learning_rate", LEARNING_RATES),
+        ("volume", VOLUMES),
+    ):
+        for value in values:
+            candidate = base.model_copy(update={field: value})
+            if field == "rank":
+                candidate = candidate.model_copy(update={"alpha": 2 * int(value)})
+            if candidate.run_id not in seen:
+                runs.append(candidate)
+                seen.add(candidate.run_id)
+    return runs
+
+
+def seeds(config: TrainConfig, n: int = 3) -> list[TrainConfig]:
+    """The same recipe `n` times. Without this a difference between two recipes cannot be
+    told from the difference between two runs of one recipe."""
+    if n < 1:
+        raise ValueError("at least one seed")
+    return [config.model_copy(update={"seed": s}) for s in range(n)]
+
+
+def gpu_hours(configs: Sequence[TrainConfig], n_examples: int, seconds_per_step: float) -> float:
+    """A schedule's length in GPU hours, from a measured seconds per step.
+
+    The rate is measured by the first smoke run on the rented card and passed in; this
+    function does arithmetic and never guesses a throughput.
+    """
+    if seconds_per_step <= 0:
+        raise ValueError("seconds per step must be positive and measured, not assumed")
+    return sum(c.steps(n_examples) for c in configs) * seconds_per_step / 3600

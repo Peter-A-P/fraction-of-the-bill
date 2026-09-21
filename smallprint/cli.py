@@ -40,6 +40,14 @@ from smallprint.data.statements import Statement, locate
 from smallprint.prompts import PromptStyle, build_prompt
 from smallprint.report import baselines
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
+from smallprint.train.checkpoint import CheckpointStore, LocalSyncer
+from smallprint.train.dataset import TRAINABLE
+from smallprint.train.dataset import build as build_examples
+from smallprint.train.dataset import read as read_examples
+from smallprint.train.dataset import write as write_examples
+from smallprint.train.qlora import describe as describe_run
+from smallprint.train.qlora import train as train_qlora
+from smallprint.train.recipe import TrainConfig, gpu_hours, sweep
 
 app = typer.Typer(
     add_completion=False,
@@ -48,7 +56,9 @@ app = typer.Typer(
 data_app = typer.Typer(help="The corpus: fair access, the cache, and what has been fetched.")
 app.add_typer(data_app, name="data")
 baseline_app = typer.Typer(help="Running a model over held-out filings, through the gateway.")
+train_app = typer.Typer(help="Fine-tuning: the dataset, the recipe, the run.")
 app.add_typer(baseline_app, name="baseline")
+app.add_typer(train_app, name="train")
 
 
 @app.command()
@@ -437,6 +447,93 @@ def baseline_report(
     path = write_summary(run_dir, summary)
     typer.echo("")
     typer.echo(f"Written to {path}.")
+
+
+@train_app.command("dataset")
+def train_dataset(
+    build_dir: Path = typer.Option(Path("data/build"), help="A build written by data build."),
+    out: Path = typer.Option(Path("data/train"), help="Where examples.jsonl is written."),
+    volume: int | None = typer.Option(None, help="Training filings to use. All when omitted."),
+    seed: int = typer.Option(20260920, help="Seed for the volume subset."),
+) -> None:
+    """Write the training file: the same prompt the baselines used, the graded answer as target.
+
+    Only the training and validation pools are ever written. The volume subsets are nested,
+    so the data-scaling curve varies how many filings and not which ones.
+    """
+    items = [s for s in read_items(build_dir) if s.split in TRAINABLE]
+    examples, manifest = build_examples(items, volume=volume, seed=seed)
+    path = write_examples(out, examples, manifest, build_dir=build_dir)
+    typer.echo(
+        f"{manifest.train:,} training and {manifest.validation:,} validation examples in {path}."
+    )
+    typer.echo(
+        f"Median {manifest.median_chars:,} characters, p95 {manifest.p95_chars:,}; "
+        f"prompt {manifest.prompt_fingerprint[:16]}."
+    )
+
+
+@train_app.command("plan")
+def train_plan(
+    dataset_dir: Path = typer.Option(Path("data/train"), help="Written by train dataset."),
+    base: str = typer.Option(..., help="The base checkpoint, as docs/models.md records it."),
+    size: str = typer.Option(..., help="Which of the three sizes this is, for the tables."),
+    seconds_per_step: float | None = typer.Option(
+        None, help="Measured on the card. Given, this prints GPU hours; never assumed."
+    ),
+) -> None:
+    """The ablation schedule: every run, its steps and its checkpoints, before renting anything."""
+    _, manifest = read_examples(dataset_dir)
+    runs = sweep(TrainConfig(base=base, size=size))
+    typer.echo(f"{len(runs)} runs over {manifest.train:,} training examples")
+    for config in runs:
+        typer.echo(
+            f"  {config.run_id:<44} {config.steps(manifest.train):>6} steps, "
+            f"{config.checkpoints(manifest.train):>4} checkpoints"
+        )
+    if seconds_per_step is not None:
+        hours = gpu_hours(runs, manifest.train, seconds_per_step)
+        typer.echo(f"{hours:,.1f} GPU hours at {seconds_per_step:g} s a step, seeds not included.")
+
+
+@train_app.command("run")
+def train_run(
+    dataset_dir: Path = typer.Option(Path("data/train"), help="Written by train dataset."),
+    base: str = typer.Option(..., help="The base checkpoint."),
+    size: str = typer.Option(..., help="Which of the three sizes this is."),
+    out: Path = typer.Option(..., help="Where the checkpoints and the adapter go."),
+    revision: str | None = typer.Option(None, help="The exact base revision. Recorded."),
+    rank: int = typer.Option(16, help="LoRA rank. Alpha follows at twice the rank."),
+    learning_rate: float = typer.Option(1e-4, help="Peak learning rate."),
+    epochs: int = typer.Option(2, help="Passes over the training pool."),
+    seed: int = typer.Option(0, help="The run's seed."),
+    volume: int | None = typer.Option(None, help="Training filings. All when omitted."),
+    save_steps: int = typer.Option(50, help="Steps between checkpoints."),
+    checkpoint_dir: Path | None = typer.Option(
+        None, help="A second directory to copy every checkpoint to. Use a mounted bucket."
+    ),
+) -> None:
+    """Fine-tune one base. Needs the GPU extra; this does not run on the laptop, by rule."""
+    examples, manifest = read_examples(dataset_dir)
+    config = TrainConfig(
+        base=base,
+        size=size,
+        rank=rank,
+        alpha=2 * rank,
+        learning_rate=learning_rate,
+        epochs=epochs,
+        seed=seed,
+        volume=volume,
+        save_steps=save_steps,
+    )
+    store = CheckpointStore(out, LocalSyncer(checkpoint_dir) if checkpoint_dir else None)
+    typer.echo(
+        f"{config.run_id}: {config.steps(manifest.train):,} steps, resuming from {store.resume_step()}."
+    )
+    record = train_qlora(
+        config, examples, manifest, out_dir=out, store=store, base_revision=revision
+    )
+    typer.echo(describe_run(record))
 
 
 @app.command()

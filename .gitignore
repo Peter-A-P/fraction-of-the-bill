@@ -28,6 +28,8 @@ data/audit/
 # the tables, too large and too numerous to commit; the report command publishes the
 # summaries.
 data/baseline/
+# Training files: regenerated from a build in seconds by smallprint train dataset.
+data/train/
 
 # Models, adapters, checkpoints, quantised weights (published to Hugging Face, never here)
 checkpoints/
