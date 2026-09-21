@@ -126,6 +126,17 @@ def test_a_zero_printed_as_a_dash_is_found() -> None:
     assert found["operating_income"].matches[0].column == 1
 
 
+def test_a_state_code_is_found_as_the_state_not_inside_other_words() -> None:
+    page = PAGE.replace("FORM 10-K", "FORM 10-K\nRAYONIER INC.").replace(
+        "Delaware |", "North Carolina |"
+    )
+    lines = [
+        m.line
+        for m in by_field(item(page, state_of_incorporation="NC"))["state_of_incorporation"].matches
+    ]
+    assert lines == ["North Carolina | 12-3456789"]
+
+
 def test_a_null_says_why_it_is_null() -> None:
     found = by_field(item(total_liabilities=None))
     assert found["total_liabilities"].label is None

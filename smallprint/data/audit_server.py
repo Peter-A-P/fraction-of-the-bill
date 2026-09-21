@@ -230,10 +230,11 @@ def _find_text(spec: FieldSpec, forms: Sequence[str], item: SplitItem) -> list[M
     for offset, section, line in _lines(item.item.text):
         if section is not spec.section:
             continue
-        folded = line.casefold()
         for form in forms:
-            at = folded.find(form.casefold())
-            if at >= 0:
+            # Whole words only, or a state code is found inside "INC" and "incorporation".
+            hit = _whole(form).search(line)
+            if hit is not None:
+                at = hit.start()
                 found.append(
                     Match(
                         line=line,
@@ -247,6 +248,10 @@ def _find_text(spec: FieldSpec, forms: Sequence[str], item: SplitItem) -> list[M
                 )
                 break
     return found
+
+
+def _whole(form: str) -> re.Pattern[str]:
+    return re.compile(r"(?<!\w)" + re.escape(form) + r"(?!\w)", re.IGNORECASE)
 
 
 def _loose(form: str) -> re.Pattern[str]:
@@ -306,7 +311,7 @@ def _find_name(spec: FieldSpec, name: str, item: SplitItem) -> list[Match]:
             parenthesised=False,
         )
         for offset, section, line in _lines(item.item.text)
-        if section is spec.section and wanted and wanted in normalise_categorical(line)
+        if section is spec.section and wanted and _whole(wanted).search(normalise_categorical(line))
     ]
 
 
@@ -365,7 +370,7 @@ def evidence_for(spec: FieldSpec, item: SplitItem) -> FieldEvidence:
         label = str(truth)
         names = [label]
         if spec.name == "state_of_incorporation" and label.upper() in STATE_NAMES:
-            names.append(STATE_NAMES[label.upper()])
+            names.insert(0, STATE_NAMES[label.upper()])  # cover pages print the name
         for name in names:
             matches = _find_name(spec, name, item)
             if matches:
