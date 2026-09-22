@@ -21,6 +21,8 @@ from smallprint.train.qlora import (
     RunRecord,
     adopt_chat_template,
     loss_tokens,
+    monitor_losses,
+    monitor_subset,
     require_gpu_stack,
 )
 
@@ -171,6 +173,7 @@ def fake_s3(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> checkpoint.Comma
         real.uri,
         argv=(*stand_in, *real.argv[1:]),
         list_argv=(*stand_in, *real.list_argv[1:]),
+        remove_argv=(*stand_in, *real.remove_argv[1:]),
         empty_listing=real.empty_listing,
     )
 
@@ -238,6 +241,32 @@ def test_an_upload_cut_off_by_a_reclaim_is_never_marked_complete(
 
     assert remote.names() == ["checkpoint-5"]
     assert checkpoint.CheckpointStore(tmp_path / "new-instance", remote).resume_step() == 5
+
+
+def test_the_store_keeps_the_newest_checkpoints_and_removes_older_ones_once_the_new_is_whole(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    remote = fake_s3(tmp_path, monkeypatch)
+    store = checkpoint.CheckpointStore(tmp_path / "run", remote, keep=2)
+    for step in (1, 50, 100):
+        store.save(write_checkpoint(tmp_path / "run", step))
+    assert remote.names() == ["checkpoint-50", "checkpoint-100"]
+    assert not (tmp_path / "s3" / "vol123" / "checkpoints" / "run-a" / "checkpoint-1").exists()
+
+    # An upload that fails removes nothing: the older checkpoints are still the resume.
+    big = write_checkpoint(tmp_path / "run", 150)
+    (big / "optimizer.pt").write_text("state", encoding="utf-8")
+    monkeypatch.setenv("FAKE_S3_FAIL_AFTER", "1")
+    with pytest.raises(RuntimeError, match="failed"):
+        store.save(big)
+    monkeypatch.delenv("FAKE_S3_FAIL_AFTER")
+    assert remote.names() == ["checkpoint-50", "checkpoint-100"]
+    assert checkpoint.CheckpointStore(tmp_path / "new-instance", remote).resume_step() == 100
+
+
+def test_keeping_no_checkpoint_at_all_is_refused(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="newest"):
+        checkpoint.CheckpointStore(tmp_path / "run", keep=0)
 
 
 def test_a_fresh_run_with_nowhere_to_resume_from_starts_at_zero(tmp_path: Path) -> None:
@@ -414,3 +443,24 @@ def test_adapters_go_on_every_language_model_projection_and_nowhere_else(
 ) -> None:
     """Names as printed by the three bases on the pod, 2026-09-22."""
     assert (re.fullmatch(BASE.target_modules, name) is not None) is adapted
+
+
+def test_the_monitor_set_is_the_same_filings_on_every_run() -> None:
+    examples, _ = dataset.build(pool(3, 30))
+    validation = [e for e in examples if e.split is Split.VALIDATION]
+    first = monitor_subset(validation, 10)
+    assert [e.item_id for e in first] == [
+        e.item_id for e in monitor_subset(list(reversed(validation)), 10)
+    ]
+    assert len(first) == 10
+    assert len(monitor_subset(validation, 500)) == 30
+
+
+def test_the_monitor_losses_come_from_the_trainer_log_in_step_order() -> None:
+    log = [
+        {"loss": 1.2, "step": 10},
+        {"eval_loss": 0.4, "step": 100},
+        {"eval_loss": 0.5, "step": 50},
+        {"train_runtime": 3.0},
+    ]
+    assert monitor_losses(log) == [(50, 0.5), (100, 0.4)]

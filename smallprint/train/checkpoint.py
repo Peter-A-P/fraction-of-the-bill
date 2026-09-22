@@ -41,6 +41,7 @@ class Syncer(Protocol):
     def push(self, local: Path, name: str) -> None: ...
     def pull(self, name: str, local: Path) -> None: ...
     def names(self) -> list[str]: ...
+    def remove(self, name: str) -> None: ...
 
 
 class LocalSyncer:
@@ -70,6 +71,11 @@ class LocalSyncer:
             d.name for d in self.root.iterdir() if d.is_dir() and (d / COMPLETE).is_file()
         )
 
+    def remove(self, name: str) -> None:
+        target = self.root / name
+        (target / COMPLETE).unlink(missing_ok=True)
+        shutil.rmtree(target, ignore_errors=True)
+
 
 class CommandSyncer:
     """An object store, through whatever command line the provider gives us.
@@ -85,11 +91,14 @@ class CommandSyncer:
         *,
         argv: Sequence[str],
         list_argv: Sequence[str],
+        remove_argv: Sequence[str] = (),
         empty_listing: int | None = None,
     ) -> None:
         self.uri = uri.rstrip("/")
         self.argv = tuple(argv)
         self.list_argv = tuple(list_argv)
+        #: Deletes a prefix, like `aws s3 rm --recursive`. Empty: this store keeps everything.
+        self.remove_argv = tuple(remove_argv)
         #: The exit code the list command gives for "nothing here", when it is not zero.
         #: `aws s3 ls` exits 1, silently, which is every new run's first question.
         self.empty_listing = empty_listing
@@ -144,6 +153,14 @@ class CommandSyncer:
                 found.add(parts[-2])
         return sorted(found, key=lambda n: int(n.split("-")[1]))
 
+    def remove(self, name: str) -> None:
+        """The marker first, so a deletion cut off halfway leaves a checkpoint that no
+        longer claims to be whole, rather than one that claims it and is not."""
+        if not self.remove_argv:
+            return
+        self._run(*self.remove_argv, f"{self.uri}/{name}/{COMPLETE}")
+        self._run(*self.remove_argv, f"{self.uri}/{name}")
+
 
 def runpod_s3(uri: str, datacenter: str) -> CommandSyncer:
     """A Runpod network volume, reached over its S3-compatible API.
@@ -163,6 +180,7 @@ def runpod_s3(uri: str, datacenter: str) -> CommandSyncer:
         uri,
         argv=("aws", "s3", "sync", *endpoint),
         list_argv=("aws", "s3", "ls", "--recursive", *endpoint),
+        remove_argv=("aws", "s3", "rm", "--recursive", *endpoint),
         empty_listing=1,
     )
 
@@ -170,17 +188,31 @@ def runpod_s3(uri: str, datacenter: str) -> CommandSyncer:
 class CheckpointStore:
     """Where a run's checkpoints live, locally and remotely."""
 
-    def __init__(self, local: Path, syncer: Syncer | None = None) -> None:
+    def __init__(
+        self, local: Path, syncer: Syncer | None = None, *, keep: int | None = None
+    ) -> None:
         self.local = local
         self.local.mkdir(parents=True, exist_ok=True)
         self.syncer = syncer
+        #: How many complete checkpoints to leave in the store; None keeps them all. A
+        #: resume needs only the newest, and at 13 checkpoints a run and 30 runs, keeping
+        #: every one is more than the 50 GB volume holds (docs/training.md).
+        if keep is not None and keep < 1:
+            raise ValueError("keep at least the newest checkpoint")
+        self.keep = keep
 
     def save(self, directory: Path) -> None:
-        """Called after the trainer writes `checkpoint-N`. Uploads it if there is anywhere to."""
+        """Called after the trainer writes `checkpoint-N`. Uploads it if there is anywhere to,
+        and only once it is whole in the store are older ones removed from there."""
         if step_of(directory) is None:
             raise ValueError(f"{directory.name} is not a checkpoint directory")
-        if self.syncer is not None:
-            self.syncer.push(directory, directory.name)
+        if self.syncer is None:
+            return
+        self.syncer.push(directory, directory.name)
+        if self.keep is not None:
+            names = self.syncer.names()
+            for name in names[: -self.keep]:
+                self.syncer.remove(name)
 
     def latest(self) -> Path | None:
         """The newest complete checkpoint, fetched from the store if it is only there.

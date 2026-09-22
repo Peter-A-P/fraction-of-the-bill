@@ -33,13 +33,19 @@ import platform
 from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict
 
 from smallprint.train.checkpoint import CheckpointStore, step_of
 from smallprint.train.dataset import DatasetManifest, Example, as_chat, take_examples
 from smallprint.train.recipe import TrainConfig
+
+#: Validation filings scored at every checkpoint. The loss curve steers decisions, not the
+#: headline, and the full 713 at every checkpoint was 26 of the schedule's 154 GPU hours on
+#: 2026-09-22; 200 draws the same curve for about a quarter of that. The full set is still
+#: scored once, at the end, and that is the run's validation loss.
+MONITOR_FILINGS: Final = 200
 
 INSTALL_HINT = (
     "training needs the GPU extra, which is not installed on this machine: "
@@ -70,9 +76,13 @@ class RunRecord(BaseModel):
     train_loss: float | None = None
     validation_loss: float | None = None
     seconds_per_step: float | None = None
-    #: One pass over the validation set, which the run makes at every checkpoint: on a full
-    #: run it is a cost of its own, beside the steps, and the budget counts both.
+    #: One pass over the whole validation set, as the run makes at its end.
     evaluation_seconds: float | None = None
+    #: How many validation filings were scored at each checkpoint, and the loss each time,
+    #: as (step, loss). Where this flattens is where more steps stop buying anything, which
+    #: is how the second epoch is judged.
+    monitored_on: int | None = None
+    monitor_losses: list[tuple[int, float]] = []
     versions: dict[str, str] = {}
 
     def write(self, out_dir: Path) -> Path:
@@ -164,6 +174,21 @@ def adopt_chat_template(
         origin = f"{source[0]}@{source[1]}"
     digest = hashlib.sha256(str(tokenizer.chat_template).encode("utf-8")).hexdigest()
     return origin, digest
+
+
+def monitor_subset(validation: list[Example], n: int = MONITOR_FILINGS) -> list[Example]:
+    """The validation filings scored at each checkpoint: the same ones on every run, chosen
+    by keyed hash, so two runs' curves are over the same filings."""
+    return take_examples(validation, min(n, len(validation)))
+
+
+def monitor_losses(log_history: list[dict[str, Any]]) -> list[tuple[int, float]]:
+    """(step, eval loss) from the trainer's log, in step order."""
+    return sorted(
+        (int(entry["step"]), float(entry["eval_loss"]))
+        for entry in log_history
+        if "eval_loss" in entry and "step" in entry
+    )
 
 
 def loss_tokens(row: dict[str, Any]) -> tuple[int, int]:
@@ -292,6 +317,7 @@ def train(
     train_examples = take_examples([e for e in examples if e.split.value == "train"], config.volume)
     print(f"training on {len(train_examples):,} filings", flush=True)
     validation = [e for e in examples if e.split.value == "validation"]
+    monitored = monitor_subset(validation)
 
     arguments = SFTConfig(
         output_dir=str(out_dir),
@@ -314,6 +340,8 @@ def train(
         # The repository's rule, made mechanical: a checkpoint exists before the run has
         # anything to lose, so a reclaim in the first minutes costs the first minutes.
         save_on_each_node=False,
+        # On the pod's disk, only the newest two; the store has what a resume needs.
+        save_total_limit=2,
         eval_strategy="steps" if validation else "no",
         eval_steps=config.save_steps,
         seed=config.seed,
@@ -327,7 +355,7 @@ def train(
         model=model,
         args=arguments,
         train_dataset=Dataset.from_list(as_chat(train_examples)),
-        eval_dataset=Dataset.from_list(as_chat(validation)) if validation else None,
+        eval_dataset=Dataset.from_list(as_chat(monitored)) if monitored else None,
         peft_config=LoraConfig(
             r=config.rank,
             lora_alpha=config.alpha,
@@ -369,7 +397,10 @@ def train(
     # The adapter, not a checkpoint: what gets published and merged, written once at the end.
     trainer.save_model(str(out_dir / "adapter"))
 
-    metrics = trainer.evaluate() if validation else {}
+    history = monitor_losses(list(trainer.state.log_history))
+    metrics = (
+        trainer.evaluate(eval_dataset=Dataset.from_list(as_chat(validation))) if validation else {}
+    )
     finished = record.model_copy(
         update={
             "finished_at": dt.datetime.now(dt.UTC),
@@ -378,6 +409,8 @@ def train(
             "validation_loss": metrics.get("eval_loss"),
             "seconds_per_step": timer.seconds_per_step,
             "evaluation_seconds": metrics.get("eval_runtime"),
+            "monitored_on": len(monitored),
+            "monitor_losses": history,
         }
     )
     finished.write(out_dir)

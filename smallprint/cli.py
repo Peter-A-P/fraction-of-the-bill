@@ -581,7 +581,7 @@ def train_run(
         syncer = runpod_s3(checkpoint_uri, s3_datacenter)
     elif checkpoint_dir is not None:
         syncer = LocalSyncer(checkpoint_dir)
-    store = CheckpointStore(out, syncer)
+    store = CheckpointStore(out, syncer, keep=2)
     typer.echo(
         f"{config.run_id}: {config.steps(manifest.train):,} steps, resuming from {store.resume_step()}."
     )

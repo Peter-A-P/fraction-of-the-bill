@@ -110,6 +110,13 @@ Each size's eight runs from `train plan`, output on the pod's local disk and che
 on the volume. Cheapest size first, so a problem in the recipe shows up on the run that
 costs least to repeat.
 
+    VOLUME_ID=<volume id> DATACENTER=<DC> scripts/sweep.sh 2b 2 16:1e-4:all:0 8:1e-4:all:0 ...
+
+A recipe is `rank:learning_rate:volume:seed`. Each finished run's adapter and `run.json` go
+to the volume under `adapters/<name>`, and a run already there is skipped, so the same
+command on a replacement pod picks up where the lost one stopped. One pod a size, once the
+first run has shown the recipe works: the cost is the same and the wait is a third.
+
 ## 7. Gate: the first fine-tune measured
 
 The best 2B run is evaluated on the post-cutoff test set with `smallprint baseline run`,

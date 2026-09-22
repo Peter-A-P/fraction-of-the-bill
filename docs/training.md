@@ -96,6 +96,16 @@ hours, US$52 at US$0.34 an hour**: 43, 61 and 50 hours for the three sizes, of w
 evaluations are 26. That is inside the US$40 to US$140 budgeting range, and 6.4 days on one
 card.
 
+**Two cuts, agreed at the gate on 2026-09-22.** First, the checkpoints score a fixed 200 of
+the 713 validation filings, the same 200 on every run, chosen by keyed hash; the whole set
+is scored once, at the end, and that is the validation loss a run reports. The curve steers
+decisions and nothing is headlined from it, and the 713 at every checkpoint was 26 of the
+154 hours. Second, the 2B base recipe runs first, alone, at two epochs, and records its
+loss at every checkpoint in `run.json` (`monitor_losses`): if the loss over the second
+epoch has stopped falling, every other run is one epoch. With both, the schedule is about
+69 GPU hours and US$23. The probe is the sweep's own first run, so at two epochs nothing is
+spent twice.
+
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
 training pool holds 5,060 filings, so the 20k point needs a corpus expansion of about
 4,800 more companies: five to seven hours of fetching within the SEC's rate limit and
@@ -138,6 +148,12 @@ last whole one.
 `train run --checkpoint-uri s3://<volume id>/<path> --s3-datacenter <DC>`, because the
 training pod is on Community Cloud and volumes mount only on Secure Cloud
 ([gpu-prices.md](gpu-prices.md#the-decision)).
+
+**Only the newest two are kept**, on the volume and on the pod's disk. A resume needs the
+newest; a 2B checkpoint at rank 16 is 170 MB and a 7B at rank 64 about four times that, and
+thirty runs of thirteen checkpoints is more than the 50 GB volume holds. Older ones are
+removed only after the new one's marker is in the store, marker first, so a failed upload
+removes nothing and a removal cut off halfway leaves nothing that claims to be whole.
 
 `latest` looks locally first and remotely second. A live instance has the weights on disk
 and a download is minutes of rent; a fresh instance after a reclaim has a bare disk, and

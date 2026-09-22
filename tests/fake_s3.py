@@ -58,6 +58,13 @@ def main(argv: list[str]) -> int:
             shutil.copyfile(file, destination)
             budget -= 1
         return 0
+    if command == "rm":
+        target = local(paths[0])
+        if target.is_file():
+            target.unlink()
+        elif target.is_dir():
+            shutil.rmtree(target)
+        return 0
     print(f"unknown command {command}", file=sys.stderr)
     return 2
 
