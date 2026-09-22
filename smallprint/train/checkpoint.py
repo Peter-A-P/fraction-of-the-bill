@@ -79,14 +79,31 @@ class CommandSyncer:
     provider decision in docs/gpu-prices.md does not become a code change here.
     """
 
-    def __init__(self, uri: str, *, argv: Sequence[str], list_argv: Sequence[str]) -> None:
+    def __init__(
+        self,
+        uri: str,
+        *,
+        argv: Sequence[str],
+        list_argv: Sequence[str],
+        empty_listing: int | None = None,
+    ) -> None:
         self.uri = uri.rstrip("/")
         self.argv = tuple(argv)
         self.list_argv = tuple(list_argv)
+        #: The exit code the list command gives for "nothing here", when it is not zero.
+        #: `aws s3 ls` exits 1, silently, which is every new run's first question.
+        self.empty_listing = empty_listing
 
-    def _run(self, *args: str) -> str:
+    def _run(self, *args: str, empty_ok: bool = False) -> str:
         # The argv is configuration from boundary.yaml's sibling, not user input.
         finished = subprocess.run([*args], capture_output=True, text=True, check=False)
+        if (
+            empty_ok
+            and finished.returncode == self.empty_listing
+            and not finished.stdout.strip()
+            and not finished.stderr.strip()
+        ):
+            return ""
         if finished.returncode != 0:
             raise RuntimeError(
                 f"{' '.join(args[:2])} failed with {finished.returncode}: "
@@ -119,7 +136,7 @@ class CommandSyncer:
         A checkpoint without its marker was cut off mid-upload and is not offered, so a
         resume falls back to the one before it rather than failing on it.
         """
-        out = self._run(*self.list_argv, self.uri + "/")
+        out = self._run(*self.list_argv, self.uri + "/", empty_ok=True)
         found = set()
         for line in out.splitlines():
             parts = line.strip().rsplit(" ", 1)[-1].strip("/").split("/")
@@ -146,6 +163,7 @@ def runpod_s3(uri: str, datacenter: str) -> CommandSyncer:
         uri,
         argv=("aws", "s3", "sync", *endpoint),
         list_argv=("aws", "s3", "ls", "--recursive", *endpoint),
+        empty_listing=1,
     )
 
 

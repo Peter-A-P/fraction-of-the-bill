@@ -161,8 +161,36 @@ def fake_s3(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> checkpoint.Comma
     real = checkpoint.runpod_s3("s3://vol123/checkpoints/run-a", "EU-RO-1")
     stand_in = (sys.executable, str(Path(__file__).parent / "fake_s3.py"))
     return checkpoint.CommandSyncer(
-        real.uri, argv=(*stand_in, *real.argv[1:]), list_argv=(*stand_in, *real.list_argv[1:])
+        real.uri,
+        argv=(*stand_in, *real.argv[1:]),
+        list_argv=(*stand_in, *real.list_argv[1:]),
+        empty_listing=real.empty_listing,
     )
+
+
+def test_a_new_run_on_an_empty_volume_starts_at_zero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`aws s3 ls` of an empty prefix exits 1 with nothing on stderr. The first real smoke
+    run, 2026-09-22, stopped on it before its first step."""
+    remote = fake_s3(tmp_path, monkeypatch)
+    assert checkpoint.CheckpointStore(tmp_path / "run", remote).resume_step() == 0
+
+
+def test_a_listing_that_fails_for_real_still_stops_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exit 1 with an error message is a failure, not an empty volume: bad credentials must
+    not quietly start a run from zero that then cannot save anything."""
+    remote = fake_s3(tmp_path, monkeypatch)
+    broken = checkpoint.CommandSyncer(
+        remote.uri,
+        argv=remote.argv,
+        list_argv=(sys.executable, "-c", "import sys; sys.exit('AccessDenied')"),
+        empty_listing=1,
+    )
+    with pytest.raises(RuntimeError, match="AccessDenied"):
+        broken.names()
 
 
 def test_the_runpod_syncer_names_the_volume_s_endpoint_and_lists_recursively() -> None:

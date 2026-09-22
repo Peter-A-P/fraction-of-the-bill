@@ -37,12 +37,13 @@ def main(argv: list[str]) -> int:
     if command == "ls":
         root = local(paths[0])
         base = Path(os.environ["FAKE_S3_ROOT"]) / paths[0].removeprefix("s3://").split("/")[0]
-        for file in sorted(root.rglob("*")) if root.exists() else []:
-            if file.is_file():
-                print(
-                    f"2026-09-22 12:00:00 {file.stat().st_size:>9} {file.relative_to(base).as_posix()}"
-                )
-        return 0
+        files = [f for f in sorted(root.rglob("*")) if f.is_file()] if root.exists() else []
+        for file in files:
+            print(
+                f"2026-09-22 12:00:00 {file.stat().st_size:>9} {file.relative_to(base).as_posix()}"
+            )
+        # As the real one does: nothing to list is exit status 1, with nothing on stderr.
+        return 0 if files else 1
     if command == "sync":
         source, target = local(paths[0]), local(paths[1])
         budget = int(os.environ.get("FAKE_S3_FAIL_AFTER", "-1"))
