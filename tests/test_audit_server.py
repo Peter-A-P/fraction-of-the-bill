@@ -79,6 +79,12 @@ def test_every_label_is_shown_beside_the_row_it_was_read_from() -> None:
     assert not any(f.flags for f in found.values())
 
 
+def test_a_per_share_loss_under_a_cent_is_not_rounded_to_a_false_zero() -> None:
+    """$(0.004) rounded to two places prints as "0.00", indistinguishable from a real nil."""
+    found = by_field(item(eps_diluted=-0.004))
+    assert found["eps_diluted"].label == "-0.004"
+
+
 def test_a_scaled_label_is_shown_with_the_heading_that_prints_its_scale() -> None:
     found = by_field(item())
     heading = found["revenue"].scale_line

@@ -171,7 +171,21 @@ def _scale_line(spec: FieldSpec, item: SplitItem) -> tuple[Match, Section] | Non
 
 
 def _number(value: float) -> str:
-    return f"{value:,.0f}" if float(value).is_integer() else f"{value:,.2f}"
+    """Two decimal places, more if that would print a nonzero value as zero.
+
+    A per-share loss of four tenths of a cent, $(0.004) as the filing prints it, must not
+    round to the same "0.00" a genuine nil would show: the reader would see a value the
+    label does not report at all.
+    """
+    if float(value).is_integer():
+        return f"{value:,.0f}"
+    places = 2
+    while places < 6:
+        text = f"{value:,.{places}f}"
+        if value == 0.0 or float(text.replace(",", "")) != 0.0:
+            return text
+        places += 1
+    return text
 
 
 def _find_number(spec: FieldSpec, truth: float, item: SplitItem) -> list[Match]:
