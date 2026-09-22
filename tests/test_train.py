@@ -15,7 +15,7 @@ from smallprint.data.split import Split
 from smallprint.grade import grade_item, parse_extraction
 from smallprint.prompts import PromptStyle, build_prompt
 from smallprint.train import checkpoint, dataset, recipe
-from smallprint.train.qlora import INSTALL_HINT, RunRecord, require_gpu_stack
+from smallprint.train.qlora import INSTALL_HINT, RunRecord, adopt_chat_template, require_gpu_stack
 
 BASE = recipe.TrainConfig(base="google/gemma-4-E2B", size="2b")
 
@@ -284,3 +284,35 @@ def test_step_time_is_the_trainers_clock_over_this_sessions_steps() -> None:
     assert step_seconds(100.0, 70, 50) == 5.0  # resumed at 50, ran 20 here
     assert step_seconds(None, 20, 0) is None
     assert step_seconds(100.0, 50, 50) is None  # nothing ran in this session
+
+
+class _Tokenizer:
+    def __init__(self, chat_template: str | None) -> None:
+        self.chat_template = chat_template
+
+
+def test_a_base_without_a_chat_template_takes_its_instruction_model_s() -> None:
+    """All three bases ship none; found on the first real smoke run, 2026-09-22."""
+    base = _Tokenizer(None)
+    asked: list[tuple[str, str]] = []
+
+    def load(repo: str, revision: str) -> str | None:
+        asked.append((repo, revision))
+        return "{{ messages }}"
+
+    origin, digest = adopt_chat_template(base, ("google/gemma-4-E2B-it", "3e22461f"), load)
+    assert base.chat_template == "{{ messages }}"
+    assert asked == [("google/gemma-4-E2B-it", "3e22461f")]
+    assert origin == "google/gemma-4-E2B-it@3e22461f"
+    assert len(digest) == 64
+
+
+def test_a_base_with_its_own_template_keeps_it() -> None:
+    base = _Tokenizer("own")
+    origin, _ = adopt_chat_template(base, ("x", "y"), lambda r, v: "other")
+    assert (origin, base.chat_template) == ("base", "own")
+
+
+def test_a_base_with_no_template_and_no_source_is_refused() -> None:
+    with pytest.raises(ValueError, match="no chat template"):
+        adopt_chat_template(_Tokenizer(None), None, lambda r, v: "t")

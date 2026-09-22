@@ -586,7 +586,13 @@ def train_run(
         f"{config.run_id}: {config.steps(manifest.train):,} steps, resuming from {store.resume_step()}."
     )
     record = train_qlora(
-        config, examples, manifest, out_dir=out, store=store, base_revision=chosen.revision
+        config,
+        examples,
+        manifest,
+        out_dir=out,
+        store=store,
+        base_revision=chosen.revision,
+        chat_template_from=(chosen.baseline_repo, chosen.baseline_revision),
     )
     typer.echo(describe_run(record))
 

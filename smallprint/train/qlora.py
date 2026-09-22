@@ -11,6 +11,13 @@ What this file is responsible for, beyond calling a trainer:
 writes, and the run asks the store where to resume before it builds anything. A reclaimed
 spot instance costs `save_steps` of work and no more.
 
+**The chat format.** A base checkpoint ships no chat template, and the examples are chats.
+The run adopts the template of the same family's instruction model, at its pinned
+revision: the fine-tune is then prompted exactly as the untuned model it is compared with,
+and the template is saved with the adapter, so the server uses it too. Checked on the pod
+on 2026-09-22 that for all three sizes the templated text tokenises identically under the
+base's own tokenizer, so the turn markers are the tokens the base already has.
+
 **Recording what was run.** A `RunRecord` beside the weights: the recipe, the dataset
 manifest with its prompt fingerprint, the base model's revision as resolved on the day,
 and the library versions. A model card is written from that file, so a card cannot claim
@@ -20,8 +27,10 @@ something the run did not do.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import platform
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +57,11 @@ class RunRecord(BaseModel):
     #: The exact weights. A base named without its revision is not reproducible, and
     #: docs/models.md says a revision is recorded before any run starts.
     base_revision: str | None = None
+    #: Where the chat template came from: "base" when the checkpoint has its own, otherwise
+    #: the instruction model's repository and revision it was taken from, with the digest
+    #: of the template text, so the served format can be checked against the trained one.
+    chat_template: str | None = None
+    chat_template_sha256: str | None = None
     started_at: dt.datetime
     finished_at: dt.datetime | None = None
     resumed_from_step: int = 0
@@ -87,6 +101,30 @@ def step_seconds(train_runtime: float | None, global_step: int, resumed_from: in
     if train_runtime is None or steps <= 0:
         return None
     return train_runtime / steps
+
+
+def adopt_chat_template(
+    tokenizer: Any, source: tuple[str, str] | None, load: Callable[[str, str], str | None]
+) -> tuple[str, str]:
+    """Give a tokenizer a chat template if it has none, and say where it came from.
+
+    `source` is the instruction model's repository and revision; `load` fetches its
+    template, and is a parameter so that this runs in a test without a download. A base
+    without a template and nowhere named to take one from is refused, rather than trained
+    on a format nothing will serve.
+    """
+    if tokenizer.chat_template is not None:
+        origin = "base"
+    else:
+        if source is None:
+            raise ValueError("the base has no chat template and no instruction model was named")
+        template = load(*source)
+        if template is None:
+            raise ValueError(f"{source[0]} has no chat template either")
+        tokenizer.chat_template = template
+        origin = f"{source[0]}@{source[1]}"
+    digest = hashlib.sha256(str(tokenizer.chat_template).encode("utf-8")).hexdigest()
+    return origin, digest
 
 
 def require_gpu_stack() -> None:
@@ -130,6 +168,7 @@ def train(
     out_dir: Path,
     store: CheckpointStore | None = None,
     base_revision: str | None = None,
+    chat_template_from: tuple[str, str] | None = None,
 ) -> RunRecord:
     """Fine-tune one base on these examples, resuming from the newest checkpoint.
 
@@ -155,9 +194,15 @@ def train(
         resumed_from_step=step_of(resume_from) or 0 if resume_from else 0,
         versions=_versions(),
     )
-    record.write(out_dir)
-
     tokenizer = AutoTokenizer.from_pretrained(config.base, revision=base_revision)
+
+    def template_of(repo: str, revision: str) -> str | None:
+        found = AutoTokenizer.from_pretrained(repo, revision=revision).chat_template
+        return None if found is None else str(found)
+
+    origin, digest = adopt_chat_template(tokenizer, chat_template_from, template_of)
+    record = record.model_copy(update={"chat_template": origin, "chat_template_sha256": digest})
+    record.write(out_dir)
     sequence_length(config, examples, tokenizer)
 
     quantisation = (
