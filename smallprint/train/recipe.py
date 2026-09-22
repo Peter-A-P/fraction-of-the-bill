@@ -84,6 +84,16 @@ class TrainConfig(BaseModel):
     rank: int = Field(default=16, ge=1)
     alpha: int = Field(default=32, ge=1)
     dropout: float = Field(default=0.05, ge=0.0, lt=1.0)
+    #: Which layers carry an adapter, as a full-match pattern on module names: every linear
+    #: projection of the language model, attention and MLP, as the QLoRA paper found an
+    #: attention-only adapter does not match full fine-tuning. Not the Gemma vision and
+    #: audio towers, which this task never feeds: adapters there are parameters trained on
+    #: nothing. Checked against all three bases' module names on 2026-09-22: 205, 258 and
+    #: 224 layers, every one in the language model. PEFT's default for these families is
+    #: q_proj and v_proj alone, which is what the first real smoke run got.
+    target_modules: str = (
+        r"^(?!.*(?:vision|audio)).*\.(?:q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)$"
+    )
     learning_rate: float = Field(default=1e-4, gt=0)
     epochs: int = Field(default=2, ge=1)
     #: Examples per optimiser step is batch_size * grad_accum. Both are here because the

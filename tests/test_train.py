@@ -4,6 +4,7 @@ rented card is spent correctly, which is all of it except the gradient step."""
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -15,7 +16,13 @@ from smallprint.data.split import Split
 from smallprint.grade import grade_item, parse_extraction
 from smallprint.prompts import PromptStyle, build_prompt
 from smallprint.train import checkpoint, dataset, recipe
-from smallprint.train.qlora import INSTALL_HINT, RunRecord, adopt_chat_template, require_gpu_stack
+from smallprint.train.qlora import (
+    INSTALL_HINT,
+    RunRecord,
+    adopt_chat_template,
+    loss_tokens,
+    require_gpu_stack,
+)
 
 BASE = recipe.TrainConfig(base="google/gemma-4-E2B", size="2b")
 
@@ -348,3 +355,49 @@ def test_a_volume_larger_than_the_pool_is_refused() -> None:
     examples, _ = dataset.build(pool(5, 0))
     with pytest.raises(ValueError, match="more than the 5"):
         dataset.take_examples(examples, 6)
+
+
+@pytest.mark.parametrize(
+    ("row", "expected"),
+    [
+        ({"input_ids": [1, 2, 3, 4], "labels": [-100, -100, 3, 4]}, (2, 4)),
+        ({"input_ids": [1, 2, 3], "completion_mask": [0, 1, 1]}, (2, 3)),
+    ],
+)
+def test_the_loss_share_is_read_from_labels_or_a_mask(
+    row: dict[str, list[int]], expected: tuple[int, int]
+) -> None:
+    assert loss_tokens(row) == expected
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        {"input_ids": [1, 2, 3], "labels": [1, 2, 3]},  # every token counts: nothing split
+        {"input_ids": [1, 2, 3], "prompt": [0]},  # no labels at all
+    ],
+)
+def test_a_row_whose_answer_is_not_separated_from_the_prompt_stops_the_run(
+    row: dict[str, list[int]],
+) -> None:
+    with pytest.raises(RuntimeError):
+        loss_tokens(row)
+
+
+@pytest.mark.parametrize(
+    ("name", "adapted"),
+    [
+        ("model.language_model.layers.3.self_attn.q_proj", True),
+        ("model.language_model.layers.3.mlp.down_proj", True),
+        ("model.layers.31.mlp.gate_proj", True),  # OLMo
+        ("model.vision_tower.encoder.layers.0.self_attn.q_proj", False),
+        ("model.audio_tower.layers.2.self_attn.v_proj", False),
+        ("lm_head", False),
+        ("model.language_model.layers.3.per_layer_input_gate", False),
+    ],
+)
+def test_adapters_go_on_every_language_model_projection_and_nowhere_else(
+    name: str, adapted: bool
+) -> None:
+    """Names as printed by the three bases on the pod, 2026-09-22."""
+    assert (re.fullmatch(BASE.target_modules, name) is not None) is adapted

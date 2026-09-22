@@ -41,6 +41,23 @@ addressable without a registry, and a rerun resumes rather than starting a secon
 beside the first. Change any field and it is a different run. Same rule as the prompt
 fingerprint, for the same reason.
 
+**Where the adapter goes.** Every linear projection of the language model, attention and
+MLP: 205 layers on the 2B, 258 on the 4B, 224 on the 7B, checked against each base's
+module names. The QLoRA paper found attention-only adapters fall short of full
+fine-tuning, and PEFT's default for these families is exactly that, `q_proj` and `v_proj`,
+which is what the first real smoke run got before this was set. The Gemma bases load with
+vision and audio towers attached; nothing in this task reaches them, so no adapter goes
+there, and the run stops if one does.
+
+**What the first day on the card found**, 2026-09-22, each before a single optimiser step,
+and each fixed with a test: none of the three bases ships a chat template (the run takes
+its instruction model's, pinned); TRL 1.x wants a `Dataset` and a float `warmup_steps`; the
+examples were one `messages` field, on which TRL applies no completion mask, so the loss
+would have fallen on the prompt and the filing too (they are now prompt and completion, and
+the run reads the mask back from the processed data and refuses to train without one); and
+`--volume` sized the step count but not the data, so every volume run would have trained on
+everything.
+
 `alpha` must not be below `rank`. The adapter's contribution scales as alpha over rank, so
 holding alpha fixed while sweeping rank sweeps the scaling factor at the same time and the
 result says nothing about rank. The sweep sets alpha to twice the rank.

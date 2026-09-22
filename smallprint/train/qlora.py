@@ -30,6 +30,7 @@ import datetime as dt
 import hashlib
 import json
 import platform
+from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -125,6 +126,32 @@ def adopt_chat_template(
         origin = f"{source[0]}@{source[1]}"
     digest = hashlib.sha256(str(tokenizer.chat_template).encode("utf-8")).hexdigest()
     return origin, digest
+
+
+def loss_tokens(row: dict[str, Any]) -> tuple[int, int]:
+    """How many tokens of a processed example carry the loss, and how many there are.
+
+    Libraries say it differently: TRL 1.x writes `labels`, -100 where the loss is off; others
+    carry a `completion_mask`. A row that says neither, or whose every token counts, is a
+    format the library did not split, and training on it would teach the prompt as well as
+    the answer: the task specification and a filing, as if they were output.
+    """
+    if "labels" in row:
+        labels = list(row["labels"])
+        counted, total = sum(1 for t in labels if t != -100), len(labels)
+    elif "completion_mask" in row:
+        mask = list(row["completion_mask"])
+        counted, total = sum(mask), len(mask)
+    else:
+        raise RuntimeError(
+            f"no labels and no completion mask in the processed data ({sorted(row)})"
+        )
+    if counted == 0 or counted == total:
+        raise RuntimeError(
+            f"the loss falls on {counted} of {total} tokens: the answer is not separated "
+            "from the prompt"
+        )
+    return counted, total
 
 
 def require_gpu_stack() -> None:
@@ -264,6 +291,7 @@ def train(
             r=config.rank,
             lora_alpha=config.alpha,
             lora_dropout=config.dropout,
+            target_modules=config.target_modules,
             bias="none",
             task_type="CAUSAL_LM",
         ),
@@ -272,33 +300,27 @@ def train(
     trainer.add_callback(SaveToStore(checkpoints, out_dir))
     # Which layers the adapter wraps, in the log: the Gemma bases load with their vision and
     # audio towers attached, and an adapter on those is parameters trained on nothing.
-    wrapped = sorted(
-        {
-            n.split(".lora_A")[0].split(".")[-1]
-            for n, _ in trainer.model.named_parameters()
-            if ".lora_A" in n
-        }
+    adapted = [
+        n.split(".lora_A")[0] for n, _ in trainer.model.named_parameters() if ".lora_A." in n
+    ]
+    places = Counter(
+        next((t for t in ("vision", "audio", "language_model") if t in n), "layers")
+        for n in adapted
     )
-    towers = sorted(
-        {
-            n.split(".")[2]
-            for n, _ in trainer.model.named_parameters()
-            if ".lora_A" in n and n.count(".") > 3
-        }
-    )
+    kinds = sorted({n.rsplit(".", 1)[-1] for n in adapted})
     trainable = sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)
-    print(f"LoRA wraps {wrapped} under {towers}; {trainable:,} trainable parameters", flush=True)
+    print(
+        f"LoRA on {len(adapted)} layers {dict(places)}, kinds {kinds}; "
+        f"{trainable:,} trainable parameters",
+        flush=True,
+    )
+    if places.get("vision") or places.get("audio"):
+        raise RuntimeError(f"adapters on the vision or audio tower: {dict(places)}")
     # The loss must fall on the answer alone. Read back from the trainer's own processed
     # data, so a format the library silently ignores shows up here rather than as a model
     # that learned to recite filings.
-    first = trainer.train_dataset[0]
-    mask = first.get("completion_mask")
-    if mask is None:
-        raise RuntimeError(
-            f"no completion mask in the processed data ({sorted(first)}): the loss would "
-            "fall on the prompt as well as the answer"
-        )
-    print(f"loss on {sum(mask):,} of {len(mask):,} tokens of the first example", flush=True)
+    counted, total = loss_tokens(trainer.train_dataset[0])
+    print(f"loss on {counted:,} of {total:,} tokens of the first example", flush=True)
 
     result = trainer.train(resume_from_checkpoint=str(resume_from) if resume_from else None)
     # The adapter, not a checkpoint: what gets published and merged, written once at the end.
