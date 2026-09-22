@@ -230,5 +230,19 @@ def test_a_prediction_for_an_item_that_is_not_in_the_split_is_an_error(tmp_path:
         baseline.grade_run(baseline.read_predictions(tmp_path), items(2))
 
 
+def test_answers_to_items_a_rebuild_dropped_are_set_aside_and_counted(tmp_path: Path) -> None:
+    manifest = go(StubGateway(lambda i: reply(RIGHT)), tmp_path)
+    summary = baseline.summarise(manifest, baseline.read_predictions(tmp_path), items(3))
+    assert (summary.graded, summary.set_aside) == (3, 1)
+    assert "since dropped: 1" in str(summary)
+
+
+def test_a_run_none_of_whose_answers_are_in_the_build_is_refused(tmp_path: Path) -> None:
+    manifest = go(StubGateway(lambda i: reply(RIGHT)), tmp_path)
+    other = [make_item("elsewhere-1", split=Split.TEST_POST_CUTOFF)]
+    with pytest.raises(ValueError, match="none of these predictions"):
+        baseline.summarise(manifest, baseline.read_predictions(tmp_path), other)
+
+
 def test_an_empty_extraction_still_round_trips_through_the_answer_format() -> None:
     assert parse_extraction(prompts.answer(Extraction())) == Extraction()

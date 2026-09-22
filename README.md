@@ -21,9 +21,12 @@ the server command lines and the closed-loop load client
 ([docs/serving.md](docs/serving.md)), and the model-card generator. All of it is tested
 without a GPU; the rented card only has to run it.
 
-The full corpus is built: **8,031 items from 1,600 companies**, 19,574 filings tried, the
-post-cutoff test set 716 filings from 148 filers ([docs/data.md](docs/data.md)). The
-200-item hand audit is drawn and waiting to be read.
+The full corpus is built: **7,874 items from 1,600 companies**, 19,574 filings tried, the
+post-cutoff test set 705 filings from 144 filers ([docs/data.md](docs/data.md)). **The
+200-item hand audit is done: 3.0% of filings carried a wrong label (1.4% to 6.4%), 6 of
+200, none of them in the test sets.** Five of the six had one cause, the filter taking a
+number within the grader's tolerance for a location. The rebuild that fixed it dropped
+157 filings and corrected 173 labels across the corpus, five of the six among them.
 
 The three frontier baselines are chosen and the gateway is configured: `gpt-5.6-sol` as
 the quality ceiling, `claude-sonnet-5` as a second vendor, and `gpt-5.6-luna` as the cost
@@ -47,29 +50,29 @@ have to reach is measured.
 | _not yet_ | | | | |
 
 **The frontier baselines, the bar the above has to reach.** Written by `smallprint report`
-from the runs; not edited by hand. 716 post-cutoff filings, every call through the
-gateway, US$59.63.
+from the runs; not edited by hand. 705 post-cutoff filings, every call through the
+gateway, US$59.63; re-graded on the audited build from the saved answers.
 
 | Model | Prompt | Fields correct (95% CI) | Every field right | Paired delta vs openai/gpt-5.6-luna zero_shot | Cost per 1,000 | Latency p50 | p99 |
 |---|---|---|---|---|---:|---:|---:|
-| `openai/gpt-5.6-luna` | zero-shot | 96.3% (95.9% to 96.6%) | 57.8% (54.2% to 61.5%) | baseline | US$0.87 | 2.33 s | 4.96 s |
-| `openai/gpt-5.6-luna` | few-shot | 96.2% (95.8% to 96.7%) | 59.5% (55.9% to 63.1%) | -0.0% (-0.3% to +0.3%) | US$1.62 | 2.18 s | 4.59 s |
-| `anthropic/claude-sonnet-5` | zero-shot | 96.1% (95.7% to 96.6%) | 57.4% (53.8% to 61.0%) | -0.1% (-0.4% to +0.1%) | US$11.96 | 3.04 s | 8.95 s |
-| `openai/gpt-5.6-sol` | zero-shot | 95.9% (95.3% to 96.5%) | 64.1% (60.6% to 67.6%) | -0.3% (-0.9% to +0.2%) | US$15.48 | 2.76 s | 6.49 s |
-| `anthropic/claude-sonnet-5` | few-shot | 96.4% (95.9% to 96.8%) | 61.2% (57.5% to 64.7%) | +0.1% (-0.3% to +0.4%) | US$22.92 | 3.32 s | 9.86 s |
-| `openai/gpt-5.6-sol` | few-shot | 97.0% (96.6% to 97.3%) | 66.5% (63.0% to 69.8%) | +0.7% (+0.4% to +0.9%) | US$30.44 | 2.93 s | 6.53 s |
+| `openai/gpt-5.6-luna` | zero-shot | 96.2% (95.8% to 96.6%) | 58.3% (54.6% to 62.0%) | baseline | US$0.87 | 2.33 s | 4.95 s |
+| `openai/gpt-5.6-luna` | few-shot | 96.2% (95.7% to 96.7%) | 60.4% (56.7% to 64.0%) | -0.0% (-0.3% to +0.3%) | US$1.62 | 2.17 s | 4.59 s |
+| `anthropic/claude-sonnet-5` | zero-shot | 96.1% (95.7% to 96.5%) | 57.4% (53.8% to 61.0%) | -0.1% (-0.4% to +0.1%) | US$11.96 | 3.04 s | 8.95 s |
+| `openai/gpt-5.6-sol` | zero-shot | 95.9% (95.3% to 96.5%) | 64.8% (61.3% to 68.4%) | -0.3% (-0.8% to +0.2%) | US$15.46 | 2.76 s | 6.49 s |
+| `anthropic/claude-sonnet-5` | few-shot | 96.3% (95.8% to 96.8%) | 61.1% (57.4% to 64.7%) | +0.1% (-0.3% to +0.4%) | US$22.91 | 3.32 s | 9.86 s |
+| `openai/gpt-5.6-sol` | few-shot | 96.9% (96.6% to 97.3%) | 67.0% (63.4% to 70.5%) | +0.7% (+0.5% to +1.0%) | US$30.43 | 2.92 s | 6.53 s |
 
 The cheapest model in the set matches the most expensive one on field accuracy. Whole
 filings are where paying more shows: the ceiling model gets 8.7 more of every hundred
 filings entirely right, for 35 times the price. Detail and failure modes in
 [docs/results-baseline.md](docs/results-baseline.md).
 
-**No contamination premium.** The same model on the 1,425 filings published *before* the
+**No contamination premium.** The same model on the 1,396 filings published *before* the
 training cutoff scores 94.2%, which is 2.0 points **worse** than the post-cutoff set, not
 better. Memorising a filing does not help you copy a number off the page you were handed.
 
 **What a frontier model is actually bad at.** 99.0% of fields right when the filing
-reports them; **74.6% when it does not**, where the right answer is null and the model
+reports them; **73.7% when it does not**, where the right answer is null and the model
 answers anyway. The weakness is abstention, not reading.
 
 **Quantisation cost, serving and money**
@@ -88,6 +91,19 @@ answers anyway. The weakness is abstention, not reading.
   named in the table, except one clearly labelled 4 GB edge point.
 - The break-even is a curve over utilisation with its inputs published, not a single
   number. A reader substitutes their own volume and prices.
+
+## Tried and rejected: one tolerance for grading and for finding a label
+
+The first corpus decided a label was on the page when some number in the right statement
+was within the grader's half percent of it. One rule for both seemed the honest choice: the
+filter could never keep a filing no correct reading could pass. The 200-item hand audit
+rejected it. Six labels were wrong, and five of them had been "found" on the wrong number:
+a share count on a depreciation line, another on interest expense, cash tagged 236,000
+beside a page printing $236,340. Across the corpus the same rule had kept 128 share counts
+that no statement printed, about one in fifty. Grading a reading and
+locating a label need different widths: the filter now requires the printed figure at its
+own precision, and a share count on a row that is one
+([docs/data.md](docs/data.md#the-hand-audit-2026-09-22)).
 
 ## How it works
 

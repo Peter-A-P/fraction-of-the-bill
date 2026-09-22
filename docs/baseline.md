@@ -260,51 +260,61 @@ US$59.63, no failures, one answer in 4,296 that would not parse. The table is in
 [results-baseline.md](results-baseline.md), written by `smallprint report`, and the three
 findings are these.
 
+**Re-graded 2026-09-22 on the audited build**, from the saved answers and at no cost. The
+hand audit tightened the filter (see [data.md](data.md#the-hand-audit-2026-09-22)), which
+dropped 11 of the 716 post-cutoff filings and 29 of the 1,425 pre-cutoff ones, and
+corrected labels on others. The numbers below are over the 705 and 1,396 that remain; the
+answers to the dropped filings stay on disk and are counted in each summary, not graded.
+Every finding survived, and no paired delta moved by more than a tenth of a point.
+
 **The cheapest model is as accurate as the most expensive one.** Paired over the same
-filings, `gpt-5.6-sol` zero-shot is -0.3% (-0.9% to +0.2%) against `gpt-5.6-luna`
+filings, `gpt-5.6-sol` zero-shot is -0.3% (-0.8% to +0.2%) against `gpt-5.6-luna`
 zero-shot, and `claude-sonnet-5` zero-shot is -0.1% (-0.4% to +0.1%). Two intervals
 straddling zero, from models costing 18 and 14 times as much. Only `gpt-5.6-sol` two-shot
-clears it, by +0.7% (+0.4% to +0.9%), at 35 times the price. Field accuracy on this task
+clears it, by +0.7% (+0.5% to +1.0%), at 35 times the price. Field accuracy on this task
 saturates around 96% and the money buys nothing above it.
 
 **Whole filings are where paying more shows.** Every field right on one filing goes from
-57.8% for luna zero-shot to 66.5% for sol two-shot, nearly nine filings in every hundred.
+58.3% for luna zero-shot to 67.0% for sol two-shot, nearly nine filings in every hundred.
 Fifteen fields at 96% each leaves a lot of filings with one thing wrong, and which
 fifteenths go wrong is not the same across models. This is the number a user of an
 extractor actually feels, and it is the one the fine-tunes have to move.
 
 **Worked examples are worth it for one model out of three.** Two-shot minus zero-shot,
-paired: luna -0.0% (-0.3% to +0.3%), sonnet +0.2% (-0.1% to +0.5%), sol +1.0% (+0.6% to
+paired: luna +0.0% (-0.3% to +0.3%), sonnet +0.2% (-0.1% to +0.6%), sol +1.0% (+0.6% to
 +1.5%). Two nothings and one real gain, at roughly twice the input cost in every case. So
 the headline comparison uses zero-shot, and sol two-shot is carried as the best frontier
 result anyone paid for.
 
-**What the bar actually is.** The fine-tunes have to reach **96.3% of fields and 57.8% of
+**What the bar actually is.** The fine-tunes have to reach **96.2% of fields and 58.3% of
 filings, at US$0.87 per 1,000 calls**, which is luna zero-shot. Not the most expensive
 model: the cheapest one that does the job, because that is what a team running this
 volume would be paying, and self-hosting has to beat what they would otherwise spend
 rather than what they could have spent.
 
 **The failure is one behaviour, not fifteen.** Sorted worst first, luna's misses are
-`cost_of_revenue` 85.8%, `total_liabilities` 90.6%, `eps_basic` 92.0%, and in each case
+`cost_of_revenue` 86.5%, `total_liabilities` 90.5%, `eps_basic` 91.9%, and in each case
 the reason is `hallucinated`: the filing does not report the field and the model answers
 anyway, deriving cost of revenue from gross profit, total liabilities by subtraction, per
-share figures the statement omits. 85 of 716 on the first one. The prompt forbids it
+share figures the statement omits. 82 of 705 on the first one. The prompt forbids it
 twice, and the frontier models do it anyway. Abstention is the behaviour a fine-tune on
 this corpus should be able to buy, and it is worth more in production than a point of
 accuracy: an abstention can be routed to a person, an invention cannot. The one field
-that fails differently is `shares_diluted`, with 18 scale errors, thousands read as units.
+that fails differently is `shares_diluted`, with 17 scale errors, thousands read as units,
+though since the audit it hallucinates too: on the filings whose statement prints no share
+count, every model supplies one anyway, net income divided by earnings per share.
 
 ## The contamination gap, 2026-09-20: there is not one
 
-`gpt-5.6-luna` zero-shot over all 1,425 pre-cutoff filings, US$1.24. These are filings
+`gpt-5.6-luna` zero-shot over all 1,425 pre-cutoff filings, US$1.24, re-graded on the 1,396
+the audited build keeps. These are filings
 published before the base models' training cutoff, so they may be in a pre-training
 corpus; the post-cutoff set cannot be. If memorisation were helping, the pre-cutoff set
 would score higher.
 
-It scores **lower**: 94.2% (93.8% to 94.7%) against 96.3% post-cutoff, a difference of
-**-2.0% (-2.6% to -1.4%)**. Unpaired, because the two sets are different filings, though
-132 of the filers appear in both.
+It scores **lower**: 94.2% (93.7% to 94.6%) against 96.2% post-cutoff, a difference of
+**-2.0% (-2.7% to -1.4%)**. Unpaired, because the two sets are different filings, though
+129 of the filers appear in both.
 
 So there is no contamination premium to subtract on this task, and the reason is what the
 task is. The answer is printed on the page the model is given. Having read the filing in
@@ -316,8 +326,8 @@ field by whether the filing reports it at all:
 
 | | Field is reported | Field is not reported | Share unreported |
 |---|---|---|---:|
-| Pre-cutoff | 98.2% (98.0 to 98.4) | 68.1% (66.4 to 69.8) | 13.1% |
-| Post-cutoff | 99.0% (98.8 to 99.2) | 74.6% (72.0 to 77.0) | 11.1% |
+| Pre-cutoff | 98.3% (98.1 to 98.5) | 67.3% (65.5 to 68.9) | 13.3% |
+| Post-cutoff | 99.0% (98.8 to 99.2) | 73.7% (71.3 to 76.2) | 11.2% |
 
 The pre-cutoff set has more unreported fields, and unreported fields are where the model
 falls over. Re-weighting the pre-cutoff set to the post-cutoff mix moves it from 94.2% to
@@ -325,7 +335,7 @@ falls over. Re-weighting the pre-cutoff set to the post-cutoff mix moves it from
 are genuinely a little harder, mostly on knowing when to say nothing.
 
 **The single clearest number in this whole exercise is in that table.** A frontier model
-gets 99% of fields right when the filing reports them and **74.6%** when it does not. The
+gets 99% of fields right when the filing reports them and **73.7%** when it does not. The
 weakness is not reading, it is abstention, and it is worth more in production than a point
 of accuracy: an abstention can be routed to a person, an invention cannot.
 

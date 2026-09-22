@@ -35,9 +35,15 @@ from pydantic import BaseModel, ConfigDict
 
 from smallprint.data.audit import AUDIT_COLUMNS, VERDICTS, read_sheet, wilson
 from smallprint.data.build import SplitItem
-from smallprint.data.pair import NULL_WHEN_LINE_ABSENT, STATE_NAMES, date_forms
+from smallprint.data.pair import (
+    NULL_WHEN_LINE_ABSENT,
+    STATE_NAMES,
+    date_forms,
+    printed_as,
+    share_count_row,
+)
 from smallprint.data.statements import scale_heading
-from smallprint.grade import normalise_categorical, tolerance
+from smallprint.grade import normalise_categorical
 from smallprint.schema import FIELDS, SCHEMA, FieldKind, FieldSpec, Section
 
 _HEADERS: Final[dict[str, Section]] = {
@@ -193,19 +199,24 @@ def _number(value: float) -> str:
 
 
 def _find_number(spec: FieldSpec, truth: float, item: SplitItem) -> list[Match]:
+    """Where the value is printed, by the rule the build keeps a filing by: the number at
+    its printed precision, and for a share count only on a row that is one."""
     scale = _scale_for(spec, item)
-    allowed = tolerance(spec, truth, item.item.context)
+    ctx = item.item.context
     target = abs(truth)
     found: list[tuple[float, Match]] = []
     for offset, section, line in _lines(item.item.text):
         if section is not spec.section:
             continue
+        if spec.kind is FieldKind.SHARE_COUNT and not share_count_row(line.split(" | ")[0]):
+            continue
         if target == 0:
             found.extend((0.0, m) for m in _dash_cells(line, offset))
         for number in _NUMBER.finditer(line):
-            value = float(number.group(0).replace(",", "")) * scale
-            if abs(value - target) > allowed:
+            printed = float(number.group(0).replace(",", ""))
+            if not printed_as(spec, printed, truth, ctx):
                 continue
+            value = printed * scale
             before = line[: number.start()].rstrip().rstrip("$").rstrip()
             found.append(
                 (
@@ -221,8 +232,8 @@ def _find_number(spec: FieldSpec, truth: float, item: SplitItem) -> list[Match]:
                     ),
                 )
             )
-    # Closest first, in page order among equals: within the tolerance a neighbouring row can
-    # match too, "Basic" a line above "Diluted", and the exact one must not be cut off.
+    # Closest first, in page order among equals: the same figure can be printed on two rows,
+    # and the exact one must not be cut off.
     found.sort(key=lambda hit: hit[0])
     return [m for _, m in found]
 

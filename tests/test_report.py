@@ -53,6 +53,15 @@ def test_a_run_over_part_of_the_split_is_kept_out_of_the_published_table(tmp_pat
     assert len(rows_all) == 2
 
 
+def test_a_run_that_answered_items_a_rebuild_dropped_still_covers_the_split(
+    tmp_path: Path,
+) -> None:
+    make_run(tmp_path / "before", {}, model="openai/before", cost=0.001)
+    rows, skipped = report.load(report.run_dirs(tmp_path), items(3))
+    assert skipped == []
+    assert (rows[0].summary.graded, rows[0].summary.set_aside) == (3, 1)
+
+
 def test_the_field_table_names_every_field_worst_first(tmp_path: Path) -> None:
     make_run(tmp_path / "one", {0: WRONG, 1: WRONG}, model="openai/one", cost=0.001)
     rows, _ = report.load(report.run_dirs(tmp_path), items())

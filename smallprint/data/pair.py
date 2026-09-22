@@ -7,12 +7,21 @@ that is not on the page turns extraction into inference, and a model trained on 
 labels is being taught to produce numbers it cannot see.
 
 "Found" means something exact. A numeric fact is found when a number printed in its own
-section, multiplied by that section's printed scale, is within the grader's tolerance of the
-fact, so the filter and the grade agree about what a correct reading is. Its own section,
-because a revenue figure found in the balance sheet or a total assets figure found on the
-cover page is a coincidence and not a location. The sign is not required to match: a loss
-printed without parentheses under a line that says "loss" is on the page, and reading its
-sign is the model's job.
+section, multiplied by that section's printed scale, is the fact at the precision it is
+printed to: within half the printed unit, so 27,596 in thousands finds 27,595,698. Its own
+section, because a revenue figure found in the balance sheet or a total assets figure found
+on the cover page is a coincidence and not a location. A share count must also sit on a row
+that names shares, or a Basic or Diluted row, because in a statement printed in millions a
+three-digit share count lands on some expense line by chance. The sign is not required to
+match: a loss printed without parentheses under a line that says "loss" is on the page, and
+reading its sign is the model's job.
+
+This is stricter than the grader, which allows half a percent, and at first it was not. The
+hand audit of 2026-09-22 found that the filter had used the grader's tolerance and so taken
+coincidences for locations: a share count "found" on depreciation, another on interest
+expense, cash labelled 236,000 beside a page printing $236,340, cash without restricted
+cash beside a line that included it. A reading the filter accepts is still one the grader
+accepts, which is what keeping the two in step was for.
 
 Every filing that is dropped is dropped for a named reason, and the tally of reasons goes in
 the datasheet. A filter whose losses are not published is a filter that could be removing
@@ -58,6 +67,15 @@ NULL_WHEN_LINE_ABSENT: Final[frozenset[str]] = frozenset({"shares_diluted"})
 
 #: What a share-count line looks like, and what a per-share line looks like, which is not one.
 _SHARE_COUNT_LINE = re.compile(r"weighted|\bshares\b", re.IGNORECASE)
+#: The rows a share count is read from: a share-count line, or the Basic and Diluted rows
+#: that statements set under a "Weighted average shares" heading.
+_SHARE_COUNT_ROW = re.compile(
+    r"weighted|\bshares\b|^\W*(?:basic|diluted)\b|assuming dilution", re.I
+)
+#: A row that names a count of shares outright, whatever else it says.
+_SHARE_COUNT_NAMED = re.compile(
+    r"weighted|number of (?:common |ordinary )?shares|shares outstanding", re.I
+)
 _PER_SHARE_LINE = re.compile(
     r"per\s+(?:common\s+|ordinary\s+)?share\b|per[\s-]share", re.IGNORECASE
 )
@@ -185,20 +203,54 @@ def date_forms(day: dt.date) -> tuple[str, ...]:
     return (*forms, *numeric, day.isoformat())
 
 
-def _found_number(spec: FieldSpec, truth: float, located: LocatedFiling, ctx: GradeContext) -> bool:
+def printed_scale(spec: FieldSpec, ctx: GradeContext) -> float:
+    """What one printed unit of this field is worth: the scale, or one for per-share."""
     match spec.kind:
         case FieldKind.PER_SHARE:
-            scale = 1.0
+            return 1.0
         case FieldKind.SHARE_COUNT:
-            scale = ctx.share_scale if ctx.share_scale is not None else ctx.scale
+            return ctx.share_scale if ctx.share_scale is not None else ctx.scale
         case _:
-            scale = ctx.scale
-    allowed = tolerance(spec, truth, ctx)
-    target = abs(truth)
-    return any(
-        abs(n * scale - target) <= allowed
-        for n in printed_numbers(located.section_text(spec.section))
-    )
+            return ctx.scale
+
+
+def printed_as(spec: FieldSpec, printed: float, truth: float, ctx: GradeContext) -> bool:
+    """Whether a printed number is this fact, at the precision it is printed to.
+
+    Per-share amounts are printed to the cent, which the grader's half cent already is.
+    Everything else is within half of one printed unit, so rounding to the thousand is
+    allowed and nothing else is.
+    """
+    if spec.kind is FieldKind.PER_SHARE:
+        return abs(printed - abs(truth)) <= tolerance(spec, truth, ctx)
+    unit = printed_scale(spec, ctx)
+    return abs(printed * unit - abs(truth)) <= unit / 2 * (1 + 1e-9)
+
+
+def share_count_row(label: str) -> bool:
+    """Whether a statement row with this label is one a share count is printed on.
+
+    A row naming a count is one, even when it goes on to say what the count is for:
+    "Weighted-average shares used in computing net loss per share, basic and diluted" is a
+    share count. Only a row that says "per share" without naming a count is a per-share
+    amount. The first strict rebuild got this backwards and nulled 417 real share counts.
+    """
+    if _SHARE_COUNT_NAMED.search(label):
+        return True
+    return bool(_SHARE_COUNT_ROW.search(label)) and not _PER_SHARE_LINE.search(label)
+
+
+def _candidates(spec: FieldSpec, located: LocatedFiling) -> tuple[float, ...]:
+    """The numbers a field's value may be found among."""
+    if spec.kind is FieldKind.SHARE_COUNT and located.income is not None:
+        rows = located.income.rows
+        cells = [cell for row in rows if row and share_count_row(row[0]) for cell in row[1:]]
+        return printed_numbers(" | ".join(cells))
+    return printed_numbers(located.section_text(spec.section))
+
+
+def _found_number(spec: FieldSpec, truth: float, located: LocatedFiling, ctx: GradeContext) -> bool:
+    return any(printed_as(spec, n, truth, ctx) for n in _candidates(spec, located))
 
 
 def locatable(spec: FieldSpec, truth: object, located: LocatedFiling, ctx: GradeContext) -> bool:
@@ -271,11 +323,27 @@ def _printed_synonym(
         alternatives = period_matches(
             facts, spec, period_end=period_end, fiscal_period=fiscal_period
         )
+        # A first choice within the grader's tolerance of a printed figure is a reading of
+        # that line, rounded or restated in its tag. A synonym may replace it only with the
+        # same line's figure, not with another line: one filer's cash tag was 236,000 beside
+        # a printed $236,340, and a second tag equal to its restricted cash line, 100,000.
+        near = float(value) if _near_printed(spec, float(value), located, ctx) else None
         for fact in alternatives[1:]:
-            if isinstance(fact.value, float) and locatable(spec, fact.value, located, ctx):
+            if not isinstance(fact.value, float):
+                continue
+            if near is not None and abs(fact.value - near) > tolerance(spec, near, ctx):
+                continue
+            if locatable(spec, fact.value, located, ctx):
                 updates[name] = fact.value
                 break
     return truth.model_copy(update=updates) if updates else truth
+
+
+def _near_printed(spec: FieldSpec, truth: float, located: LocatedFiling, ctx: GradeContext) -> bool:
+    """Whether a printed number is within the grader's tolerance of this value."""
+    allowed = tolerance(spec, truth, ctx)
+    unit = printed_scale(spec, ctx)
+    return any(abs(n * unit - abs(truth)) <= allowed for n in _candidates(spec, located))
 
 
 def _line_printed(name: str, located: LocatedFiling) -> bool:
@@ -283,7 +351,7 @@ def _line_printed(name: str, located: LocatedFiling) -> bool:
     if name != "shares_diluted" or located.income is None:
         raise ValueError(f"no line test for {name}")
     return any(
-        row and _SHARE_COUNT_LINE.search(row[0]) and not _PER_SHARE_LINE.search(row[0])
+        row and _SHARE_COUNT_LINE.search(row[0]) and share_count_row(row[0])
         for row in located.income.rows
     )
 

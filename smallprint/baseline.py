@@ -331,6 +331,24 @@ def grade_run(
     return grades, failed
 
 
+def within(
+    predictions: Sequence[Prediction], items: Sequence[SplitItem]
+) -> tuple[list[Prediction], int]:
+    """The predictions for items this build contains, and how many were set aside.
+
+    A rebuild drops an item a run has already answered when the filter learns its label
+    was not on its page, as the hand audit taught it to. The answer stays in the run's
+    files and is not graded, because there is no label left to grade it against; the count
+    is reported beside the result. A run none of whose answers are in the build was pointed
+    at the wrong build, and is refused rather than summarised as empty.
+    """
+    wanted = {s.item.item_id for s in items}
+    kept = [p for p in predictions if p.item_id in wanted]
+    if predictions and not kept:
+        raise ValueError("none of these predictions are for items in this build")
+    return kept, len(predictions) - len(kept)
+
+
 class BaselineSummary(BaseModel):
     """One model on one split: what it got right, what it cost, how long it took."""
 
@@ -344,6 +362,8 @@ class BaselineSummary(BaseModel):
     mode: Mode
     graded: int
     failed: int
+    #: Answers to items a later build dropped, kept on disk and not graded.
+    set_aside: int = 0
     cached_calls: int
     accuracy: Interval
     exact_match: Interval
@@ -376,6 +396,8 @@ class BaselineSummary(BaseModel):
             lines.append(f"  first token p50  {self.ttft_p50_ms}")
         if self.failed:
             lines.append(f"  calls that failed and are not graded: {self.failed}")
+        if self.set_aside:
+            lines.append(f"  answers to items the build has since dropped: {self.set_aside}")
         if self.cached_calls:
             lines.append(f"  answers served from the development cache: {self.cached_calls}")
         return "\n".join(lines)
@@ -391,6 +413,7 @@ def summarise(
     """Everything one run says, with an interval on every proportion and every time."""
     if not predictions:
         raise ValueError("no predictions to summarise")
+    predictions, set_aside = within(predictions, items)
     grades, failed = grade_run(predictions, items)
     if not grades:
         raise ValueError(f"every one of {len(predictions)} calls failed; nothing to grade")
@@ -413,6 +436,7 @@ def summarise(
         mode=manifest.mode,
         graded=len(grades),
         failed=len(failed),
+        set_aside=set_aside,
         cached_calls=sum(1 for p in predictions if p.cached),
         accuracy=accuracy_ci(grades, seed=seed),
         exact_match=mean_ci([float(g.exact) for g in grades], seed=seed),

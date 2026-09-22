@@ -197,7 +197,8 @@ it is shown, so the task is extraction rather than inference
 
 | Field kind | Found when |
 |---|---|
-| Money, shares, per share | A number printed in the field's own section, times that section's scale, is within the grader's tolerance of the fact. The grader and the filter share one function, so a filing is kept only if a reading the grader would accept is on the page |
+| Money, shares | A number printed in the field's own section, times that section's scale, is the fact at the precision it is printed to: within half of one printed unit, so 27,596 in thousands finds 27,595,698 and nothing else does. A share count must also be printed on a row that names a count of shares, or a Basic or Diluted row. Stricter than the grader's half percent since the hand audit, so a reading the filter accepts is always one the grader accepts |
+| Per share | Printed to the cent, within the grader's half cent |
 | Period end | The date is printed on the cover page, in any of its usual spellings |
 | Auditor | The name appears in the signature block after the grader's normalisation (case, punctuation, "and" for "&", legal suffix) |
 | State of incorporation | The code or, for US states and territories, the name is printed on the cover page |
@@ -213,10 +214,11 @@ balance sheet, mixed scales between the two statements, no cover-period facts, a
 fact missing, or a named field not locatable. A filter whose losses are not published could
 be removing exactly the hard cases without anyone knowing.
 
-**Known weaknesses, to be measured on the first fetch rather than guessed at.** Any printed
-number counts as a location for a field in its section, including a year in a column
-heading, so a coincidental match is possible; the tolerance makes it rare and the hand
-audit is the check. Filers incorporated outside the US whose cover page spells out a
+**Known weaknesses.** The first was that any printed number within the grader's tolerance
+counted as a location, and the note here said the tolerance made a coincidence rare and the
+hand audit would check. The audit found it was not rare; see below. What remains is a
+filer tagging the wrong line with the right concept, which no search of the page can
+catch: the printed figure is there, it is just not the one the field means. Filers incorporated outside the US whose cover page spells out a
 country rather than printing the EDGAR code are dropped for their state field; the tally
 says how many. And the rule that the two statements must declare the same scale drops a
 small class of filings that could in principle be kept.
@@ -419,34 +421,81 @@ a temporary file and a rename so a crash cannot leave half a sheet, and each is 
 with the same rules `audit-report` applies, so a verdict the report would refuse is refused
 when it is given. The server listens on 127.0.0.1 only.
 
-## The full corpus, 2026-09-19
+## The hand audit, 2026-09-22
+
+All 200 drawn items read against their filings, in `audit-serve`, 50 from each split.
+**3.0% of filings carried at least one wrong label (1.4% to 6.4%, Wilson), 6 of 200, none
+of the 100 in the two test sets.** By field: cash three, diluted shares two, operating
+income one. That interval is the ceiling on how far any score measured on the audited
+build can be trusted, and it stands for the rebuild too until a fresh sample of it is read.
+
+| Item | Wrong label | What the page prints | Cause |
+|---|---|---|---|
+| 8 | Operating income 411,162 | Total operating expenses 411,162; operating loss (398,115) | The filer tagged its expenses as operating income |
+| 15 | Diluted shares 228,241 thousand | No share count; depreciation 227,959 | Coincidence within the tolerance |
+| 80 | Diluted shares 52,476 thousand | No share count; interest expense 52,364 | Coincidence within the tolerance |
+| 39 | Cash 236,000 | Cash $236,340 | Tag rounded to the thousand, inside the tolerance |
+| 79 | Cash 114,300 thousand | Cash $114,309 thousand | Tag rounded, inside the tolerance |
+| 109 | Cash 94,088 thousand | Only "cash, cash equivalents and restricted cash", 94,172 | Another line inside the tolerance |
+
+Five of the six are one fault. The filter took any number within the grader's half percent
+as the label's location, which is the right width for grading a reading and the wrong one
+for deciding that a label is on the page: at half a percent, a three-digit share count in a
+statement printed in millions will land on some line by chance. The audit also showed the
+audit page's own faults, all fixed as they were found: it matched state codes inside words,
+missed a zero printed as a dollar sign glued to a dash, and cut off an exact row behind
+near misses.
+
+**The fix, and what it did.** A number is now found only at the precision it is printed
+to, and a share count only on a row that is one (the table above). A tag rounded or
+restated beside its printed figure may be replaced by a synonym the filer also tagged only
+when that synonym is the same line's figure; the first attempt without that guard swapped
+one cash label for the restricted cash line. And a first version of the share-row test
+read "Weighted-average shares used in computing net loss per share" as a per-share line and
+nulled 417 real share counts; checking the rebuild against the pages caught it before it
+was installed. The rebuild fetched nothing, and against the audited build:
+
+- 157 filings dropped, 11 of them from the post-cutoff test set and 17 from the pre-cutoff.
+- 128 diluted share counts relabelled null, because the statement prints none. This
+  matches an estimate made independently from the other direction, 126 share labels whose
+  only location was a line that is not shares.
+- 43 cash labels, one net income and one revenue replaced by the printed figure.
+- Item 8 is unchanged and still wrong: a mis-tagged concept printed exactly is invisible to
+  any page search.
+
+On the audited items the rebuild removed or corrected five of the six errors. That is not
+a new error rate: a fixed sample stops being a sample once the rules are tuned against it,
+and only a fresh draw from the rebuilt corpus can say what its rate is. The frontier
+baselines were re-graded on the rebuild from their saved answers, in
+[baseline.md](baseline.md).
+
+## The full corpus, 2026-09-19, rebuilt 2026-09-22
 
 1,600 companies, filings dated 2022Q1 to 2026Q2, fetched in about two hours at the paced
-rate; the cache is 2.1 GB compressed. **19,574 filings tried, 10,716 kept (55%)**, and the
-split then drops 2,685 training-pool filings dated after the cutoff, leaving **8,031 items**:
+rate; the cache is 2.1 GB compressed. **19,574 filings tried, 10,497 kept (54%)**, and the
+split then drops 2,623 training-pool filings dated after the cutoff, leaving **7,874 items**:
 
 | Split | Filings | Companies |
 |---|---:|---:|
-| train | 5,154 | 597 |
-| validation | 736 | 90 |
-| test_pre_cutoff | 1,425 | 168 |
-| test_post_cutoff | 716 | 148 |
+| train | 5,060 | 585 |
+| validation | 713 | 88 |
+| test_pre_cutoff | 1,396 | 165 |
+| test_post_cutoff | 705 | 144 |
+
+The first build kept 10,716 and left 8,031 items (5,154, 736, 1,425 and 716). The
+rebuild is the hand audit's correction, described above; it fetched nothing.
 
 The datasheet (`smallprint data datasheet`) carries the rest: label coverage per field, every
 drop reason, and the rebuild command. Auditor is labelled on 23% of items, which is the
 share of annual reports; the field is null in a quarterly report by definition.
 
 Two numbers to weigh against the plan. The data-scaling curve asks for a 20k training point
-and there are 5,154 training items, so that point needs roughly four times the companies.
-The post-cutoff test set is 716 filings from 148 filers, enough for a 95% interval of about
+and there are 5,060 training items, so that point needs roughly four times the companies.
+The post-cutoff test set is 705 filings from 144 filers, enough for a 95% interval of about
 two points on a field accuracy near 90%, but smaller than the 2,000 the cost table assumed.
 Both are a matter of fetching more companies, at about ten companies a minute.
 
 ## Still to build
 
-- The hand audit itself, which needs a person: `smallprint data audit-sample` has drawn the
-  200 pages and the verdict sheet.
-- The datasheet, checksums and Hugging Face publication, and the hand audit of 200 pairs.
-- The base-model cutoff, from `docs/models.md`, which the full build needs.
-- The datasheet with the drop tally, the checksums and the Hugging Face publication.
-- A hand audit of 200 pairs before any training starts.
+- The Hugging Face publication, with the datasheet and checksums the build already writes.
+- A second audit sample, drawn from the rebuilt corpus, to put a rate on it.

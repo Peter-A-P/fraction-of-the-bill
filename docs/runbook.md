@@ -8,8 +8,13 @@ schedule.
 
 ## Before renting
 
-- `RUNPOD_API_KEY` is in `.env`, and the account holds prepaid credit. The credit is the
-  hard spend cap: pods stop when it runs out, which is the console cap the plan requires.
+- `RUNPOD_API_KEY` is in `.env`, and the account holds prepaid credit with auto-reload
+  off. The credit is the hard spend cap: pods stop when it runs out, which is the console
+  cap the plan requires, and the date it was set goes in [gpu-prices.md](gpu-prices.md).
+- The public half of `~/.ssh/runpod_smallprint` is registered under the account's SSH
+  public keys, so pods accept it. The private half never leaves the machine that made it.
+- No Hugging Face token: all six base and baseline repositories are ungated Apache 2.0.
+  One is needed only to publish.
 - Write the day-one price table in [gpu-prices.md](gpu-prices.md) from the provider's page
   that morning: the card, the tier, the rate, the region, the storage rate, the date. The
   survey in that file was for the budget decision and is replaced by this.
@@ -44,8 +49,8 @@ The build is not in git. Copy `data/build/full` to the pod (65 MB; `runpodctl se
     smallprint train dataset --build-dir data/build/full --out data/train/full
 
 `verify` checks every file against the `SHA256SUMS` the datasheet wrote, so the pod trains
-on byte-for-byte the corpus the baselines were measured on. The dataset step prints 5,154
-training and 736 validation examples and the prompt fingerprint `e015ec5e057be645`. Any
+on byte-for-byte the corpus the baselines were measured on. The dataset step prints 5,060
+training and 713 validation examples and the prompt fingerprint `e015ec5e057be645`. Any
 other numbers mean a different corpus, and nothing goes further until that is explained.
 
 ## 4. A smoke run per size, and a deliberate interruption

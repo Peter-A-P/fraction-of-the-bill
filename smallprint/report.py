@@ -23,6 +23,7 @@ from smallprint.baseline import (
     read_predictions,
     read_split,
     summarise,
+    within,
 )
 from smallprint.data.build import SplitItem
 from smallprint.grade import Interval, ItemGrade, paired_delta_ci
@@ -64,16 +65,18 @@ def load(
     runs and rehearsals live beside the real ones, they are the same shape on disk, and a
     twenty-item row sitting in a published table next to seven-hundred-item rows is a
     mistake waiting to be quoted. They also cannot be paired, which is how this was found.
+    A run that also answered items a later build dropped still covers the split, and its
+    answers to those are set aside.
     """
     wanted = {s.item.item_id for s in items}
     rows, skipped = [], []
     for directory in directories:
         manifest = read_manifest(directory)
         predictions = read_predictions(directory)
-        if not predictions or (complete_only and {p.item_id for p in predictions} != wanted):
+        if not predictions or (complete_only and wanted - {p.item_id for p in predictions}):
             skipped.append(directory)
             continue
-        grades, _ = grade_run(predictions, items)
+        grades, _ = grade_run(within(predictions, items)[0], items)
         rows.append(
             Row(
                 directory=str(directory),

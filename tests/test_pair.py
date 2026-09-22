@@ -20,6 +20,7 @@ from smallprint.data.pair import (
     locatable,
     pair_filing,
     printed_numbers,
+    share_count_row,
     tally,
 )
 from smallprint.data.statements import LocatedFiling
@@ -108,10 +109,50 @@ def test_a_statement_in_thousands_that_does_not_say_so_is_dropped_not_mislabelle
     assert (result.reason, result.field) == (DropReason.UNLOCATABLE, "revenue")
 
 
-def test_a_label_within_the_grader_tolerance_of_the_page_is_kept() -> None:
-    """312,999 thousand is 0.18% from the printed 312,450. The grader would accept that reading,
-    so the filter does too: the two share one rule about what a correct reading is."""
-    kept(pair(facts=filings.facts(overrides={"us-gaap:Revenues": 312_999_000.0})))
+def test_a_label_the_printed_figure_rounds_to_is_kept() -> None:
+    """312,450,400 prints as 312,450 in thousands. That is the page, at its precision."""
+    kept(pair(facts=filings.facts(overrides={"us-gaap:Revenues": 312_450_400.0})))
+
+
+def test_a_label_inside_the_grader_tolerance_but_not_the_printed_figure_is_dropped() -> None:
+    """312,999 thousand is 0.18% from the printed 312,450: inside the grader's half percent,
+    and not what the page says. The filter used to keep it, and the hand audit found labels
+    like it, cash of 236,000 beside a page printing $236,340."""
+    result = dropped(pair(facts=filings.facts(overrides={"us-gaap:Revenues": 312_999_000.0})))
+    assert (result.reason, result.field) == (DropReason.UNLOCATABLE, "revenue")
+
+
+@pytest.mark.parametrize(
+    ("label", "is_count"),
+    [
+        ("Weighted-average shares outstanding, diluted", True),
+        ("Diluted", True),
+        # Names the count and then what it is used for. The first strict rebuild read the
+        # "per share" and nulled 417 real share counts like this one.
+        (
+            "Weighted-average common shares outstanding used in computation of basic and "
+            "diluted loss per share",
+            True,
+        ),
+        ("Diluted net income (loss) per share", False),
+        ("Basic and diluted loss per common share", False),
+        ("Interest expense", False),
+        ("Less deemed dividend attributable to the anti-dilution provision", False),
+    ],
+)
+def test_which_rows_a_share_count_is_read_from(label: str, is_count: bool) -> None:
+    assert share_count_row(label) is is_count
+
+
+def test_a_share_count_found_only_on_a_line_that_is_not_shares_is_not_found() -> None:
+    """The count equals a figure on the revenue line and appears nowhere else: SSR Mining's
+    count sat on depreciation, Ryder's on interest expense."""
+    overrides: dict[str, float | str] = {
+        "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding": 312_450_000.0
+    }
+    result = pair(facts=filings.facts(overrides=overrides))
+    assert isinstance(result, Dropped)
+    assert (result.reason, result.field) == (DropReason.UNLOCATABLE, "shares_diluted")
 
 
 def test_statements_that_declare_different_scales_are_dropped() -> None:
@@ -217,6 +258,31 @@ def test_of_two_revenue_synonyms_for_the_period_the_printed_one_is_the_label() -
     )
     item = kept(pair(facts=[*facts, contract]))
     assert item.truth.revenue == 312_450_000.0
+
+
+def _with_contract_revenue(tagged_value: float, contract_value: float) -> Item | Dropped:
+    facts = filings.facts(overrides={"us-gaap:Revenues": tagged_value})
+    tagged = next(f for f in facts if f.concept == "us-gaap:Revenues" and f.value == tagged_value)
+    contract = tagged.model_copy(
+        update={
+            "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+            "value": contract_value,
+        }
+    )
+    return pair(facts=[*facts, contract])
+
+
+def test_a_tag_beside_its_printed_figure_is_replaced_by_the_synonym_that_is_that_figure() -> None:
+    """Tagged 312,999 thousand beside a printed 312,450: the synonym tagged 312,450 is the
+    same line exactly, and becomes the label."""
+    assert kept(_with_contract_revenue(312_999_000.0, 312_450_000.0)).truth.revenue == 312_450_000.0
+
+
+def test_a_tag_beside_its_printed_figure_is_not_replaced_by_another_line() -> None:
+    """The synonym equals the cost of revenue line. The audit found one like it: cash tagged
+    236,000 beside a printed 236,340, and a second tag equal to the restricted cash line."""
+    result = dropped(_with_contract_revenue(312_999_000.0, 180_200_000.0))
+    assert (result.reason, result.field) == (DropReason.UNLOCATABLE, "revenue")
 
 
 def test_when_no_synonym_is_printed_the_filing_is_still_dropped() -> None:

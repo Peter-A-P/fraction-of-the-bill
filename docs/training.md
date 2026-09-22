@@ -30,8 +30,8 @@ the model has seen it, and no later check unsees it.
 the 5,000, chosen by keyed hash. Two independent draws would differ in which filings they
 hold as well as how many, and the scaling curve is meant to vary one thing.
 
-On the full corpus: **5,154 training and 736 validation examples**, median 10,739
-characters, p95 13,452.
+On the full corpus: **5,060 training and 713 validation examples**, median 10,745
+characters, p95 13,437.
 
 ## The recipe
 
@@ -64,7 +64,7 @@ rented card; `gpu_hours` refuses to invent it for exactly this reason. The budge
 in [gpu-prices.md](gpu-prices.md) is stated as a range and labelled as an estimate.
 
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
-training pool holds 5,154 filings, so the 20k point needs a corpus expansion of about
+training pool holds 5,060 filings, so the 20k point needs a corpus expansion of about
 4,800 more companies: five to seven hours of fetching within the SEC's rate limit and
 another 8 GB of cache. The curve now runs at 1k, 2.5k and 5k, and the expansion happens
 only if accuracy is still climbing at 5k. If it has flattened, the 20k point buys nothing,
