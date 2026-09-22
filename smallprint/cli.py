@@ -41,7 +41,7 @@ from smallprint.prompts import PromptStyle, build_prompt
 from smallprint.report import baselines
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
 from smallprint.train.checkpoint import CheckpointStore, LocalSyncer, Syncer, runpod_s3
-from smallprint.train.dataset import TRAINABLE
+from smallprint.train.dataset import TRAINABLE, VOLUME_SEED
 from smallprint.train.dataset import build as build_examples
 from smallprint.train.dataset import read as read_examples
 from smallprint.train.dataset import write as write_examples
@@ -492,7 +492,7 @@ def train_dataset(
     build_dir: Path = typer.Option(Path("data/build"), help="A build written by data build."),
     out: Path = typer.Option(Path("data/train"), help="Where examples.jsonl is written."),
     volume: int | None = typer.Option(None, help="Training filings to use. All when omitted."),
-    seed: int = typer.Option(20260920, help="Seed for the volume subset."),
+    seed: int = typer.Option(VOLUME_SEED, help="Seed for the volume subset."),
 ) -> None:
     """Write the training file: the same prompt the baselines used, the graded answer as target.
 

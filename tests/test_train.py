@@ -325,3 +325,26 @@ def test_each_example_is_split_so_the_loss_falls_on_the_answer_alone() -> None:
     assert set(row) == {"prompt", "completion"}
     assert row["prompt"] == examples[0].messages()[:2]
     assert row["completion"] == [{"role": "assistant", "content": examples[0].assistant}]
+
+
+def ids(examples: list[dataset.Example]) -> list[str]:
+    return [e.item_id for e in examples]
+
+
+def test_a_run_takes_the_same_nested_subset_as_the_dataset_file_would() -> None:
+    """The first real smoke run asked for 320 filings and was handed all 5,060."""
+    items = pool(40, 0)
+    examples, _ = dataset.build(items)
+    assert ids(dataset.take_examples(examples, 10)) == [
+        s.item.item_id for s in dataset.take(items, 10, seed=dataset.VOLUME_SEED)
+    ]
+    assert set(ids(dataset.take_examples(examples, 10))) < set(
+        ids(dataset.take_examples(examples, 25))
+    )
+    assert len(dataset.take_examples(examples, None)) == 40
+
+
+def test_a_volume_larger_than_the_pool_is_refused() -> None:
+    examples, _ = dataset.build(pool(5, 0))
+    with pytest.raises(ValueError, match="more than the 5"):
+        dataset.take_examples(examples, 6)

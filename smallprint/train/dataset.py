@@ -87,6 +87,11 @@ class DatasetManifest(BaseModel):
     p95_chars: int
 
 
+#: The seed the volume subsets are drawn with. One constant, because the subsets have to
+#: be the same filings whether they are taken when the file is written or when a run reads it.
+VOLUME_SEED: Final = 20260920
+
+
 def _rank(seed: int, item_id: str) -> bytes:
     return hashlib.blake2b(f"train:{seed}:{item_id}".encode(), digest_size=8).digest()
 
@@ -112,11 +117,28 @@ def take(items: Sequence[SplitItem], volume: int | None, *, seed: int) -> list[S
     return ordered if volume is None else ordered[:volume]
 
 
+def take_examples(
+    examples: Sequence[Example], volume: int | None, *, seed: int = VOLUME_SEED
+) -> list[Example]:
+    """The same subset as `take`, from examples already written.
+
+    The sweep's three volume runs read one dataset file, so the run itself takes its
+    subset. The first real smoke run on 2026-09-22 asked for 320 filings and was handed all
+    5,060: the step count honoured the volume and the data did not, and the scaling curve
+    would have been flat by construction. Asking for more filings than there are is
+    refused rather than quietly trained on fewer.
+    """
+    if volume is not None and volume > len(examples):
+        raise ValueError(f"volume {volume} is more than the {len(examples)} examples there are")
+    ordered = sorted(examples, key=lambda e: _rank(seed, e.item_id))
+    return ordered if volume is None else ordered[:volume]
+
+
 def build(
     items: Iterable[SplitItem],
     *,
     volume: int | None = None,
-    seed: int = 20260920,
+    seed: int = VOLUME_SEED,
     prompt: Prompt | None = None,
 ) -> tuple[list[Example], DatasetManifest]:
     """Training and validation examples, and the manifest that describes them."""

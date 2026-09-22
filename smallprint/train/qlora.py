@@ -37,7 +37,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from smallprint.train.checkpoint import CheckpointStore, step_of
-from smallprint.train.dataset import DatasetManifest, Example, as_chat
+from smallprint.train.dataset import DatasetManifest, Example, as_chat, take_examples
 from smallprint.train.recipe import TrainConfig
 
 INSTALL_HINT = (
@@ -224,7 +224,8 @@ def train(
         device_map="auto",
     )
 
-    train_examples = [e for e in examples if e.split.value == "train"]
+    train_examples = take_examples([e for e in examples if e.split.value == "train"], config.volume)
+    print(f"training on {len(train_examples):,} filings", flush=True)
     validation = [e for e in examples if e.split.value == "validation"]
 
     arguments = SFTConfig(
