@@ -43,7 +43,10 @@ runtime appearing, not on a fixed timeout. And check CUDA before installing anyt
 first 4090 rented listed its card in `nvidia-smi` and failed `torch.cuda` with "CUDA
 unknown error" under the image's own PyTorch, a host fault nothing inside the container
 fixes. A matrix multiply on the card is the check; a host that fails it is terminated and
-replaced. The code, the corpus and the S3 key go over `scp`; the repository is private and
+replaced. Put the model cache on the container disk (`HF_HOME=/root/hf`, 80 GB), not the
+20 GB pod volume: the Python environment already takes most of the volume, and the 4B
+download failed there with the disk full. The cache is re-downloadable and nothing is lost
+with the pod. The code, the corpus and the S3 key go over `scp`; the repository is private and
 no GitHub token goes on a rented machine.
 
 Serving is different and is not on this card. Its throughput is the denominator of every

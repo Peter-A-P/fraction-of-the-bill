@@ -80,6 +80,22 @@ one card. The throughput has not been measured and will not be until the first r
 rented card; `gpu_hours` refuses to invent it for exactly this reason. The budgeting range
 in [gpu-prices.md](gpu-prices.md) is stated as a range and labelled as an estimate.
 
+**Measured, 2026-09-22**, on one Community RTX 4090, ten steps of each base on 160 filings,
+timed around the optimiser steps alone, and one full pass over the 713 validation filings:
+
+| Size | Seconds a step | Evaluation | Tokens a second, about |
+|---|---:|---:|---:|
+| 2B | 23.4 | 3.4 min | 2,100 |
+| 4B | 33.3 | 5.2 min | 1,500 |
+| 7B | 25.5 | 5.4 min | 1,900 |
+
+The 7B is faster a step than the 4B: the Gemma bases carry a 262,000-token vocabulary and
+per-layer embeddings, OLMo a plain transformer. Over the whole schedule, each size's eight
+sweep runs and two more seeds, 5,504 steps and 114 evaluations a size, it is **154 GPU
+hours, US$52 at US$0.34 an hour**: 43, 61 and 50 hours for the three sizes, of which the
+evaluations are 26. That is inside the US$40 to US$140 budgeting range, and 6.4 days on one
+card.
+
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
 training pool holds 5,060 filings, so the 20k point needs a corpus expansion of about
 4,800 more companies: five to seven hours of fetching within the SEC's rate limit and
