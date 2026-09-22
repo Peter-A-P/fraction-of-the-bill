@@ -68,9 +68,9 @@ What a grid buys is interactions between the factors; what it would cost is the 
 seeds on the chosen configuration, which is the part that says whether any difference is
 real at all. The seeds are worth more than the interactions.
 
-The sweep for one size is 8 runs: five at the full pool, 646 steps each at the default two
-epochs, and the three volume points at 126, 314 and 626 steps, **4,296 steps** in all, 13
-checkpoints on a full run. Two more seeds on the chosen recipe add 1,292. A step is 16
+The sweep for one size is 8 runs: five at the full pool, 317 steps each at one epoch over
+5,060 filings, and the three volume points at 63, 157 and 313 steps, **2,118 steps** in
+all, 7 checkpoints on a full run. Two more seeds on the chosen recipe add 634. A step is 16
 sequences of about 3,100 tokens, roughly 50,000 tokens.
 
 **Correction.** An earlier version of this page said the 2B sweep was 4.2 GPU hours, at 3.5
@@ -91,10 +91,11 @@ timed around the optimiser steps alone, and one full pass over the 713 validatio
 
 The 7B is faster a step than the 4B: the Gemma bases carry a 262,000-token vocabulary and
 per-layer embeddings, OLMo a plain transformer. Over the whole schedule, each size's eight
-sweep runs and two more seeds, 5,504 steps and 114 evaluations a size, it is **154 GPU
-hours, US$52 at US$0.34 an hour**: 43, 61 and 50 hours for the three sizes, of which the
-evaluations are 26. That is inside the US$40 to US$140 budgeting range, and 6.4 days on one
-card.
+sweep runs and two more seeds at two epochs and the whole validation set at every
+checkpoint, it would have been **154 GPU hours, US$52 at US$0.34 an hour**: 43, 61 and 50
+hours for the three sizes, of which the evaluations are 26. That is inside the US$40 to
+US$140 budgeting range, and 6.4 days on one card. What is actually being run is the 68
+hours below, on three cards at once.
 
 **Two cuts, agreed at the gate on 2026-09-22.** First, the checkpoints score a fixed 200 of
 the 713 validation filings, the same 200 on every run, chosen by keyed hash; the whole set
@@ -105,6 +106,20 @@ loss at every checkpoint in `run.json` (`monitor_losses`): if the loss over the 
 epoch has stopped falling, every other run is one epoch. With both, the schedule is about
 69 GPU hours and US$23. The probe is the sweep's own first run, so at two epochs nothing is
 spent twice.
+
+**One epoch, decided on the probe's own curve**, 2026-09-22. The 2B base recipe at two
+epochs, scoring 200 validation filings every 50 steps:
+
+| Epoch | 0.16 | 0.32 | 0.47 | 0.63 | 0.79 | 0.95 | 1.10 | 1.26 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Validation loss | .0147 | .0123 | .0108 | .0104 | .0103 | .0103 | .0109 | .0103 |
+
+It is flat from about two thirds of the first epoch, and the second epoch does not improve
+on the end of the first. So every other run is one epoch, and the schedule is **68 GPU
+hours, US$23**: 19, 28 and 22 for the three sizes, of which the evaluations are 6. The
+probe itself is left to finish its two epochs, US$0.50 of card, because a loss is not the
+accuracy the tables report: the two-epoch adapter is graded beside the one-epoch one, and
+if the second epoch does buy accuracy the curve above is what missed it.
 
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
 training pool holds 5,060 filings, so the 20k point needs a corpus expansion of about
