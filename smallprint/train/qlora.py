@@ -232,7 +232,8 @@ def train(
         per_device_train_batch_size=config.batch_size,
         gradient_accumulation_steps=config.grad_accum,
         learning_rate=config.learning_rate,
-        warmup_ratio=config.warmup_ratio,
+        # A float below one is a ratio of the total steps; TRL 1.x dropped warmup_ratio.
+        warmup_steps=config.warmup_ratio,
         lr_scheduler_type="cosine",
         max_length=config.max_seq_len,
         bf16=True,
@@ -267,6 +268,24 @@ def train(
         processing_class=tokenizer,
     )
     trainer.add_callback(SaveToStore(checkpoints, out_dir))
+    # Which layers the adapter wraps, in the log: the Gemma bases load with their vision and
+    # audio towers attached, and an adapter on those is parameters trained on nothing.
+    wrapped = sorted(
+        {
+            n.split(".lora_A")[0].split(".")[-1]
+            for n, _ in trainer.model.named_parameters()
+            if ".lora_A" in n
+        }
+    )
+    towers = sorted(
+        {
+            n.split(".")[2]
+            for n, _ in trainer.model.named_parameters()
+            if ".lora_A" in n and n.count(".") > 3
+        }
+    )
+    trainable = sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)
+    print(f"LoRA wraps {wrapped} under {towers}; {trainable:,} trainable parameters", flush=True)
 
     result = trainer.train(resume_from_checkpoint=str(resume_from) if resume_from else None)
     # The adapter, not a checkpoint: what gets published and merged, written once at the end.

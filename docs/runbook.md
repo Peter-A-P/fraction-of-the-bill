@@ -35,6 +35,17 @@ more than twice the price for the same card, so the Community pod pushes each ch
 to it over the S3 API instead ([gpu-prices.md](gpu-prices.md#the-decision)). The pod needs
 the AWS CLI (`pip install awscli`) and the S3 key in its environment.
 
+**Renting, as learned on 2026-09-22.** Ask for a public IP (`supportPublicIp`): without one
+a Community pod offers SSH only through Runpod's proxy, which carries neither file copies
+nor remote commands, and three pods were paid for and let go before this was understood.
+A pod whose image is not cached on its host takes minutes to start, so wait on the pod's
+runtime appearing, not on a fixed timeout. And check CUDA before installing anything: the
+first 4090 rented listed its card in `nvidia-smi` and failed `torch.cuda` with "CUDA
+unknown error" under the image's own PyTorch, a host fault nothing inside the container
+fixes. A matrix multiply on the card is the check; a host that fails it is terminated and
+replaced. The code, the corpus and the S3 key go over `scp`; the repository is private and
+no GitHub token goes on a rented machine.
+
 Serving is different and is not on this card. Its throughput is the denominator of every
 self-hosted cost per call, so it is measured on a card and tier a business would deploy on.
 
