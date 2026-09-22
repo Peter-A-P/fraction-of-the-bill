@@ -40,8 +40,22 @@ gateway = [
 # installed on the rented GPU that runs that stage, and nothing in the base package
 # imports from them, so `smallprint data build` and `smallprint report` work everywhere.
 train = [
-  # Pinned on the day the GPU is rented, because the versions that matter are the ones
-  # that agree with the CUDA build on the machine. Deliberately empty until then.
+  # Pinned to what was installed and trained on, on the Community RTX 4090 of 2026-09-22,
+  # because the versions that matter are the ones that agree with the CUDA build on the
+  # machine. Exact rather than ranged: a fine-tune is a measurement, and the stack it was
+  # produced on is part of the measurement. Every RunRecord records these too.
+  # torch 2.14.0 from PyPI is a CUDA 13 build and needs a 580 driver or newer; a host on
+  # 575 refuses it (docs/runbook.md).
+  "torch==2.14.0",
+  "transformers==5.17.0",
+  # TRL 1.x wants a Dataset, a float warmup_steps, and prompt/completion rows for the
+  # loss to fall on the answer alone. All three changed the code; see docs/training.md.
+  "trl==1.13.0",
+  "peft==0.21.0",
+  # 4-bit NF4 quantisation of the base weights: the Q in QLoRA, and why a 7B trains on 24 GB.
+  "bitsandbytes==0.50.2",
+  "accelerate==1.15.0",
+  "datasets==5.0.1",
 ]
 serve = []
 
