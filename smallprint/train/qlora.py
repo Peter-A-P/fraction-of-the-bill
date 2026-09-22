@@ -93,7 +93,21 @@ def _versions() -> dict[str, str]:
     return found
 
 
-class StepTimer:
+class Callback:
+    """A trainer callback without the trainer: every hook it does not define does nothing.
+
+    The trainer calls a dozen hooks on every callback. Defined here rather than taken from
+    transformers so this module imports without the GPU stack. The timing runs of
+    2026-09-22 stopped at step 0 on a callback that defined only the two hooks it used.
+    """
+
+    def __getattr__(self, name: str) -> Any:
+        if name.startswith("on_"):
+            return lambda *args, **kwargs: None
+        raise AttributeError(name)
+
+
+class StepTimer(Callback):
     """Seconds per optimiser step, timed around the steps and nothing else.
 
     Not the trainer's `train_runtime`: that counts the evaluations and checkpoint saves in
@@ -370,7 +384,7 @@ def train(
     return finished
 
 
-class SaveToStore:
+class SaveToStore(Callback):
     """A trainer callback that uploads each checkpoint as it is written.
 
     Defined here rather than imported from transformers so that this module still imports
@@ -385,12 +399,6 @@ class SaveToStore:
         directory = self.out_dir / f"checkpoint-{int(state.global_step)}"
         if directory.is_dir():
             self.store.save(directory)
-
-    def __getattr__(self, name: str) -> Any:
-        """Every other callback hook does nothing. The trainer calls a dozen of them."""
-        if name.startswith("on_"):
-            return lambda *args, **kwargs: None
-        raise AttributeError(name)
 
 
 def read_record(out_dir: Path) -> RunRecord:

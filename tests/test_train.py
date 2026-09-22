@@ -297,6 +297,15 @@ def test_step_time_counts_the_steps_and_not_the_evaluations_between_them() -> No
     assert StepTimer().seconds_per_step is None  # a session that ran no step
 
 
+def test_the_callbacks_answer_every_hook_the_trainer_calls() -> None:
+    """The trainer calls on_train_begin, on_log, on_evaluate and more on every callback."""
+    from smallprint.train.qlora import SaveToStore, StepTimer
+
+    for callback in (StepTimer(), SaveToStore(checkpoint.CheckpointStore(Path(".")), Path("."))):
+        for hook in ("on_init_end", "on_train_begin", "on_log", "on_evaluate", "on_train_end"):
+            getattr(callback, hook)(None, None, None)
+
+
 class _Tokenizer:
     def __init__(self, chat_template: str | None) -> None:
         self.chat_template = chat_template
