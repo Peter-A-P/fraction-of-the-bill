@@ -43,7 +43,7 @@ runtime appearing, not on a fixed timeout. And check CUDA before installing anyt
 first 4090 rented listed its card in `nvidia-smi` and failed `torch.cuda` with "CUDA
 unknown error" under the image's own PyTorch, a host fault nothing inside the container
 fixes. A matrix multiply on the card is the check; a host that fails it is terminated and
-replaced. Put the model cache on the container disk (`HF_HOME=/root/hf`, 80 GB), not the
+replaced. **Check the driver, not just the card.** The pinned torch is a CUDA 13 build and needs a 580 driver; Community hosts still run 575, and such a host passes a matmul under the image's own torch and then refuses ours with "driver is too old". One was rented and let go for it on 2026-09-22. The rental check now reads `nvidia-smi --query-gpu=driver_version` and takes nothing below 580, because the alternative, an older torch on that pod, would train one size on a different stack from the other two. Put the model cache on the container disk (`HF_HOME=/root/hf`, 80 GB), not the
 20 GB pod volume: the Python environment already takes most of the volume, and the 4B
 download failed there with the disk full. The cache is re-downloadable and nothing is lost
 with the pod. The code, the corpus and the S3 key go over `scp`; the repository is private and
