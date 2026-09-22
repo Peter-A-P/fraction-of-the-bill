@@ -177,6 +177,7 @@ def train(
     """
     require_gpu_stack()
     import torch
+    from datasets import Dataset
     from peft import LoraConfig
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
     from trl import SFTConfig, SFTTrainer
@@ -256,8 +257,8 @@ def train(
     trainer = SFTTrainer(
         model=model,
         args=arguments,
-        train_dataset=as_chat(train_examples),
-        eval_dataset=as_chat(validation) if validation else None,
+        train_dataset=Dataset.from_list(as_chat(train_examples)),
+        eval_dataset=Dataset.from_list(as_chat(validation)) if validation else None,
         peft_config=LoraConfig(
             r=config.rank,
             lora_alpha=config.alpha,
@@ -286,6 +287,17 @@ def train(
     )
     trainable = sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)
     print(f"LoRA wraps {wrapped} under {towers}; {trainable:,} trainable parameters", flush=True)
+    # The loss must fall on the answer alone. Read back from the trainer's own processed
+    # data, so a format the library silently ignores shows up here rather than as a model
+    # that learned to recite filings.
+    first = trainer.train_dataset[0]
+    mask = first.get("completion_mask")
+    if mask is None:
+        raise RuntimeError(
+            f"no completion mask in the processed data ({sorted(first)}): the loss would "
+            "fall on the prompt as well as the answer"
+        )
+    print(f"loss on {sum(mask):,} of {len(mask):,} tokens of the first example", flush=True)
 
     result = trainer.train(resume_from_checkpoint=str(resume_from) if resume_from else None)
     # The adapter, not a checkpoint: what gets published and merged, written once at the end.

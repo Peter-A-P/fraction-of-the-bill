@@ -174,8 +174,15 @@ def read(out_dir: Path) -> tuple[list[Example], DatasetManifest]:
 
 
 def as_chat(examples: Iterable[Example]) -> list[dict[str, object]]:
-    """The plain form a trainer's dataset loader wants: one dict per example."""
-    return [{"messages": e.messages(), "item_id": e.item_id} for e in examples]
+    """One row per example, split into the conversation so far and the answer.
+
+    The split is what makes the loss fall on the answer alone. With the whole chat as one
+    `messages` field, TRL applies `completion_only_loss` to nothing and trains on the prompt
+    too: the task specification and ten thousand characters of filing, identical in intent
+    across every example, taught as if they were output. Found on the pod on 2026-09-22,
+    before a step had run.
+    """
+    return [{"prompt": e.messages()[:-1], "completion": e.messages()[-1:]} for e in examples]
 
 
 def token_lengths(examples: Sequence[Example], tokenise: object) -> list[int]:

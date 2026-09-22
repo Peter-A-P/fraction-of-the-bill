@@ -316,3 +316,12 @@ def test_a_base_with_its_own_template_keeps_it() -> None:
 def test_a_base_with_no_template_and_no_source_is_refused() -> None:
     with pytest.raises(ValueError, match="no chat template"):
         adopt_chat_template(_Tokenizer(None), None, lambda r, v: "t")
+
+
+def test_each_example_is_split_so_the_loss_falls_on_the_answer_alone() -> None:
+    """With the whole chat in one field, TRL trains on the prompt too."""
+    examples, _ = dataset.build(pool(2, 0))
+    row = dataset.as_chat(examples)[0]
+    assert set(row) == {"prompt", "completion"}
+    assert row["prompt"] == examples[0].messages()[:2]
+    assert row["completion"] == [{"role": "assistant", "content": examples[0].assistant}]
