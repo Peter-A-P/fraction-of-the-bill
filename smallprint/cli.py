@@ -40,7 +40,7 @@ from smallprint.data.statements import Statement, locate
 from smallprint.prompts import PromptStyle, build_prompt
 from smallprint.report import baselines
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
-from smallprint.train.checkpoint import CheckpointStore, LocalSyncer
+from smallprint.train.checkpoint import CheckpointStore, LocalSyncer, Syncer, runpod_s3
 from smallprint.train.dataset import TRAINABLE
 from smallprint.train.dataset import build as build_examples
 from smallprint.train.dataset import read as read_examples
@@ -547,6 +547,14 @@ def train_run(
     checkpoint_dir: Path | None = typer.Option(
         None, help="A second directory to copy every checkpoint to. Use a mounted bucket."
     ),
+    checkpoint_uri: str | None = typer.Option(
+        None,
+        help=(
+            "A Runpod network volume over its S3 API, s3://<volume id>/<path>. Needs "
+            "--s3-datacenter and the S3 key in AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY."
+        ),
+    ),
+    s3_datacenter: str | None = typer.Option(None, help="The volume's data center, like EU-RO-1."),
 ) -> None:
     """Fine-tune one base. Needs the GPU extra; this does not run on the laptop, by rule."""
     examples, manifest = read_examples(dataset_dir)
@@ -562,7 +570,18 @@ def train_run(
         volume=volume,
         save_steps=save_steps,
     )
-    store = CheckpointStore(out, LocalSyncer(checkpoint_dir) if checkpoint_dir else None)
+    if checkpoint_dir is not None and checkpoint_uri is not None:
+        raise typer.BadParameter(
+            "one place for checkpoints, not two", param_hint="--checkpoint-uri"
+        )
+    syncer: Syncer | None = None
+    if checkpoint_uri is not None:
+        if s3_datacenter is None:
+            raise typer.BadParameter("the volume's data center", param_hint="--s3-datacenter")
+        syncer = runpod_s3(checkpoint_uri, s3_datacenter)
+    elif checkpoint_dir is not None:
+        syncer = LocalSyncer(checkpoint_dir)
+    store = CheckpointStore(out, syncer)
     typer.echo(
         f"{config.run_id}: {config.steps(manifest.train):,} steps, resuming from {store.resume_step()}."
     )

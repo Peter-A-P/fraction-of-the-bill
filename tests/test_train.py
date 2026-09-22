@@ -4,6 +4,7 @@ rented card is spent correctly, which is all of it except the gradient step."""
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -152,6 +153,56 @@ def test_an_upload_that_never_finished_is_not_resumed_from(tmp_path: Path) -> No
 
     fresh = checkpoint.CheckpointStore(tmp_path / "new-instance", remote)
     assert fresh.resume_step() == 10
+
+
+def fake_s3(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> checkpoint.CommandSyncer:
+    """The Runpod syncer's own arguments, with `aws` swapped for a stand-in over a directory."""
+    monkeypatch.setenv("FAKE_S3_ROOT", str(tmp_path / "s3"))
+    real = checkpoint.runpod_s3("s3://vol123/checkpoints/run-a", "EU-RO-1")
+    stand_in = (sys.executable, str(Path(__file__).parent / "fake_s3.py"))
+    return checkpoint.CommandSyncer(
+        real.uri, argv=(*stand_in, *real.argv[1:]), list_argv=(*stand_in, *real.list_argv[1:])
+    )
+
+
+def test_the_runpod_syncer_names_the_volume_s_endpoint_and_lists_recursively() -> None:
+    syncer = checkpoint.runpod_s3("s3://vol123/checkpoints", "EU-RO-1")
+    assert "https://s3api-eu-ro-1.runpod.io/" in syncer.argv
+    assert syncer.list_argv[:4] == ("aws", "s3", "ls", "--recursive")
+
+
+def test_a_checkpoint_goes_through_the_s3_api_and_comes_back_on_a_new_machine(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    remote = fake_s3(tmp_path, monkeypatch)
+    first = checkpoint.CheckpointStore(tmp_path / "run", remote)
+    first.save(write_checkpoint(tmp_path / "run", 5))
+    first.save(write_checkpoint(tmp_path / "run", 10))
+
+    fresh = checkpoint.CheckpointStore(tmp_path / "new-instance", remote)
+    assert fresh.resume_step() == 10
+    latest = fresh.latest()
+    assert latest is not None
+    assert (latest / "adapter_model.safetensors").read_text(encoding="utf-8") == "weights at 10"
+
+
+def test_an_upload_cut_off_by_a_reclaim_is_never_marked_complete(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The stand-in copies in name order, so `.complete` would go first if it were handed
+    over with the weights. The machine goes after the first file."""
+    remote = fake_s3(tmp_path, monkeypatch)
+    store = checkpoint.CheckpointStore(tmp_path / "run", remote)
+    store.save(write_checkpoint(tmp_path / "run", 5))
+    big = write_checkpoint(tmp_path / "run", 10)
+    (big / "optimizer.pt").write_text("state", encoding="utf-8")
+    monkeypatch.setenv("FAKE_S3_FAIL_AFTER", "1")
+    with pytest.raises(RuntimeError, match="failed"):
+        store.save(big)
+    monkeypatch.delenv("FAKE_S3_FAIL_AFTER")
+
+    assert remote.names() == ["checkpoint-5"]
+    assert checkpoint.CheckpointStore(tmp_path / "new-instance", remote).resume_step() == 5
 
 
 def test_a_fresh_run_with_nowhere_to_resume_from_starts_at_zero(tmp_path: Path) -> None:

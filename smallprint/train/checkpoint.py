@@ -95,7 +95,14 @@ class CommandSyncer:
         return finished.stdout
 
     def push(self, local: Path, name: str) -> None:
-        (local / COMPLETE).write_text("", encoding="utf-8")
+        """Upload, then mark. A sync copies files in no promised order, so a marker sent with
+        the weights can arrive before them, and a machine lost mid-upload would leave a
+        checkpoint that says it is complete and is not. The second sync sends only the
+        marker, because everything else is already there."""
+        marker = local / COMPLETE
+        marker.unlink(missing_ok=True)
+        self._run(*self.argv, str(local), f"{self.uri}/{name}")
+        marker.write_text("", encoding="utf-8")
         self._run(*self.argv, str(local), f"{self.uri}/{name}")
 
     def pull(self, name: str, local: Path) -> None:
@@ -105,14 +112,41 @@ class CommandSyncer:
             raise FileNotFoundError(f"{name} has no {COMPLETE}: it was never finished uploading")
 
     def names(self) -> list[str]:
+        """The checkpoints whose upload finished: those with a marker.
+
+        `list_argv` lists recursively, one object per line with its path last, which is
+        what `aws s3 ls --recursive`, `gcloud storage ls -r` and `rclone lsf -R` all print.
+        A checkpoint without its marker was cut off mid-upload and is not offered, so a
+        resume falls back to the one before it rather than failing on it.
+        """
         out = self._run(*self.list_argv, self.uri + "/")
-        found = {
-            part.strip("/").split("/")[0]
-            for line in out.splitlines()
-            for part in [line.strip().rsplit(" ", 1)[-1]]
-            if CHECKPOINT.match(part.strip("/").split("/")[0] or "")
-        }
+        found = set()
+        for line in out.splitlines():
+            parts = line.strip().rsplit(" ", 1)[-1].strip("/").split("/")
+            if len(parts) >= 2 and parts[-1] == COMPLETE and CHECKPOINT.match(parts[-2]):
+                found.add(parts[-2])
         return sorted(found, key=lambda n: int(n.split("-")[1]))
+
+
+def runpod_s3(uri: str, datacenter: str) -> CommandSyncer:
+    """A Runpod network volume, reached over its S3-compatible API.
+
+    Network volumes mount only on Secure Cloud pods, so a Community Cloud pod, the cheaper
+    tier training runs on, reaches one this way instead. `uri` is `s3://<volume id>/<path>`,
+    and the credentials are the account's S3 API key, in the environment as
+    AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, where the AWS CLI looks for them.
+    """
+    endpoint = (
+        "--region",
+        datacenter,
+        "--endpoint-url",
+        f"https://s3api-{datacenter.lower()}.runpod.io/",
+    )
+    return CommandSyncer(
+        uri,
+        argv=("aws", "s3", "sync", *endpoint),
+        list_argv=("aws", "s3", "ls", "--recursive", *endpoint),
+    )
 
 
 class CheckpointStore:

@@ -1,13 +1,75 @@
 # GPU prices and the provider decision
 
-**Not yet written. Nothing may be rented until it is.**
+**Written 2026-09-22, the morning of the first rental.** Every price this project
+publishes for self-hosting comes from the table below.
 
 This document is a gate rather than a placeholder. The rule it implements is that every
 price carries the date it was checked, and a rate copied weeks early carries a date that
 lies about when it was checked. So the table below is written on the first morning of the
 GPU work, from the providers' own pages on that day, and not before.
 
-## What goes here, on the day
+## The day-one table, 2026-09-22
+
+| Card | VRAM | Runpod Community | Runpod Secure | GCP spot, whole machine |
+|---|---:|---:|---:|---:|
+| RTX 4090 | 24 GB | US$0.34 | US$0.74 | not offered |
+| L4 | 24 GB | US$0.44 | US$0.49 | US$0.42 (g2-standard-4: 4 vCPU, 16 GiB) |
+| A10G | 24 GB | not offered | not offered | not offered |
+| A100 40 GB | 40 GB | US$1.00 (SXM) | not listed | US$2.20 (a2-highgpu-1g) |
+| A100 80 GB | 80 GB | US$1.19 (PCIe) | US$1.59 | |
+| H100 SXM | 80 GB | US$2.69 | US$3.49 | |
+
+Per GPU hour, on-demand; a Runpod pod's rate includes its CPU and memory. **Runpod** read
+at 12:11 UTC from the Runpod API (`gpuTypes`, the source the console's deploy page prices
+from); its spot rates equalled the on-demand ones on the day, and the RTX 4090 was marked
+low stock. **GCP** read the same morning from the Spot VMs pricing page
+(https://cloud.google.com/spot-vms/pricing), at the page's default region, which it did
+not name beside the table; spot prices there change up to once every 30 days. GCP on-demand
+and Azure were not read: the rule below turns on spot, and GCP's is already outside it. The
+A10G is an AWS card, and no candidate here offers it.
+
+**Storage and transfer.** Runpod network storage US$0.07 per GB a month under a terabyte,
+US$0.05 over, US$0.14 for the high-performance tier; container disk US$0.10; volume disk
+US$0.10 running and US$0.20 idle (https://www.runpod.io/pricing). No fees for ingress or
+egress (https://docs.runpod.io/pods/pricing).
+
+**The spend cap.** The account holds US$150 of prepaid credit with auto-reload off, set by
+Peter on 2026-09-22 and read back from the API the same morning: balance US$150.00,
+nothing running. When the credit is gone the pods stop, so the balance is the cap. The API
+also reports the account's hourly spend limit, US$80. The API read-back stands in for the
+screenshot the list below asked for: it is the provider's own record, and it is dated.
+
+## The decision
+
+**Runpod, Community Cloud, one RTX 4090 for training.** The portfolio's rule takes
+hyperscaler spot when it is within 20% of the marketplace. The cheapest 24 GB machine on
+GCP spot is an L4 at US$0.42, 24% above the 4090's US$0.34 and a slower card besides, so
+the marketplace wins on the rule before the speed difference is counted. Serving is not
+on this card; see "Two tiers, two jobs" below.
+
+**Where checkpoints go.** The plan assumed a network volume mounted on the training pod.
+Runpod's own documentation says network volumes mount only on Secure Cloud pods
+(https://docs.runpod.io/storage/network-volumes), and Secure costs US$0.74 for the same
+card, more than twice as much. So the pod stays on Community Cloud and pushes every
+checkpoint to a network volume through Runpod's S3-compatible API, which exists for
+volumes in thirteen named data centers (https://docs.runpod.io/storage/s3-api). That is
+object storage off the machine, which is what the checkpointing rule asks for, at no
+transfer cost. `smallprint train run --checkpoint-uri s3://<volume>/<path>
+--s3-datacenter <DC>` does it.
+
+**Region.** The volume's data center is the only fixed location; a Community pod is
+wherever the card is free, and uploads over the internet. It is recorded with each run.
+
+## What had to be on this page, and where it is
+
+1. A price table for **L4, A10G, RTX 4090 and A100 40 GB**, spot and on-demand, across the
+   candidate providers, each cell dated and each with the URL it was read from.
+2. The decision, by the portfolio's rule: **GCP or Azure spot if within 20% of the rental
+   marketplaces, otherwise the marketplace.** The README says which was chosen.
+3. The region, because it moves the price and it is part of the price key.
+4. Egress and storage rates for the checkpoint bucket.
+5. The **hard spend cap set in the provider console**, with a screenshot reference and the
+   date it was set. This happens before the first job, not after the first bill.
 
 1. A price table for **L4, A10G, RTX 4090 and A100 40 GB**, spot and on-demand, across the
    candidate providers, each cell dated and each with the URL it was read from.

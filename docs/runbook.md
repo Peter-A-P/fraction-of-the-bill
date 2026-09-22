@@ -15,17 +15,25 @@ schedule.
   public keys, so pods accept it. The private half never leaves the machine that made it.
 - No Hugging Face token: all six base and baseline repositories are ungated Apache 2.0.
   One is needed only to publish.
-- Write the day-one price table in [gpu-prices.md](gpu-prices.md) from the provider's page
-  that morning: the card, the tier, the rate, the region, the storage rate, the date. The
-  survey in that file was for the budget decision and is replaced by this.
+- An S3 API key for the account, created in the console under Settings, S3 API Keys. Its
+  access key (the `user_...` id) and secret go in `.env` as `RUNPOD_S3_ACCESS_KEY_ID` and
+  `RUNPOD_S3_SECRET_ACCESS_KEY`, and reach the pod as `AWS_ACCESS_KEY_ID` and
+  `AWS_SECRET_ACCESS_KEY`. Checkpoints need it; see step 1.
+- The day-one price table in [gpu-prices.md](gpu-prices.md), from the provider's pages that
+  morning. Written 2026-09-22.
 
 ## 1. The pod and the volume
 
 One RTX 4090 on Community Cloud for training: 24 GB holds all three bases in 4-bit, and
 training has no bearing on any published number except accuracy, so the cheapest card that
-fits is the right one. A network volume of about 50 GB mounted at `/workspace`, which
-survives the pod: that is where checkpoints go, so a reclaimed pod loses at most
-`save_steps` steps.
+fits is the right one.
+
+A network volume of about 50 GB in one of the data centers with Runpod's S3-compatible API,
+which survives any pod: that is where checkpoints go, so a lost pod loses at most
+`save_steps` steps. It is not mounted. Network volumes mount only on Secure Cloud pods, at
+more than twice the price for the same card, so the Community pod pushes each checkpoint
+to it over the S3 API instead ([gpu-prices.md](gpu-prices.md#the-decision)). The pod needs
+the AWS CLI (`pip install awscli`) and the S3 key in its environment.
 
 Serving is different and is not on this card. Its throughput is the denominator of every
 self-hosted cost per call, so it is measured on a card and tier a business would deploy on.
@@ -56,11 +64,14 @@ other numbers mean a different corpus, and nothing goes further until that is ex
 ## 4. A smoke run per size, and a deliberate interruption
 
     smallprint train run --size 2b --out runs/smoke-2b --volume 320 --epochs 1 \
-      --save-steps 5 --checkpoint-dir /workspace/checkpoints/smoke-2b
+      --save-steps 5 --checkpoint-uri s3://<volume id>/checkpoints/smoke-2b \
+      --s3-datacenter <DC>
 
-Twenty optimiser steps. Partway through, stop it, then run the same command again. It has
-to resume from the newest complete checkpoint on the volume rather than from step zero,
-and `run.json` has to say which step it resumed from. That is the checkpointing the whole
+Twenty optimiser steps. Partway through, stop it, **delete `runs/smoke-2b`**, then run the
+same command again. Deleting the local copy is what makes this the test that matters: the
+pod is now in the state a replacement pod would be, and the run has to fetch the newest
+complete checkpoint from the volume and resume from it rather than from step zero.
+`run.json` has to say which step it resumed from. That is the checkpointing the whole
 spot-instance budget rests on, proved on real hardware before anything depends on it.
 
 `run.json` then holds `seconds_per_step`, measured on the trainer's own clock over the

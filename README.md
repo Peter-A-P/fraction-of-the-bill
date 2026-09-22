@@ -34,7 +34,10 @@ anchor the break-even has to beat ([docs/baseline.md](docs/baseline.md)).
 
 All three have now been measured on the whole post-cutoff test set, zero-shot and
 two-shot: 4,296 calls, **US$59.63**, in the table below. **Nothing has been trained,
-quantised or served.** The plan is in [PLAN.md](PLAN.md); the dataset design and the open
+quantised or served.** The GPU provider is chosen by the portfolio's rule: Runpod, one RTX
+4090 on Community Cloud for training, at US$0.34 an hour on 2026-09-22, with checkpoints
+pushed to a network volume over its S3 API ([docs/gpu-prices.md](docs/gpu-prices.md)).
+The plan is in [PLAN.md](PLAN.md); the dataset design and the open
 questions are in [docs/data.md](docs/data.md), the prompt and the runner in
 [docs/baseline.md](docs/baseline.md).
 

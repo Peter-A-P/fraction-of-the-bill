@@ -91,6 +91,21 @@ instance reclaimed mid-upload is exactly when that happens. The test writes a
 `checkpoint-99` with no marker next to a complete `checkpoint-10` and asserts the run
 resumes from 10.
 
+Over an object store the marker has to go last, and it did not at first. `CommandSyncer`
+wrote the marker into the directory and synced the lot, and a sync promises no order: the
+marker could land before the weights, so a pod lost mid-upload left a checkpoint that
+claimed to be complete. It now syncs the weights, then writes the marker and syncs again,
+which sends only the marker; and a remote checkpoint counts only if its marker is listed.
+Found on 2026-09-22, before the first rental, by a test whose stand-in for `aws s3` copies
+files in name order, which puts `.complete` first and cuts the upload off after one file:
+the old code offered the broken checkpoint for a resume, the new one falls back to the
+last whole one.
+
+**On Runpod** the store is a network volume reached through its S3-compatible API,
+`train run --checkpoint-uri s3://<volume id>/<path> --s3-datacenter <DC>`, because the
+training pod is on Community Cloud and volumes mount only on Secure Cloud
+([gpu-prices.md](gpu-prices.md#the-decision)).
+
 `latest` looks locally first and remotely second. A live instance has the weights on disk
 and a download is minutes of rent; a fresh instance after a reclaim has a bare disk, and
 that is the case the remote copy exists for.
