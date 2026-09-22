@@ -52,6 +52,13 @@ PERIOD_END_SLACK_DAYS: Final = 7
 #: actually prints.
 MAX_DISTRACTORS: Final = 4
 
+#: Neighbouring lines a field is confused with, whose value for this period is a distractor
+#: too. Basic shares sit a line above diluted and usually differ by well under the grader's
+#: half percent, so without this a model that read the Basic row was marked right.
+NEIGHBOURS: Final[Mapping[str, tuple[str, ...]]] = {
+    "shares_diluted": ("us-gaap:WeightedAverageNumberOfSharesOutstandingBasic",),
+}
+
 
 class Fact(BaseModel):
     """One XBRL fact as the company filed it."""
@@ -239,6 +246,14 @@ def build_truth(
         )
         if chosen is not None:
             values[name] = _as_field_value(spec, chosen.value)
+        if name in NEIGHBOURS:
+            neighbour, _ = select_fact(
+                from_this_filing,
+                spec.model_copy(update={"concepts": NEIGHBOURS[name]}),
+                period_end=period_end,
+                fiscal_period=fiscal_period,
+            )
+            others = (neighbour, *others) if neighbour is not None else others
         if others:
             distractors[name] = tuple(
                 v

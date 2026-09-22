@@ -43,7 +43,8 @@ class MissReason(StrEnum):
     #: failure in production: an abstention can be routed to a human, an invention cannot.
     HALLUCINATED = "hallucinated"
     #: The value belongs to a different period or a different column of the same statement,
-    #: usually the prior-year comparative sitting next to the one that was asked for.
+    #: usually the prior-year comparative sitting next to the one that was asked for, or to
+    #: the neighbouring line the field is confused with, Basic shares for Diluted.
     WRONG_PERIOD = "wrong_period"
     #: Right magnitude, wrong sign. A loss printed in parentheses, read as a profit.
     SIGN = "sign"
@@ -126,8 +127,10 @@ class GradeContext(BaseModel):
     four hundred apart, so neither can the grader.
 
     `distractors` are the other values printed on the same statement for the same field,
-    the prior-year column above all. They are never treated as correct. They exist so that a
-    miss can be named `wrong_period` instead of disappearing into `wrong_value`.
+    the prior-year column above all, and the neighbouring line a field is confused with.
+    They are never treated as correct. A miss that matches one is named `wrong_period`
+    instead of disappearing into `wrong_value`, and a reading within the tolerance that is
+    nearer a distractor than the truth is a miss: it read the other column.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -156,6 +159,36 @@ def tolerance(spec: FieldSpec, truth: float, ctx: GradeContext) -> float:
 
 def _numbers_agree(predicted: float, truth: float, tolerance: float) -> bool:
     return abs(predicted - truth) <= tolerance
+
+
+def _printed_unit(spec: FieldSpec, ctx: GradeContext) -> float:
+    """The smallest step the page can print for this field: a cent, or one unit of scale."""
+    match spec.kind:
+        case FieldKind.PER_SHARE:
+            return 0.01
+        case FieldKind.SHARE_COUNT:
+            return ctx.share_scale if ctx.share_scale is not None else ctx.scale
+        case _:
+            return ctx.scale
+
+
+def _nearer_distractor(spec: FieldSpec, predicted: float, truth: float, ctx: GradeContext) -> bool:
+    """Whether a reading inside the tolerance is really another column's value.
+
+    Half a percent is wider than the gap between some columns: a nine-month share count
+    beside the quarter's, Basic a line above Diluted, a balance that barely moved over the
+    year. A reading nearer one of those than the truth read that one. A distractor the page
+    prints as the same figure as the truth cannot be told apart from it, so it is ignored.
+    """
+    unit = _printed_unit(spec, ctx)
+    for other in ctx.distractors.get(spec.name, ()):
+        if not isinstance(other, float):
+            continue
+        if round(other / unit) == round(truth / unit):
+            continue
+        if abs(predicted - other) < abs(predicted - truth):
+            return True
+    return False
 
 
 def normalise_categorical(value: str) -> str:
@@ -253,6 +286,8 @@ def _grade_field(
                 return rendered.model_copy(update={"reason": MissReason.MALFORMED})
             allowed = tolerance(spec, truth_value, ctx)
             if _numbers_agree(predicted_value, truth_value, allowed):
+                if _nearer_distractor(spec, predicted_value, truth_value, ctx):
+                    return rendered.model_copy(update={"reason": MissReason.WRONG_PERIOD})
                 return rendered.model_copy(update={"correct": True})
             if _matches_distractor(spec, predicted_value, ctx, allowed):
                 return rendered.model_copy(update={"reason": MissReason.WRONG_PERIOD})

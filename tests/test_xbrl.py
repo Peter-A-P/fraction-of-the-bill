@@ -288,3 +288,45 @@ def test_a_concept_reported_only_for_other_periods_falls_through_to_the_next() -
     assert chosen is not None
     assert chosen.value == 4_791_730_000.0
     assert [f.value for f in others] == [4_714_573_000.0]
+
+
+def test_basic_shares_for_the_period_are_a_distractor_for_diluted() -> None:
+    """Basic sits a line above Diluted, usually within half a percent of it."""
+    start = dt.date(2026, 6, 28)
+    facts = [
+        duration(
+            "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding",
+            729_341_000,
+            start,
+            PERIOD_END,
+            unit="shares",
+        ),
+        duration(
+            "us-gaap:WeightedAverageNumberOfSharesOutstandingBasic",
+            729_026_000,
+            start,
+            PERIOD_END,
+            unit="shares",
+        ),
+    ]
+    truth, distractors = build_truth(
+        facts, accession=ACCESSION, period_end=PERIOD_END, fiscal_period="Q3"
+    )
+    assert truth.shares_diluted == 729_341_000
+    assert 729_026_000 in distractors["shares_diluted"]
+
+
+def test_basic_equal_to_diluted_is_not_a_distractor() -> None:
+    """A loss year prints one count for both. It is the answer, not a misreading of it."""
+    start = dt.date(2026, 6, 28)
+    facts = [
+        duration(concept, 5_000_000, start, PERIOD_END, unit="shares")
+        for concept in (
+            "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding",
+            "us-gaap:WeightedAverageNumberOfSharesOutstandingBasic",
+        )
+    ]
+    _, distractors = build_truth(
+        facts, accession=ACCESSION, period_end=PERIOD_END, fiscal_period="Q3"
+    )
+    assert "shares_diluted" not in distractors

@@ -185,6 +185,28 @@ def test_share_counts_use_their_own_scale_when_it_differs_from_the_dollars() -> 
     assert correct_for(prediction, "shares_diluted", ctx)
 
 
+def test_a_column_within_the_tolerance_but_nearer_another_period_is_that_period() -> None:
+    """729,341 thousand diluted shares for the quarter, 729,950 for the nine months: 0.08%
+    apart, well inside half a percent. Reading the nine-month column is still a misread."""
+    ctx = GradeContext(scale=1000.0, distractors={"shares_diluted": (729_950_000.0,)})
+    truth = TRUTH.model_copy(update={"shares_diluted": 729_341_000.0})
+    misread = truth.model_copy(update={"shares_diluted": 729_950_000.0})
+    grade = grade_item("test", misread, truth, ctx)
+    outcome = next(o for o in grade.outcomes if o.field == "shares_diluted")
+    assert outcome.reason is MissReason.WRONG_PERIOD
+    assert grade_item("test", truth, truth, ctx).exact
+
+
+def test_a_distractor_printed_as_the_same_figure_cannot_count_against_a_reading() -> None:
+    """Both columns print 146 in millions. The page cannot tell them apart, so neither can
+    the grader, and the reading nearer the distractor is still right."""
+    ctx = GradeContext(
+        scale=1000.0, share_scale=1_000_000.0, distractors={"shares_diluted": (146_100_000.0,)}
+    )
+    prediction = TRUTH.model_copy(update={"shares_diluted": 146_000_000.0})
+    assert correct_for(prediction, "shares_diluted", ctx)
+
+
 def test_a_restated_prior_period_that_matches_nothing_current_is_still_wrong() -> None:
     """Restatements move the comparative column. They never make the current column wrong."""
     prediction = TRUTH.model_copy(update={"total_assets": 2_310_000_000.0})

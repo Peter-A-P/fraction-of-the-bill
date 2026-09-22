@@ -57,10 +57,11 @@ class Section(StrEnum):
 #: already thrown away everything below the thousand, so the largest honest disagreement
 #: between a correct reading and the filed fact is half of the reporting unit; the relative
 #: term only matters for filings that print full units and still disagree in the last
-#: digits. Half a percent is generous enough never to fail a correct reading, and tight
-#: enough that a wrong line item never passes: the nearest distinct line on a statement is
-#: not within 0.5% of its neighbour except by accident, and the distractor check in
-#: `grade.py` catches that case by name rather than by tolerance.
+#: digits. Half a percent is generous enough never to fail a correct reading. It is not
+#: tight enough on its own: share counts for the quarter and the year to date, Basic and
+#: Diluted, and a balance that barely moved often sit inside it, 29% of the headline test
+#: set's share counts among them. So a reading inside the tolerance that is nearer one of
+#: those distractors than the truth is graded as that misreading, in `grade.py`.
 RELATIVE_TOLERANCE: Final = 0.005
 
 #: Absolute tolerance for per-share amounts, in the reporting currency. Earnings per share

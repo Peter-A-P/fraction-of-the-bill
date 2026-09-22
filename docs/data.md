@@ -43,10 +43,27 @@ the bands it allows written down:
 | Period end | the cover page date | within 7 days, because filers tag the Saturday a 52/53-week year ended while the cover page carries the month end |
 
 The three readings that are not the label are kept as **distractors** and handed to the
-grader. They are never correct. They exist so that a model which reads the prior-year
-column is reported as having read the wrong period, by name, instead of disappearing into
-a single undifferentiated wrong-answer count. The failure modes in the model cards are
-written from that table.
+grader, and for diluted shares so is the Basic count for the same period, the line printed
+just above it. They are never correct. They exist so that a model which reads the
+prior-year column is reported as having read the wrong period, by name, instead of
+disappearing into a single undifferentiated wrong-answer count. The failure modes in the
+model cards are written from that table.
+
+They also close a hole in the tolerance. Half a percent was meant to be too tight for a
+wrong line to pass, and for share counts it is not: on the headline test set, 183 of 635
+share counts had another column's value inside it, the nine months beside the quarter
+usually, and Basic sits closer to Diluted still. The hand audit found it, on a filing
+printing 729,026 Basic and 729,341 Diluted. So a reading inside the tolerance that is
+nearer a distractor than the truth is graded as that misreading, unless the page prints
+the two as the same figure and no reading could tell them apart.
+
+It turned out to matter little for the frontier models, which is worth knowing rather
+than assuming. The corpus was rebuilt offline with Basic added (every item and label
+identical, 3,622 items with one more distractor) and the seven baseline runs re-graded
+from their saved answers, 2026-09-21. One moved: `gpt-5.6-sol` zero-shot, 95.97% to
+95.93% of fields, three share counts and one operating income that had read the
+year-to-date column. No model gave the Basic count for Diluted. It is there for the
+fine-tunes, which have not been shown yet not to.
 
 ### Only the filing being labelled
 

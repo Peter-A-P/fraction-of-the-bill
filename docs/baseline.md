@@ -261,7 +261,7 @@ US$59.63, no failures, one answer in 4,296 that would not parse. The table is in
 findings are these.
 
 **The cheapest model is as accurate as the most expensive one.** Paired over the same
-filings, `gpt-5.6-sol` zero-shot is -0.3% (-0.8% to +0.2%) against `gpt-5.6-luna`
+filings, `gpt-5.6-sol` zero-shot is -0.3% (-0.9% to +0.2%) against `gpt-5.6-luna`
 zero-shot, and `claude-sonnet-5` zero-shot is -0.1% (-0.4% to +0.1%). Two intervals
 straddling zero, from models costing 18 and 14 times as much. Only `gpt-5.6-sol` two-shot
 clears it, by +0.7% (+0.4% to +0.9%), at 35 times the price. Field accuracy on this task
