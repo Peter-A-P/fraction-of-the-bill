@@ -53,8 +53,12 @@ _NUMBER = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
 _SIGNED: Final[frozenset[str]] = frozenset(
     {"operating_income", "net_income", "eps_basic", "eps_diluted", "stockholders_equity"}
 )
-#: A cell that prints zero as a dash, which is how statements print a zero.
-_DASHES: Final[frozenset[str]] = frozenset({"-", "$-", "$ -", chr(0x2013), chr(0x2014)})
+#: A cell that prints zero as a dash, which is how statements print a zero. The dollar sign
+#: is sometimes glued straight to an en or em dash with no space at all, a dollar sign
+#: immediately followed by U+2013 or U+2014.
+_DASHES: Final[frozenset[str]] = frozenset(
+    {"-", "$-", "$ -", chr(0x2013), chr(0x2014), f"${chr(0x2013)}", f"${chr(0x2014)}"}
+)
 
 #: How many places a label is shown found, closest to it first. More is noise: a value that
 #: recurs five times is a subtotal repeated down the statement.

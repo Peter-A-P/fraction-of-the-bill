@@ -132,6 +132,15 @@ def test_a_zero_printed_as_a_dash_is_found() -> None:
     assert found["operating_income"].matches[0].column == 1
 
 
+def test_a_zero_printed_as_a_dollar_glued_straight_to_a_dash_is_found() -> None:
+    """A dollar sign glued straight to the dash, no space, not just the bare dash or "$ -"
+    with a space between them."""
+    page = PAGE.replace("Revenue | $1,200 | $1,100", f"Revenue | ${chr(0x2013)} | $1,100")
+    found = by_field(item(page, revenue=0.0))
+    assert found["revenue"].matches[0].line.startswith("Revenue")
+    assert found["revenue"].matches[0].column == 1
+
+
 def test_the_exact_row_is_shown_first_when_a_neighbour_is_within_tolerance_too() -> None:
     page = PAGE.replace(
         "Diluted weighted average shares | 100 | 98",
