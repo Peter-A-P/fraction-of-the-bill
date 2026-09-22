@@ -282,15 +282,19 @@ def test_every_base_is_pinned_to_a_revision_not_a_branch() -> None:
         assert base.revision != base.baseline_revision
 
 
-def test_step_time_is_the_trainers_clock_over_this_sessions_steps() -> None:
-    """Wall time since start would count loading the model, most of a twenty-step smoke
-    run; the global step of a resumed run counts steps another machine did."""
-    from smallprint.train.qlora import step_seconds
+def test_step_time_counts_the_steps_and_not_the_evaluations_between_them() -> None:
+    """The 2B smoke run's trainer clock said 84.7 s a step; the steps took about 25."""
+    from smallprint.train.qlora import StepTimer
 
-    assert step_seconds(100.0, 20, 0) == 5.0
-    assert step_seconds(100.0, 70, 50) == 5.0  # resumed at 50, ran 20 here
-    assert step_seconds(None, 20, 0) is None
-    assert step_seconds(100.0, 50, 50) is None  # nothing ran in this session
+    now = [0.0]
+    timer = StepTimer(clock=lambda: now[0])
+    for _ in range(2):
+        timer.on_step_begin(None, None, None)
+        now[0] += 25.0  # the step
+        timer.on_step_end(None, None, None)
+        now[0] += 240.0  # an evaluation and a save, which are not the step
+    assert timer.seconds_per_step == 25.0
+    assert StepTimer().seconds_per_step is None  # a session that ran no step
 
 
 class _Tokenizer:

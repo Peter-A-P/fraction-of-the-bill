@@ -70,6 +70,9 @@ class RunRecord(BaseModel):
     train_loss: float | None = None
     validation_loss: float | None = None
     seconds_per_step: float | None = None
+    #: One pass over the validation set, which the run makes at every checkpoint: on a full
+    #: run it is a cost of its own, beside the steps, and the budget counts both.
+    evaluation_seconds: float | None = None
     versions: dict[str, str] = {}
 
     def write(self, out_dir: Path) -> Path:
@@ -90,18 +93,39 @@ def _versions() -> dict[str, str]:
     return found
 
 
-def step_seconds(train_runtime: float | None, global_step: int, resumed_from: int) -> float | None:
-    """Seconds per optimiser step, on the trainer's own clock, over the steps this session ran.
+class StepTimer:
+    """Seconds per optimiser step, timed around the steps and nothing else.
 
-    Not wall time since the run started: that includes downloading and loading the model,
-    which on a twenty-step smoke run is most of it, and the smoke run's figure is what every
-    GPU-hour estimate is then multiplied out from. And over this session's steps only, since
-    a resumed run's global step counts the steps a previous machine did.
+    Not the trainer's `train_runtime`: that counts the evaluations and checkpoint saves in
+    between, and on the 2B smoke run, 2026-09-22, it gave 84.7 seconds a step against about
+    25 for the steps themselves, two four-minute evaluations spread over ten steps. The
+    smoke run's figure is what every GPU-hour estimate is multiplied out from, so it has to
+    be the steps. `on_step_begin` fires at the start of an optimiser step, gradient
+    accumulation included, and `on_step_end` at its end, before any save or evaluation.
+    A callback in the trainer's sense, defined here so the module imports without the GPU
+    stack, and with the clock a parameter so it is tested without one.
     """
-    steps = global_step - resumed_from
-    if train_runtime is None or steps <= 0:
-        return None
-    return train_runtime / steps
+
+    def __init__(self, clock: Callable[[], float] | None = None) -> None:
+        import time
+
+        self.clock = clock or time.perf_counter
+        self.started: float | None = None
+        self.total = 0.0
+        self.steps = 0
+
+    def on_step_begin(self, args: Any, state: Any, control: Any, **kwargs: Any) -> None:
+        self.started = self.clock()
+
+    def on_step_end(self, args: Any, state: Any, control: Any, **kwargs: Any) -> None:
+        if self.started is not None:
+            self.total += self.clock() - self.started
+            self.steps += 1
+            self.started = None
+
+    @property
+    def seconds_per_step(self) -> float | None:
+        return self.total / self.steps if self.steps else None
 
 
 def adopt_chat_template(
@@ -259,6 +283,9 @@ def train(
         output_dir=str(out_dir),
         num_train_epochs=config.epochs,
         per_device_train_batch_size=config.batch_size,
+        # Not the default of 8: with a 262k-token vocabulary, eight 3,000-token sequences are
+        # about 12 GB of logits at once, which the 2B smoke run failed to allocate mid-eval.
+        per_device_eval_batch_size=config.batch_size,
         gradient_accumulation_steps=config.grad_accum,
         learning_rate=config.learning_rate,
         # A float below one is a ratio of the total steps; TRL 1.x dropped warmup_ratio.
@@ -298,6 +325,8 @@ def train(
         processing_class=tokenizer,
     )
     trainer.add_callback(SaveToStore(checkpoints, out_dir))
+    timer = StepTimer()
+    trainer.add_callback(timer)
     # Which layers the adapter wraps, in the log: the Gemma bases load with their vision and
     # audio towers attached, and an adapter on those is parameters trained on nothing.
     adapted = [
@@ -333,11 +362,8 @@ def train(
             "steps": int(result.global_step),
             "train_loss": float(result.training_loss),
             "validation_loss": metrics.get("eval_loss"),
-            "seconds_per_step": step_seconds(
-                result.metrics.get("train_runtime"),
-                int(result.global_step),
-                record.resumed_from_step,
-            ),
+            "seconds_per_step": timer.seconds_per_step,
+            "evaluation_seconds": metrics.get("eval_runtime"),
         }
     )
     finished.write(out_dir)
