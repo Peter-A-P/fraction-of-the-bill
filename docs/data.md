@@ -62,8 +62,8 @@ than assuming. The corpus was rebuilt offline with Basic added (every item and l
 identical, 3,622 items with one more distractor) and the seven baseline runs re-graded
 from their saved answers, 2026-09-21. One moved: `gpt-5.6-sol` zero-shot, 95.97% to
 95.93% of fields, three share counts and one operating income that had read the
-year-to-date column. No model gave the Basic count for Diluted. It is there for the
-fine-tunes, which have not been shown yet not to.
+year-to-date column. No model gave the Basic count for Diluted. The check is there for
+the fine-tunes, which have not been measured yet.
 
 ### Only the filing being labelled
 
