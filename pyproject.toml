@@ -57,6 +57,17 @@ train = [
   "accelerate==1.15.0",
   "datasets==5.0.1",
 ]
+# AWQ and GPTQ, on the card that makes them. Ranged rather than exact until the first
+# format is made, as the train extra was until the first fine-tune: the versions that
+# matter are the ones that agree with that card, and they are pinned exactly from there.
+# llm-compressor writes both algorithms as compressed-tensors, the format vLLM serves;
+# AutoAWQ, the older route to AWQ, was archived in 2025 (smallprint/quant/formats.py).
+# Below 1: a 0.x line that changes its modifier arguments between minors.
+# GGUF needs no Python package here: it is made by a llama.cpp checkout's own converter
+# and llama-quantize, whose commit the runbook records.
+quant = [
+  "llmcompressor>=0.8,<1",
+]
 serve = []
 
 [dependency-groups]
@@ -119,10 +130,13 @@ strict = true
 warn_unreachable = true
 
 # The GPU stack ships no type stubs and is not installed on the laptop at all. Only the
-# modules imported inside smallprint/train/qlora.py are listed, so a typo in any other
+# modules imported inside smallprint/train and smallprint/quant are listed, so a typo in any other
 # import is still an error rather than being swallowed by a wildcard.
 [[tool.mypy.overrides]]
-module = ["torch.*", "transformers.*", "trl.*", "peft.*", "bitsandbytes.*", "datasets.*"]
+module = [
+  "torch.*", "transformers.*", "trl.*", "peft.*", "bitsandbytes.*", "datasets.*",
+  "llmcompressor.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

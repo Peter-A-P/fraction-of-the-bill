@@ -18,6 +18,12 @@ not set higher than the data needs either.
 **Concurrency.** llama.cpp serves a fixed number of parallel slots and queues the rest, so
 its slot count is set to the highest concurrency the load test runs. Fewer slots would
 measure the queue rather than the model.
+
+**The chat format.** The fine-tunes were trained on one chat template, the instruction
+model's, saved beside the weights. vLLM reads it from the tokenizer files. llama-server
+renders the template embedded in the GGUF only when given `--jinja`; without it, it falls
+back to a built-in format it guesses from the template, and a model served in a format it
+was not trained on is measured on a task it was not trained for.
 """
 
 from __future__ import annotations
@@ -26,6 +32,10 @@ from pathlib import Path
 from typing import Any, Final
 
 from smallprint.quant.quality import Format
+
+#: The provider name every served model is registered under in the gateway configuration,
+#: so a self-hosted run's model is `selfhosted/<served name>` in the ledger and the tables.
+PROVIDER: Final = "selfhosted"
 
 #: Tokens of context each server is started with. See the module docstring.
 MAX_MODEL_LEN: Final = 8192
@@ -67,11 +77,20 @@ def vllm_argv(
         # The load test sends the same system prompt on every call; caching it is what a
         # real deployment of this extractor would do, so it is on for the measurement.
         "--enable-prefix-caching",
+        # Sampling defaults from vLLM, not from the checkpoint's generation_config.json,
+        # which the merge copies from the base and nobody chose. Every accuracy run sends
+        # its temperature explicitly in any case.
+        "--generation-config",
+        "vllm",
     ]
     if fmt is Format.BF16:
         argv += ["--dtype", "bfloat16"]
     else:
-        argv += ["--quantization", fmt.value]
+        # AWQ and GPTQ are both written by llm-compressor (smallprint/quant/formats.py),
+        # whose on-disk format is compressed-tensors whichever algorithm chose the weights.
+        # Named rather than detected, and not "awq" or "gptq": those select the kernels for
+        # the AutoAWQ and AutoGPTQ layouts, which these files are not.
+        argv += ["--quantization", "compressed-tensors"]
     return argv
 
 
@@ -105,6 +124,9 @@ def llamacpp_argv(
         "--n-gpu-layers",
         "999",
         "--cont-batching",
+        # The template embedded in the GGUF, rendered as the trainer rendered it. See the
+        # module docstring.
+        "--jinja",
         "--seed",
         str(seed),
     ]
@@ -130,3 +152,48 @@ def provider_entry(base_url: str) -> dict[str, Any]:
         "base_url": base_url.rstrip("/"),
         "self_hosted": True,
     }
+
+
+def served_name(run: str, fmt: Format) -> str:
+    """What a fine-tune in one format is called on the server, in the ledger and the tables:
+    the training run's name and the format, so a row can be traced to both."""
+    if not run or "/" in run:
+        raise ValueError(f"not a run name: {run!r}")
+    return f"{run}-{fmt.value}"
+
+
+def parse_served_name(name: str) -> tuple[str, str, Format]:
+    """(size, run, format) from a served name, with or without the provider in front.
+
+    The size is the run name's first part, as `TrainConfig.run_id` and `scripts/sweep.sh`
+    both write it. A name that does not end in a format is refused, rather than put in a
+    table with a guessed one.
+    """
+    bare = name.split("/", 1)[1] if name.startswith(f"{PROVIDER}/") else name
+    for fmt in sorted(Format, key=lambda f: -len(f.value)):
+        suffix = f"-{fmt.value}"
+        if bare.endswith(suffix) and len(bare) > len(suffix):
+            run = bare[: -len(suffix)]
+            return run.split("-", 1)[0], run, fmt
+    raise ValueError(f"{name!r} does not end in a format ({', '.join(f.value for f in Format)})")
+
+
+def served_config(
+    base: dict[str, Any], base_url: str, *, self_hosted_prices: str | None = None
+) -> dict[str, Any]:
+    """The project's gateway configuration with the served model added as a provider.
+
+    Everything else is the project's own file, unchanged: the same caps, the same ledger,
+    the same vendor prices, so a self-hosted call lands in the ledger every frontier call is
+    in. The price overlay is named only once a price file exists, because the gateway
+    refuses a `self_hosted_prices` directory with nothing in it; until then the calls are
+    written uncosted, which is what an accuracy run before the load test is.
+    """
+    providers = dict(base.get("providers", {}))
+    if PROVIDER in providers:
+        raise ValueError(f"the base configuration already has a {PROVIDER!r} provider")
+    providers[PROVIDER] = provider_entry(base_url)
+    config = {**base, "providers": providers}
+    if self_hosted_prices is not None:
+        config["self_hosted_prices"] = self_hosted_prices
+    return config

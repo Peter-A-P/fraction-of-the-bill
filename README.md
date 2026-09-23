@@ -18,8 +18,11 @@ break-even arithmetic ([docs/cost.md](docs/cost.md)), the training code with its
 checkpointing ([docs/training.md](docs/training.md)), the three bases pinned to exact
 revisions, the self-hosted price overlay the gateway validates, the quantisation gate,
 the server command lines and the closed-loop load client
-([docs/serving.md](docs/serving.md)), and the model-card generator. All of it is tested
-without a GPU; the rented card only has to run it.
+([docs/serving.md](docs/serving.md)), the model-card generator, and everything between a
+finished fine-tune and its rows in the tables: the checked merge to bf16, the AWQ, GPTQ
+and GGUF builds calibrated on training filings only, serving a fine-tune through the
+gateway, the fine-tuned and quantisation tables, and the files the release gate reads.
+All of it is tested without a GPU; the rented card only has to run it.
 
 The full corpus is built: **7,874 items from 1,600 companies**, 19,574 filings tried, the
 post-cutoff test set 705 filings from 144 filers ([docs/data.md](docs/data.md)). **The

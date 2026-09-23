@@ -132,7 +132,39 @@ one failure, not two, so where there is a choice, rent them on different hosts.
 
 ## 7. Gate: the first fine-tune measured
 
-The best 2B run is evaluated on the post-cutoff test set with `smallprint baseline run`,
-served through the gateway, before the other two sizes are trained to completion. If a 2B
-fine-tune does not clear the frontier cost anchor's field accuracy, that is the finding to
-report before spending on the larger sizes, not after.
+The best 2B run is evaluated on the post-cutoff test set before the other two sizes are
+trained to completion. If a 2B fine-tune does not clear the frontier cost anchor's field
+accuracy, that is the finding to report before spending on the larger sizes, not after.
+
+    uv sync --extra gateway --extra train
+    scripts/formats.sh 2b-r16-lr1e-4-nall-s0-e1 bf16
+    uv pip install vllm
+    scripts/evaluate.sh 2b-r16-lr1e-4-nall-s0-e1 bf16
+
+vLLM is installed after the merge because it brings its own torch, which replaces the pinned
+training stack in that environment; the merge is made on the stack the run trained on.
+
+`formats.sh ... bf16` merges the adapter into its base and checks the merge
+([serving.md](serving.md#from-a-finished-run-to-its-formats)); `evaluate.sh` serves the
+merged weights with vLLM, adds them to the gateway as a self-hosted provider, and runs the
+same `baseline run` the frontier numbers came from, at temperature 0, into
+`data/finetuned/`. Then, on the laptop, with that directory copied back:
+
+    smallprint report --finetuned data/finetuned
+
+The two-epoch probe is evaluated the same way beside the one-epoch run, which is what
+decides whether the loss curve missed anything ([training.md](training.md)).
+
+## 8. The formats, and what each one cost
+
+For each size's chosen run, after its seeds:
+
+    scripts/formats.sh <run>
+    for f in bf16 awq gptq gguf-q8_0 gguf-q4_k_m; do scripts/evaluate.sh <run> "$f"; done
+    scripts/evaluate.sh <run> bf16 test_pre_cutoff
+
+AWQ and GPTQ need the `quant` extra; GGUF needs a llama.cpp checkout built on the pod, in
+`LLAMA_CPP`, and GGUF is served with its `llama-server`. Pin what was installed, the
+llm-compressor version and the llama.cpp commit, in a commit made from the pod, as the train
+extra was. `smallprint report --finetuned` then fills the quantisation table: every format's
+paired delta against bf16, and whether it ships.
