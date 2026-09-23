@@ -124,6 +124,26 @@ slightly worse. The probe itself was left to finish its two epochs, US$0.50 of c
 accuracy the tables report: the two-epoch adapter is graded beside the one-epoch one, and
 if the second epoch does buy accuracy the curve above is what missed it.
 
+**The 2B sweep, finished 2026-09-23**, validation loss on all 713 filings, one epoch each:
+
+| Varied | Value | Validation loss |
+|---|---|---:|
+| Base recipe | rank 16, 1e-4, all 5,060 | 0.00962 |
+| Rank | 8 | 0.00962 |
+| Rank | 64 | 0.00860 |
+| Learning rate | 5e-5 | 0.01032 |
+| Learning rate | 2e-4 | 0.00891 |
+| Volume | 1,000 | 0.01567 |
+| Volume | 2,500 | 0.01076 |
+| Volume | 5,000 | 0.00974 |
+
+Rank 8 and 16 are the same run to five places; only rank 64 moves the loss. The higher
+learning rate helps and the lower one hurts. The volume curve drops steeply to 2,500 and
+barely at all from there to 5,000, which is the first evidence on the deferred 20k point:
+on loss, more data has stopped buying much. None of this is the result. A loss is not a
+graded field, and differences this size need the seeds before they mean anything; the
+recipe is chosen on graded validation accuracy, not on this table.
+
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
 training pool holds 5,060 filings, so the 20k point needs a corpus expansion of about
 4,800 more companies: five to seven hours of fetching within the SEC's rate limit and
