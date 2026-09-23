@@ -28,7 +28,8 @@ from smallprint.serve import launch
 from smallprint.train import dataset, merge
 from smallprint.train.recipe import BASES
 
-runner = CliRunner()
+# Wide, so a refusal is not wrapped mid-phrase by the box the error is printed in.
+runner = CliRunner(env={"COLUMNS": "240"})
 
 
 # -- the served name ---------------------------------------------------------------------

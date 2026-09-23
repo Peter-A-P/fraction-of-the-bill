@@ -933,7 +933,7 @@ def bench_overlay(
         level = run.level(concurrency)
         if level is None or level.summary is None or level.retried:
             raise typer.BadParameter(
-                f"{directory} has no clean level at c={concurrency}", param_hint="--bench"
+                f"no clean level at c={concurrency} in {directory}", param_hint="--bench"
             )
         mean_in, mean_out = mean_tokens(level, warmup_seconds=run.warmup_seconds)
         entries.append(

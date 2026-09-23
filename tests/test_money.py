@@ -23,7 +23,8 @@ from smallprint.bench.load import LoadSummary, Measured, RequestTiming
 from smallprint.cli import app
 from smallprint.serve import launch
 
-runner = CliRunner()
+# Wide, so a refusal is not wrapped mid-phrase by the box the error is printed in.
+runner = CliRunner(env={"COLUMNS": "240"})
 
 PRICE = GpuPrice(
     gpu="RTX 4090",
