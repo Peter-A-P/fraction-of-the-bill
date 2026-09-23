@@ -183,7 +183,7 @@ def served_config(
 ) -> dict[str, Any]:
     """The project's gateway configuration with the served model added as a provider.
 
-    Everything else is the project's own file, unchanged: the same caps, the same ledger,
+    Everything else is the project's own file, retries apart: the same caps, the same ledger,
     the same vendor prices, so a self-hosted call lands in the ledger every frontier call is
     in. The price overlay is named only once a price file exists, because the gateway
     refuses a `self_hosted_prices` directory with nothing in it; until then the calls are
@@ -193,7 +193,11 @@ def served_config(
     if PROVIDER in providers:
         raise ValueError(f"the base configuration already has a {PROVIDER!r} provider")
     providers[PROVIDER] = provider_entry(base_url)
-    config = {**base, "providers": providers}
+    # Retries off. Accuracy runs are in pass-through mode, which never retries anyway; the
+    # load test streams, which the gateway allows only in standard mode, and a retried
+    # request's latency includes its retry, so a load test with retries on is measuring the
+    # retry policy. One setting for both, so the load test cannot be run with the wrong one.
+    config = {**base, "providers": providers, "retry": {**base.get("retry", {}), "max_attempts": 1}}
     if self_hosted_prices is not None:
         config["self_hosted_prices"] = self_hosted_prices
     return config

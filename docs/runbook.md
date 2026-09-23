@@ -168,3 +168,24 @@ AWQ and GPTQ need the `quant` extra; GGUF needs a llama.cpp checkout built on th
 llm-compressor version and the llama.cpp commit, in a commit made from the pod, as the train
 extra was. `smallprint report --finetuned` then fills the quantisation table: every format's
 paired delta against bf16, and whether it ships.
+
+## 9. The load test, on the card a business would deploy on
+
+Serving throughput is the denominator of every self-hosted cost, so it is measured on a
+card and tier a business would rent for this, chosen by the day's price table, not on the
+Community card the training ran on. Per served model:
+
+    smallprint serve argv --model <weights> --run <run> --format <format>   # start it
+    smallprint serve config --base-url http://127.0.0.1:8000/v1
+    smallprint bench run --model selfhosted/<run>-<format> --out data/bench/<run>-<format> \
+      --gpu <card> --provider <provider> --kind on_demand --usd-per-hour <rate> \
+      --checked <date> --source <page> --config boundary-served.yaml --build-dir data/build/full
+
+Then, once, for every model load-tested that day:
+
+    smallprint bench overlay --bench data/bench/<one> --bench data/bench/<two> \
+      --utilisation 0.5 --date <date>
+    smallprint report --finetuned data/finetuned --bench data/bench --chart docs/pareto.svg
+
+The overlay goes in `prices/self-hosted/` and the gateway configuration names it from then
+on, so every later self-hosted call is costed in the ledger from what was measured here.

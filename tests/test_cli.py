@@ -91,19 +91,19 @@ def test_locate_fails_when_a_statement_is_not_found(tmp_path: Path) -> None:
     assert "income statement: not found" in result.output
 
 
-def test_no_command_promises_work_that_does_not_exist() -> None:
-    """bench is absent rather than stubbed. Help must not offer it.
+def test_every_command_the_plan_names_exists() -> None:
+    """The whole surface of PLAN.md section 4, and nothing stubbed: each command does its work
+    or, for the GPU ones, says which extra the machine is missing.
 
-    breakeven is present: it computes from inputs the reader supplies. So is baseline,
-    which runs a model over held-out filings through the gateway, report, which writes the
-    results tables from the runs that exist, and train, quantise and serve, whose GPU
-    commands say which extra a machine is missing rather than pretending they could have
-    run, and whose other commands run anywhere. gate writes the files the release gate reads.
+    breakeven computes from inputs the reader supplies; baseline runs a model over held-out
+    filings through the gateway; report writes the tables from the runs that exist; train,
+    quantise and serve say which extra a machine lacks rather than pretending they could
+    have run; bench load-tests a served model; gate writes the files the release gate reads.
     """
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert "bench " not in result.output
     for present in (
+        "bench",
         "data",
         "baseline",
         "breakeven",

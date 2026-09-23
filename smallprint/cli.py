@@ -36,7 +36,11 @@ from smallprint.baseline import (
 )
 from smallprint.baseline import run as baseline_run_items
 from smallprint.bench.breakeven import BreakEvenInputs, curve
+from smallprint.bench.client import LevelResult, requests_for
 from smallprint.bench.cost import GpuPrice, PriceKind
+from smallprint.bench.run import mean_tokens
+from smallprint.bench.run import read as read_load
+from smallprint.bench.run import sweep as load_sweep
 from smallprint.data import audit as hand_audit
 from smallprint.data.build import SplitItem, build, write_build
 from smallprint.data.datasheet import read_items, verify, write_datasheet
@@ -49,9 +53,11 @@ from smallprint.grade import ItemGrade
 from smallprint.prompts import PromptStyle, build_prompt
 from smallprint.quant import formats
 from smallprint.quant.quality import Format, judge
-from smallprint.report import baselines, finetuned
+from smallprint.report import SERVING_CONCURRENCY, baselines, finetuned, money
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
 from smallprint.serve import launch
+from smallprint.serve.overlay import prefill_share, rates
+from smallprint.serve.overlay import write as write_overlay
 from smallprint.train.checkpoint import CheckpointStore, LocalSyncer, Syncer, runpod_s3
 from smallprint.train.dataset import TRAINABLE, VOLUME_SEED, Example
 from smallprint.train.dataset import build as build_examples
@@ -74,11 +80,13 @@ train_app = typer.Typer(help="Fine-tuning: the dataset, the recipe, the run.")
 quantise_app = typer.Typer(help="Merging a fine-tune, making its formats, and judging each.")
 serve_app = typer.Typer(help="Serving a fine-tune and registering it with the gateway.")
 gate_app = typer.Typer(help="The files the release gate reads.")
+bench_app = typer.Typer(help="The load test, and the price overlay made from it.")
 app.add_typer(baseline_app, name="baseline")
 app.add_typer(train_app, name="train")
 app.add_typer(quantise_app, name="quantise")
 app.add_typer(serve_app, name="serve")
 app.add_typer(gate_app, name="gate")
+app.add_typer(bench_app, name="bench")
 
 
 @app.command()
@@ -315,6 +323,23 @@ def build_command(
     typer.echo(f"Written to {out}.")
 
 
+def _gpu_price(
+    gpu: str, provider: str, kind: PriceKind, usd_per_hour: float, checked: str, source: str
+) -> GpuPrice:
+    try:
+        checked_on = dt.date.fromisoformat(checked)
+    except ValueError as bad:
+        raise typer.BadParameter(f"not a date: {checked!r}", param_hint="--checked") from bad
+    return GpuPrice(
+        gpu=gpu,
+        provider=provider,
+        kind=kind,
+        usd_per_hour=usd_per_hour,
+        checked=checked_on,
+        source=source,
+    )
+
+
 @app.command()
 def breakeven(
     gpu: str = typer.Option(..., help="The GPU, as the price table names it."),
@@ -336,19 +361,8 @@ def breakeven(
     Every input is an argument so that a reader can substitute their own rate, throughput,
     API cost and fixed costs; nothing here is a default except the fixed cost of zero.
     """
-    try:
-        checked_on = dt.date.fromisoformat(checked)
-    except ValueError as bad:
-        raise typer.BadParameter(f"not a date: {checked!r}", param_hint="--checked") from bad
     inputs = BreakEvenInputs(
-        price=GpuPrice(
-            gpu=gpu,
-            provider=provider,
-            kind=kind,
-            usd_per_hour=usd_per_hour,
-            checked=checked_on,
-            source=source,
-        ),
+        price=_gpu_price(gpu, provider, kind, usd_per_hour, checked, source),
         requests_per_second=requests_per_second,
         api_usd_per_call=api_usd_per_call,
         fixed_usd_per_month=fixed_usd_per_month,
@@ -630,12 +644,26 @@ def report(
         "--finetuned",
         help="A directory of fine-tuned runs, post- and pre-cutoff. Adds their tables.",
     ),
+    bench_runs: Path | None = typer.Option(
+        None,
+        "--bench",
+        help="A directory of load tests. With --finetuned, adds serving, money and break-even.",
+    ),
+    chart: Path | None = typer.Option(
+        None, help="Write the Pareto chart here as SVG. Needs --finetuned and --bench."
+    ),
     out: Path | None = typer.Option(None, help="Write the markdown here instead of printing it."),
 ) -> None:
     """The results tables, written from the runs. Nobody edits these tables by hand."""
+    if (bench_runs is not None or chart is not None) and finetuned_runs is None:
+        raise typer.BadParameter("serving numbers need the fine-tuned runs", param_hint="--bench")
+    if chart is not None and bench_runs is None:
+        raise typer.BadParameter("the chart needs the load tests", param_hint="--chart")
     markdown = baselines(runs, build_dir, split, against=against)
     if finetuned_runs is not None:
         markdown += "\n\n" + finetuned(finetuned_runs, runs, build_dir)
+    if finetuned_runs is not None and bench_runs is not None:
+        markdown += "\n\n" + money(finetuned_runs, runs, bench_runs, build_dir, chart=chart)
     if out is None:
         typer.echo(markdown)
         return
@@ -821,6 +849,113 @@ def serve_config(
         newline="\n",
     )
     typer.echo(f"Written to {out}. Call the model as {launch.PROVIDER}/<served name>.")
+
+
+# -- the load test and the price overlay ------------------------------------------------------
+
+
+@bench_app.command("run")
+def bench_run(
+    model: str = typer.Option(..., help="The served model, selfhosted/<run>-<format>."),
+    out: Path = typer.Option(..., help="Where bench.json goes, one directory per model and card."),
+    gpu: str = typer.Option(..., help="The card, as the price table names it."),
+    provider: str = typer.Option(..., help="Who rents it."),
+    kind: PriceKind = typer.Option(..., help="Spot or on-demand."),
+    usd_per_hour: float = typer.Option(..., help="The GPU-hour rate paid for this card."),
+    checked: str = typer.Option(..., help="The date the rate was read, YYYY-MM-DD."),
+    source: str = typer.Option(..., help="Where the rate was read."),
+    config: Path = typer.Option(
+        Path("boundary-served.yaml"), help="Written by serve config, which turns retries off."
+    ),
+    build_dir: Path = typer.Option(Path("data/build"), help="The requests are its test filings."),
+    concurrency: list[int] = typer.Option(
+        list(launch.CONCURRENCY), help="Levels to run, lowest first. Repeat the option."
+    ),
+    warmup_seconds: float = typer.Option(30.0, help="Discarded from the start of each level."),
+) -> None:
+    """The closed-loop load test at each concurrency, through the gateway, streamed."""
+    raw = yaml.safe_load(config.read_text(encoding="utf-8"))
+    if raw.get("retry", {}).get("max_attempts") != 1:
+        raise typer.BadParameter(
+            "retries must be off, or the latencies measure the retry policy; "
+            "use the config `smallprint serve config` writes",
+            param_hint="--config",
+        )
+    launch.parse_served_name(model)
+    price = _gpu_price(gpu, provider, kind, usd_per_hour, checked, source)
+    items = read_split(build_dir, Split.TEST_POST_CUTOFF.value)
+    requests = requests_for(items, build_prompt(PromptStyle.ZERO_SHOT), model)
+
+    def progress(level: LevelResult) -> None:
+        summary = level.summary
+        typer.echo(
+            f"  c={level.concurrency}: "
+            + (
+                f"{summary.requests_per_second}, TTFT p99 {summary.ttft_p99_ms}"
+                if summary is not None
+                else "nothing to summarise"
+            )
+            + (f", {level.retried} retried" if level.retried else "")
+        )
+
+    gateway = open_gateway(config, raw_store=out / "raw")
+    try:
+        typer.echo(f"{model} on {price}, {len(requests):,} distinct filings.")
+        load_sweep(
+            gateway,
+            requests,
+            model=model,
+            price=price,
+            levels=concurrency,
+            out_dir=out,
+            warmup_seconds=warmup_seconds,
+            on_level=progress,
+        )
+    finally:
+        gateway.close()
+    typer.echo(f"Written to {out / 'bench.json'}.")
+
+
+@bench_app.command("overlay")
+def bench_overlay(
+    bench: list[Path] = typer.Option(..., help="Load-test directories. Repeat the option."),
+    out: Path = typer.Option(Path("prices/self-hosted"), help="The overlay directory."),
+    utilisation: float = typer.Option(..., help="The utilisation the ledger's cost assumes."),
+    date: str = typer.Option(..., help="The overlay file's date, YYYY-MM-DD."),
+    concurrency: int = typer.Option(
+        SERVING_CONCURRENCY, help="The level whose throughput is the rate."
+    ),
+) -> None:
+    """The dated price file the gateway costs self-hosted calls with, from the load tests."""
+    entries = []
+    for directory in bench:
+        run = read_load(directory)
+        level = run.level(concurrency)
+        if level is None or level.summary is None or level.retried:
+            raise typer.BadParameter(
+                f"{directory} has no clean level at c={concurrency}", param_hint="--bench"
+            )
+        mean_in, mean_out = mean_tokens(level, warmup_seconds=run.warmup_seconds)
+        entries.append(
+            rates(
+                launch.PROVIDER,
+                run.model.split("/", 1)[1],
+                run.price,
+                requests_per_second=level.summary.requests_per_second.point,
+                utilisation=utilisation,
+                mean_input_tokens=mean_in,
+                mean_output_tokens=mean_out,
+                prefill=prefill_share(level.summary),
+            )
+        )
+    try:
+        on = dt.date.fromisoformat(date)
+    except ValueError as bad:
+        raise typer.BadParameter(f"not a date: {date!r}", param_hint="--date") from bad
+    path = write_overlay(out, entries, date=on)
+    for entry in entries:
+        typer.echo(f"{entry.model}: US${entry.usd_per_call * 1000:,.4f} per 1,000")
+    typer.echo(f"Written to {path}.")
 
 
 # -- the release gate ---------------------------------------------------------------------------

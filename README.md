@@ -21,7 +21,9 @@ the server command lines and the closed-loop load client
 ([docs/serving.md](docs/serving.md)), the model-card generator, and everything between a
 finished fine-tune and its rows in the tables: the checked merge to bf16, the AWQ, GPTQ
 and GGUF builds calibrated on training filings only, serving a fine-tune through the
-gateway, the fine-tuned and quantisation tables, and the files the release gate reads.
+gateway, the fine-tuned and quantisation tables, the files the release gate reads, the
+load test on disk and the price overlay made from it, and the serving, break-even and
+Pareto outputs of the report.
 All of it is tested without a GPU; the rented card only has to run it.
 
 The full corpus is built: **7,874 items from 1,600 companies**, 19,574 filings tried, the

@@ -45,6 +45,9 @@ class RequestTiming(BaseModel):
     done_at: float
     output_tokens: int
     ok: bool
+    #: Prompt tokens, as the server counted them. The overlay divides the prefill share of
+    #: a call's cost by their mean, so it is recorded rather than estimated.
+    input_tokens: int = 0
 
 
 class Measured(BaseModel):

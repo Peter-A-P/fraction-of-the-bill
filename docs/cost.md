@@ -95,3 +95,35 @@ self-hosting first stops costing more.
 spot or on-demand, the rate and the date it was read, measured throughput, the API's cost
 per call and any fixed monthly cost. Nothing is defaulted except the fixed cost, which is
 zero and printed either way.
+
+## From the load test to the tables
+
+`smallprint bench overlay` writes the dated price file from one or more load tests, at the
+utilisation the ledger's costs are to assume, reading each model's throughput, prefill share
+and mean token counts at 32 in flight. A level the gateway retried anything in is refused.
+
+`smallprint report --finetuned ... --bench ... --chart docs/pareto.svg` then writes, from
+the same records:
+
+- **Serving and money**, one row per load-tested model: its paired accuracy delta against
+  the bf16 build of the same fine-tune, requests per second and TTFT p99 at 32 in flight,
+  cost per 1,000 at 50% utilisation, and the break-even volume. The cost's interval is the
+  throughput's, turned over: the fast end of the rate is the cheap end of the cost.
+- **Break-even across utilisation**, 10% to 90%, one row per model and card.
+- **The Pareto chart**: field accuracy against cost per 1,000 on a log axis, every frontier
+  run from the ledger and every load-tested fine-tune at its quoted concurrency and
+  utilisation, with 95% intervals. The runs no other run beats on both axes are joined and
+  labelled; the rest carry their figures as tooltips. Frontier runs are circles, fine-tunes
+  diamonds, so identity does not rest on colour alone.
+
+**Against the cheapest frontier run.** The tables break even against the frontier run with
+the lowest ledger cost per call, which is the price a buyer who does not need the dearest
+model would pay, and a fine-tune that beats it on cost has beaten them all. The plan asks
+for the curve against each frontier model, on spot and on-demand prices: that is
+`smallprint breakeven` with the other model's ledger cost or the other price, and the
+tables name the anchor and the card so a reader knows what to substitute.
+
+**32 in flight, 50% utilisation.** The concurrency is a busy production service on one
+card short of saturation, where latency stops being worth quoting; the utilisation is the
+middle of the curve. Both are named in the caption under the tables and inside the chart,
+because a self-hosted cost without them is not a number.

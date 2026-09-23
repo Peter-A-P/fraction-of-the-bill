@@ -63,9 +63,18 @@ class LevelResult(BaseModel):
 
 
 def requests_for(
-    items: Sequence[SplitItem], prompt: Prompt, model: str, *, max_tokens: int = 1024
+    items: Sequence[SplitItem],
+    prompt: Prompt,
+    model: str,
+    *,
+    max_tokens: int = 1024,
+    temperature: float | None = 0.0,
 ) -> list[ChatRequest]:
-    """One request per filing, in the shape every accuracy run sends."""
+    """One request per filing, in the shape every accuracy run sends.
+
+    At temperature 0, as the fine-tunes' accuracy runs are, because the answers timed should
+    be the answers graded: sampling changes how long an answer is, and the time to write it.
+    """
     if not items:
         raise ValueError("a load test needs at least one filing to send")
     return [
@@ -74,6 +83,7 @@ def requests_for(
             messages=prompt.messages(s.item.text),
             system=prompt.system,
             max_tokens=max_tokens,
+            temperature=temperature,
         )
         for s in items
     ]
@@ -121,6 +131,7 @@ async def closed_loop(
                     done_at=done,
                     output_tokens=response.usage.output_tokens,
                     ok=response.ok,
+                    input_tokens=response.usage.input_tokens,
                 )
             )
 

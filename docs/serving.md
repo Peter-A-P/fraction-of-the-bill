@@ -68,7 +68,18 @@ and a load test with retries on measures the retry policy. The client counts ret
 every result, so a run where that setting was wrong says so instead of hiding it in p99.
 
 **The real prompt distribution.** Requests are built from test filings with the same
-prompt every accuracy number uses, cycled in order.
+prompt every accuracy number uses, cycled in order, at temperature 0 as the fine-tunes'
+accuracy runs are: sampling changes how long an answer is, and the answers timed should be
+the answers graded.
+
+**On disk, raw.** `smallprint bench run` runs the levels lowest first and writes one
+`bench.json` per model and card: the card and its dated price, the warm-up, and for every
+level the raw timings of every request, prompt and answer token counts included, beside
+their summary. The file is rewritten after each level, so a pod lost at 64 in flight keeps
+the three levels it finished. Each level is at least 200 requests, for a p99 that is not
+simply the maximum, and at least ten rounds of the loop. It refuses a gateway configuration
+with retries on; the one `smallprint serve config` writes has them off, because the same
+file serves the accuracy runs, which never retry in pass-through mode anyway.
 
 ## From a finished run to its formats
 

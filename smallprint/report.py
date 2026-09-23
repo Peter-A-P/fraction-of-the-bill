@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from pathlib import Path
+from typing import Final
 
 from pydantic import BaseModel, ConfigDict
 
@@ -31,11 +32,19 @@ from smallprint.baseline import (
     summarise,
     within,
 )
+from smallprint.bench.breakeven import BreakEvenInputs, BreakEvenPoint, break_even
+from smallprint.bench.cost import usd_per_call, usd_per_thousand
+from smallprint.bench.load import LoadSummary
+from smallprint.bench.run import RECORD as LOAD_RECORD
+from smallprint.bench.run import LoadRun
+from smallprint.bench.run import read as read_load
+from smallprint.chart import Point
+from smallprint.chart import render as render_chart
 from smallprint.data.build import SplitItem
 from smallprint.data.split import Split
 from smallprint.grade import Interval, ItemGrade, paired_delta_ci, unpaired_delta_ci
 from smallprint.quant.quality import Format, judge
-from smallprint.serve.launch import parse_served_name
+from smallprint.serve.launch import PROVIDER, parse_served_name, served_name
 
 #: A blank line between the parts of the report. Named because this module is all
 #: string building and a bare escape in the middle of a join reads as a typo.
@@ -283,4 +292,212 @@ def finetuned(root: Path, frontier_root: Path, build_dir: Path) -> str:
             + ", ".join(f"`{d.name}`" for d in skipped)
             + "."
         )
+    return SEPARATOR.join(parts)
+
+
+# -- serving and money ---------------------------------------------------------------------
+
+#: The concurrency the serving columns and the self-hosted costs are read at, as the README
+#: table names it. 32 in flight is a busy production service on one card without being the
+#: saturation point, where latency stops being worth quoting.
+SERVING_CONCURRENCY: Final = 32
+
+#: The utilisation self-hosted costs are quoted at in the tables and the chart. The
+#: break-even table gives the rest of the curve.
+QUOTED_UTILISATION: Final = 0.5
+
+#: The utilisations the break-even table shows. The full curve is `smallprint breakeven`.
+TABLE_UTILISATIONS: Final[tuple[float, ...]] = (0.1, 0.3, 0.5, 0.7, 0.9)
+
+
+def cost_anchor(frontier: Sequence[Row]) -> Row:
+    """The frontier run the break-even is against: the cheapest one, because a fine-tune
+    that beats the cheapest API on cost has beaten them all, and it is the price a buyer
+    who does not need the dearest model would actually pay."""
+    costed = [r for r in frontier if r.summary.usd_per_1000 is not None]
+    if not costed:
+        raise ValueError("no costed frontier run to break even against")
+    return min(costed, key=lambda r: r.usd_per_1000)
+
+
+def _level(run: LoadRun, concurrency: int) -> LoadSummary | None:
+    """A level's summary, or None if it was not run, measured nothing, or was retried."""
+    level = run.level(concurrency)
+    if level is None or level.summary is None or level.retried:
+        return None
+    return level.summary
+
+
+def self_hosted_per_1000(run: LoadRun, utilisation: float = QUOTED_UTILISATION) -> Interval | None:
+    """Cost per 1,000 at the quoted concurrency and utilisation, with the interval the
+    throughput's interval gives it: the low end of the cost is the high end of the rate."""
+    summary = _level(run, SERVING_CONCURRENCY)
+    if summary is None:
+        return None
+    rate = run.price.usd_per_hour
+    rps = summary.requests_per_second
+
+    def per_1000(requests_per_second: float) -> float:
+        return usd_per_thousand(usd_per_call(rate, requests_per_second, utilisation))
+
+    return Interval(
+        point=per_1000(rps.point), low=per_1000(rps.high), high=per_1000(rps.low), n=rps.n
+    )
+
+
+def _inputs(run: LoadRun, anchor: Row) -> BreakEvenInputs | None:
+    summary = _level(run, SERVING_CONCURRENCY)
+    if summary is None:
+        return None
+    return BreakEvenInputs(
+        price=run.price,
+        requests_per_second=summary.requests_per_second.point,
+        api_usd_per_call=anchor.usd_per_1000 / 1000,
+    )
+
+
+def _volume(point: BreakEvenPoint) -> str:
+    if point.volume_per_month is None:
+        return "never"
+    return f"{point.volume_per_month / 1e6:,.1f}M"
+
+
+def _by_run(runs: Sequence[LoadRun]) -> list[LoadRun]:
+    return sorted(runs, key=lambda r: parse_served_name(r.model)[1:])
+
+
+def serving_table(post: Sequence[Row], runs: Sequence[LoadRun], anchor: Row) -> str:
+    """Quantisation cost, serving and money: one row per served model that was load-tested."""
+    by_model = {r.summary.model: r for r in post}
+    lines = [
+        "| Model | Format | Accuracy delta vs bf16 (95% CI) | "
+        f"Req/s at c={SERVING_CONCURRENCY} | TTFT p99 ms | Cost per 1,000 | "
+        f"Break-even volume at {QUOTED_UTILISATION:.0%} utilisation |",
+        "|---|---|---|---:|---:|---:|---:|",
+    ]
+    for run in _by_run(runs):
+        _, name, fmt = parse_served_name(run.model)
+        summary = _level(run, SERVING_CONCURRENCY)
+        if summary is None:
+            lines.append(
+                f"| `{name}` | {fmt.value} | | not measured at c={SERVING_CONCURRENCY}, "
+                "or retried | | | |"
+            )
+            continue
+        delta = "reference"
+        if fmt is not Format.BF16:
+            row = by_model.get(run.model)
+            reference = by_model.get(f"{PROVIDER}/{served_name(name, Format.BF16)}")
+            delta = (
+                _signed(judge(fmt, list(row.grades), list(reference.grades)).delta)
+                if row is not None and reference is not None
+                else "not measured"
+            )
+        cost = self_hosted_per_1000(run)
+        inputs = _inputs(run, anchor)
+        volume = _volume(break_even(inputs, QUOTED_UTILISATION)) if inputs else ""
+        money_cell = (
+            f"US${cost.point:,.3f} (US${cost.low:,.3f} to US${cost.high:,.3f})" if cost else ""
+        )
+        rps, ttft = summary.requests_per_second, summary.ttft_p99_ms
+        lines.append(
+            f"| `{name}` | {fmt.value} | {delta} | "
+            f"{rps.point:,.2f} ({rps.low:,.2f} to {rps.high:,.2f}) | "
+            f"{ttft.point:,.0f} ({ttft.low:,.0f} to {ttft.high:,.0f}) | "
+            f"{money_cell} | {volume} |"
+        )
+    return "\n".join(lines)
+
+
+def breakeven_table(runs: Sequence[LoadRun], anchor: Row) -> str:
+    """Extractions a month at which each served model first costs no more than the anchor,
+    across utilisation. "never" where one card at that utilisation already costs more per
+    call than the API does."""
+    lines = [
+        "| Model | Format | GPU | " + " | ".join(f"{u:.0%}" for u in TABLE_UTILISATIONS) + " |",
+        "|---|---|---|" + "---:|" * len(TABLE_UTILISATIONS),
+    ]
+    for run in _by_run(runs):
+        _, name, fmt = parse_served_name(run.model)
+        inputs = _inputs(run, anchor)
+        if inputs is None:
+            continue
+        cells = [_volume(break_even(inputs, u)) for u in TABLE_UTILISATIONS]
+        lines.append(f"| `{name}` | {fmt.value} | {run.price} | " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
+def pareto_points(
+    frontier: Sequence[Row], post: Sequence[Row], runs: Sequence[LoadRun]
+) -> list[Point]:
+    """Every costed run as a point: frontier from the ledger, self-hosted from its load test."""
+    points = [
+        Point(
+            label=f"{r.summary.model.split('/', 1)[-1]} {r.summary.style.value.replace('_', '-')}",
+            self_hosted=False,
+            usd_per_1000=r.usd_per_1000,
+            accuracy=r.summary.accuracy.point,
+            low=r.summary.accuracy.low,
+            high=r.summary.accuracy.high,
+        )
+        for r in frontier
+        if r.summary.usd_per_1000 is not None
+    ]
+    by_model = {r.summary.model: r for r in post}
+    for run in runs:
+        row = by_model.get(run.model)
+        cost = self_hosted_per_1000(run)
+        if row is None or cost is None:
+            continue
+        _, name, fmt = parse_served_name(run.model)
+        points.append(
+            Point(
+                label=f"{name} {fmt.value}",
+                self_hosted=True,
+                usd_per_1000=cost.point,
+                accuracy=row.summary.accuracy.point,
+                low=row.summary.accuracy.low,
+                high=row.summary.accuracy.high,
+            )
+        )
+    return points
+
+
+def read_loads(root: Path) -> list[LoadRun]:
+    """Every load test under `root`, one directory each."""
+    return [read_load(d) for d in sorted(root.iterdir()) if (d / LOAD_RECORD).is_file()]
+
+
+def money(
+    finetuned_root: Path,
+    frontier_root: Path,
+    bench_root: Path,
+    build_dir: Path,
+    *,
+    chart: Path | None = None,
+) -> str:
+    """The serving and money section, and the Pareto chart if a path is given for it."""
+    items = read_split(build_dir, Split.TEST_POST_CUTOFF.value)
+    post, _ = load(run_dirs(finetuned_root, Split.TEST_POST_CUTOFF.value), items)
+    frontier, _ = load(run_dirs(frontier_root, Split.TEST_POST_CUTOFF.value), items)
+    runs = read_loads(bench_root)
+    if not runs:
+        return "_No load tests._"
+    anchor = cost_anchor(frontier)
+    caption = (
+        "Self-hosted cost is the GPU-hour rate over the throughput measured at "
+        f"{SERVING_CONCURRENCY} requests in flight, at {QUOTED_UTILISATION:.0%} utilisation; "
+        f"break-even is against `{anchor.key}` at US${anchor.usd_per_1000:,.2f} per 1,000, "
+        "the cheapest frontier run, from the gateway ledger."
+    )
+    parts = [
+        serving_table(post, runs, anchor),
+        caption,
+        "**Break-even, extractions a month, across utilisation:**",
+        breakeven_table(runs, anchor),
+    ]
+    if chart is not None:
+        points = pareto_points(frontier, post, runs)
+        chart.write_text(render_chart(points, caption=caption), encoding="utf-8", newline="\n")
+        parts.append(f"![Field accuracy against cost per 1,000 extractions]({chart.as_posix()})")
     return SEPARATOR.join(parts)
