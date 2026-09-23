@@ -10,14 +10,10 @@ out otherwise is whoever trusted it.
 from __future__ import annotations
 
 import datetime as dt
-import json
 import os
-import shlex
-import subprocess
 from pathlib import Path
 
 import typer
-import yaml
 from boundary import Mode
 
 from smallprint import __version__
@@ -25,13 +21,11 @@ from smallprint.baseline import (
     DEFAULT_MAX_TOKENS,
     TEMPERATURE,
     Prediction,
-    grade_run,
     open_gateway,
     read_manifest,
     read_predictions,
     read_split,
     summarise,
-    within,
     write_summary,
 )
 from smallprint.baseline import run as baseline_run_items
@@ -43,23 +37,15 @@ from smallprint.data.datasheet import read_items, verify, write_datasheet
 from smallprint.data.edgar import CONTACT_ENV, ContactNotDeclared, EdgarClient, declared_contact
 from smallprint.data.split import Split
 from smallprint.data.statements import Statement, locate
-from smallprint.gate import side as gate_side
-from smallprint.gate import spec as gate_spec
-from smallprint.grade import ItemGrade
 from smallprint.prompts import PromptStyle, build_prompt
-from smallprint.quant import formats
-from smallprint.quant.quality import Format, judge
-from smallprint.report import baselines, finetuned
+from smallprint.report import baselines
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
-from smallprint.serve import launch
 from smallprint.train.checkpoint import CheckpointStore, LocalSyncer, Syncer, runpod_s3
-from smallprint.train.dataset import TRAINABLE, VOLUME_SEED, Example
+from smallprint.train.dataset import TRAINABLE, VOLUME_SEED
 from smallprint.train.dataset import build as build_examples
 from smallprint.train.dataset import read as read_examples
 from smallprint.train.dataset import write as write_examples
-from smallprint.train.merge import merge as merge_adapter
 from smallprint.train.qlora import describe as describe_run
-from smallprint.train.qlora import read_record as read_run_record
 from smallprint.train.qlora import train as train_qlora
 from smallprint.train.recipe import BASES, Base, TrainConfig, gpu_hours, sweep
 
@@ -71,14 +57,8 @@ data_app = typer.Typer(help="The corpus: fair access, the cache, and what has be
 app.add_typer(data_app, name="data")
 baseline_app = typer.Typer(help="Running a model over held-out filings, through the gateway.")
 train_app = typer.Typer(help="Fine-tuning: the dataset, the recipe, the run.")
-quantise_app = typer.Typer(help="Merging a fine-tune, making its formats, and judging each.")
-serve_app = typer.Typer(help="Serving a fine-tune and registering it with the gateway.")
-gate_app = typer.Typer(help="The files the release gate reads.")
 app.add_typer(baseline_app, name="baseline")
 app.add_typer(train_app, name="train")
-app.add_typer(quantise_app, name="quantise")
-app.add_typer(serve_app, name="serve")
-app.add_typer(gate_app, name="gate")
 
 
 @app.command()
@@ -625,238 +605,15 @@ def report(
     against: str | None = typer.Option(
         None, help="Pair every delta with this run, as 'model style'. Default: the cheapest."
     ),
-    finetuned_runs: Path | None = typer.Option(
-        None,
-        "--finetuned",
-        help="A directory of fine-tuned runs, post- and pre-cutoff. Adds their tables.",
-    ),
     out: Path | None = typer.Option(None, help="Write the markdown here instead of printing it."),
 ) -> None:
-    """The results tables, written from the runs. Nobody edits these tables by hand."""
+    """The results table, written from the runs. Nobody edits these tables by hand."""
     markdown = baselines(runs, build_dir, split, against=against)
-    if finetuned_runs is not None:
-        markdown += "\n\n" + finetuned(finetuned_runs, runs, build_dir)
     if out is None:
         typer.echo(markdown)
         return
     out.write_text(markdown + "\n", encoding="utf-8", newline="\n")
     typer.echo(f"Written to {out}.")
-
-
-# -- merging and the formats ------------------------------------------------------------------
-
-
-def _check_example(dataset_dir: Path) -> Example:
-    """The validation filing a merge is checked on: the first by id, the same every time."""
-    examples, _ = read_examples(dataset_dir)
-    validation = sorted(
-        (e for e in examples if e.split is Split.VALIDATION), key=lambda e: e.item_id
-    )
-    if not validation:
-        raise typer.BadParameter("no validation filings", param_hint="--dataset-dir")
-    return validation[0]
-
-
-@quantise_app.command("merge")
-def quantise_merge(
-    run_dir: Path = typer.Option(
-        ..., help="A finished run: its run.json and its adapter/, as sweep.sh keeps them."
-    ),
-    out: Path = typer.Option(..., help="Where the merged bf16 weights go."),
-    dataset_dir: Path = typer.Option(Path("data/train"), help="For the merge check's filing."),
-) -> None:
-    """Merge a run's adapter into its base in bf16, checked against the adapter."""
-    record = read_run_record(run_dir)
-    size = record.config.size
-    chosen = _base(size)
-    if record.base_revision != chosen.revision:
-        raise typer.BadParameter(
-            f"the run trained on {record.base_revision} and the {size} base is pinned at "
-            f"{chosen.revision}; merging into another revision is not this fine-tune",
-            param_hint="--run-dir",
-        )
-    merged = merge_adapter(
-        run_dir / "adapter",
-        chosen,
-        out,
-        run_id=record.run_id,
-        size=size,
-        check=_check_example(dataset_dir),
-    )
-    typer.echo(
-        f"{out}: next tokens agree on {merged.agreement:.2%} of {merged.check_tokens} "
-        f"positions, largest logit difference {merged.max_abs_logit_diff:.4f}."
-    )
-
-
-@quantise_app.command("format")
-def quantise_format(
-    fmt: Format = typer.Option(..., "--format", help="awq or gptq."),
-    model: Path = typer.Option(..., help="Merged bf16 weights, written by quantise merge."),
-    out: Path = typer.Option(..., help="Where the quantised weights go."),
-    dataset_dir: Path = typer.Option(Path("data/train"), help="Calibration comes from here."),
-    max_seq_len: int = typer.Option(8192, help="Longest calibration sequence, in tokens."),
-) -> None:
-    """AWQ or GPTQ weights with llm-compressor, calibrated on training filings only."""
-    examples, _ = read_examples(dataset_dir)
-    record = formats.quantise(fmt, model, out, examples, max_seq_len=max_seq_len)
-    typer.echo(
-        f"{fmt.value} in {out}, {record.scheme}, calibrated on "
-        f"{len(record.calibration_ids)} training filings."
-    )
-
-
-@quantise_app.command("gguf")
-def quantise_gguf(
-    model: Path = typer.Option(..., help="Merged bf16 weights, written by quantise merge."),
-    out: Path = typer.Option(..., help="A directory for the GGUF files."),
-    name: str = typer.Option(..., help="The run's name, which the files are named after."),
-    llama_cpp: Path = typer.Option(..., help="A llama.cpp checkout, for its converter."),
-    quantize_binary: Path = typer.Option(
-        Path("llama-quantize"), help="The llama-quantize binary built from that checkout."
-    ),
-) -> None:
-    """GGUF Q8_0 and Q4_K_M, through one bf16 GGUF, with llama.cpp's own tools."""
-    out.mkdir(parents=True, exist_ok=True)
-    intermediate = out / f"{name}-bf16.gguf"
-    # The argv is built from typed paths by formats.convert_argv, not from a shell string.
-    subprocess.run(formats.convert_argv(llama_cpp, model, intermediate), check=True)
-    for fmt in formats.GGUF_TYPES:
-        target = formats.gguf_file(out, name, fmt)
-        subprocess.run(
-            formats.quantize_argv(quantize_binary, intermediate, target, fmt), check=True
-        )
-        formats.gguf_record(fmt, model, target)
-        typer.echo(f"{fmt.value}: {target}")
-
-
-def _items_for(run_dir: Path, build_dir: Path | None) -> list[SplitItem]:
-    manifest = read_manifest(run_dir)
-    source = build_dir if build_dir is not None else Path(manifest.build_dir)
-    return read_split(source, manifest.split)
-
-
-def _grades(run_dir: Path, items: list[SplitItem]) -> list[ItemGrade]:
-    """A run's grades over the items the build still holds."""
-    graded, _ = grade_run(within(read_predictions(run_dir), items)[0], items)
-    return graded
-
-
-@quantise_app.command("judge")
-def quantise_judge(
-    reference: Path = typer.Option(..., help="The bf16 run of the fine-tune."),
-    candidate: Path = typer.Option(..., help="The quantised run of the same fine-tune."),
-    build_dir: Path | None = typer.Option(None, help="Defaults to the build the runs name."),
-) -> None:
-    """Whether a format ships: its paired delta against bf16, per field, on the same filings."""
-    ref_manifest, cand_manifest = read_manifest(reference), read_manifest(candidate)
-    _, ref_run, ref_fmt = launch.parse_served_name(ref_manifest.model)
-    _, cand_run, cand_fmt = launch.parse_served_name(cand_manifest.model)
-    if ref_fmt is not Format.BF16 or ref_run != cand_run:
-        raise typer.BadParameter(
-            f"{cand_manifest.model} is judged against the bf16 build of {cand_run}, "
-            f"not {ref_manifest.model}",
-            param_hint="--reference",
-        )
-    if ref_manifest.split != cand_manifest.split:
-        raise typer.BadParameter("the two runs cover different splits", param_hint="--candidate")
-    items = _items_for(candidate, build_dir)
-    verdict = judge(cand_fmt, _grades(candidate, items), _grades(reference, items))
-    typer.echo(
-        f"{cand_fmt.value}: {'ships' if verdict.ships else 'does not ship'}. {verdict.reason}"
-    )
-    path = candidate / "verdict.json"
-    path.write_text(verdict.model_dump_json(indent=2), encoding="utf-8", newline="\n")
-    typer.echo(f"Written to {path}.")
-
-
-# -- serving ------------------------------------------------------------------------------------
-
-
-@serve_app.command("argv")
-def serve_argv(
-    model: Path = typer.Option(..., help="The weights: a directory, or a .gguf file."),
-    run: str = typer.Option(..., help="The training run's name; the served name follows."),
-    fmt: Format = typer.Option(..., "--format", help="Which format the weights are."),
-    port: int = typer.Option(8000, help="The port the server listens on."),
-) -> None:
-    """Print the command line that serves these weights, every flag that matters set."""
-    name = launch.served_name(run, fmt)
-    typer.echo(shlex.join(launch.argv_for(model.as_posix(), name, fmt, port=port)))
-
-
-@serve_app.command("config")
-def serve_config(
-    base_url: str = typer.Option(..., help="The server, like http://127.0.0.1:8000/v1."),
-    base: Path = typer.Option(Path("boundary.yaml"), help="The project's gateway config."),
-    out: Path = typer.Option(Path("boundary-served.yaml"), help="Where the new config goes."),
-    self_hosted_prices: Path | None = typer.Option(
-        None, help="The overlay directory, once the load test has written a price file to it."
-    ),
-) -> None:
-    """The gateway configuration with the served model added as a self-hosted provider.
-
-    Written beside the project's own, so its relative paths, caps and ledger resolve to the
-    same files and a self-hosted call lands in the ledger every frontier call is in.
-    """
-    from boundary.config import BoundaryConfig
-
-    if out.resolve().parent != base.resolve().parent:
-        raise typer.BadParameter("write it beside the base config", param_hint="--out")
-    raw = yaml.safe_load(base.read_text(encoding="utf-8"))
-    prices = None
-    if self_hosted_prices is not None:
-        if not any(self_hosted_prices.glob("*.yaml")):
-            raise typer.BadParameter(
-                "no price file in it yet; leave it out and the calls are written uncosted",
-                param_hint="--self-hosted-prices",
-            )
-        prices = self_hosted_prices.as_posix()
-    config = launch.served_config(raw, base_url, self_hosted_prices=prices)
-    BoundaryConfig.model_validate(config)
-    out.write_text(
-        "# Written by `smallprint serve config`; regenerate it rather than editing it.\n"
-        + yaml.safe_dump(config, sort_keys=False),
-        encoding="utf-8",
-        newline="\n",
-    )
-    typer.echo(f"Written to {out}. Call the model as {launch.PROVIDER}/<served name>.")
-
-
-# -- the release gate ---------------------------------------------------------------------------
-
-
-@gate_app.command("export")
-def gate_export(
-    candidate: Path = typer.Option(..., help="The fine-tune's run on the post-cutoff filings."),
-    baseline: Path = typer.Option(..., help="The best frontier run on the same filings."),
-    out: Path = typer.Option(..., help="Where the spec and the two sides go."),
-    build_dir: Path | None = typer.Option(None, help="Defaults to the build the runs name."),
-) -> None:
-    """The eval spec and both sides' per-field outcomes, in the shapes the gate holds."""
-    sides = {}
-    for role, run_dir in (("baseline", baseline), ("candidate", candidate)):
-        manifest = read_manifest(run_dir)
-        if manifest.split != Split.TEST_POST_CUTOFF.value:
-            raise typer.BadParameter(
-                f"{run_dir} covers {manifest.split}; the headline is the post-cutoff set",
-                param_hint=f"--{role}",
-            )
-        sides[role] = gate_side(
-            manifest.model,
-            read_predictions(run_dir),
-            _items_for(run_dir, build_dir),
-            source={"run_id": manifest.run_id, "directory": run_dir.as_posix()},
-        )
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "spec.yaml").write_text(
-        yaml.safe_dump(gate_spec(), sort_keys=False), encoding="utf-8", newline="\n"
-    )
-    for role, content in sides.items():
-        (out / f"{role}.json").write_text(
-            json.dumps(content, indent=2, sort_keys=True), encoding="utf-8", newline="\n"
-        )
-    typer.echo(f"spec.yaml, baseline.json and candidate.json in {out}.")
 
 
 def main() -> None:

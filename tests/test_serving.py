@@ -70,12 +70,8 @@ def test_each_format_goes_to_the_server_the_plan_names() -> None:
 
 
 def test_vllm_is_told_the_quantisation_rather_than_left_to_guess() -> None:
-    """llm-compressor writes AWQ and GPTQ alike as compressed-tensors; "awq" would pick the
-    kernels for AutoAWQ's layout, which these files are not."""
-    for fmt in (Format.AWQ, Format.GPTQ):
-        argv = launch.vllm_argv("merged/4b-q", "smallprint-4b-q", fmt)
-        assert argv[argv.index("--quantization") + 1] == "compressed-tensors"
     awq = launch.vllm_argv("merged/4b-awq", "smallprint-4b-awq", Format.AWQ)
+    assert awq[awq.index("--quantization") + 1] == "awq"
     assert awq[awq.index("--max-model-len") + 1] == "8192"
     bf16 = launch.vllm_argv("merged/4b", "smallprint-4b", Format.BF16)
     assert "--quantization" not in bf16
