@@ -116,10 +116,11 @@ epochs, scoring 200 validation filings every 50 steps:
 
 It is flat from about two thirds of the first epoch, and the second epoch does not improve
 on the end of the first. So every other run is one epoch, and the schedule is **68 GPU
-hours, US$23**: 19, 28 and 22 for the three sizes, of which the evaluations are 6. The one-epoch run of the same recipe then scored **0.00962** on the whole validation set
+hours, US$23**: 19, 28 and 22 for the three sizes, of which the evaluations are 6.
+
+The one-epoch run of the same recipe then scored **0.00962** on the whole validation set
 against the two-epoch run's **0.01007**: the second epoch is not merely flat, it is very
-slightly worse. The
-probe itself is left to finish its two epochs, US$0.50 of card, because a loss is not the
+slightly worse. The probe itself was left to finish its two epochs, US$0.50 of card, because a loss is not the
 accuracy the tables report: the two-epoch adapter is graded beside the one-epoch one, and
 if the second epoch does buy accuracy the curve above is what missed it.
 
