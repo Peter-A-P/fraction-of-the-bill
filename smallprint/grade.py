@@ -461,6 +461,40 @@ def paired_delta_ci(
     return Interval(point=float(deltas.mean()), low=low, high=high, n=deltas.size)
 
 
+def unpaired_delta_ci(
+    a: Sequence[ItemGrade],
+    b: Sequence[ItemGrade],
+    *,
+    resamples: int = 10_000,
+    seed: int = 0,
+) -> Interval:
+    """The accuracy difference `a - b` between two runs over different filings.
+
+    For the one comparison in this project that cannot be paired: one model on the filings
+    published after its training cutoff against the same model on those published before,
+    which are different filings by construction. Each side is resampled over its own
+    filings, independently, so the interval is as wide as two separate samples make it.
+    Refuses two runs that share filings, because those should have been paired.
+    """
+    if {g.item_id for g in a} & {g.item_id for g in b}:
+        raise ValueError("these runs share filings; compare them with paired_delta_ci")
+    if not a or not b:
+        raise ValueError("both runs need graded filings")
+    left = np.array([g.accuracy for g in a], dtype=float)
+    right = np.array([g.accuracy for g in b], dtype=float)
+    rng = np.random.default_rng(seed)
+    draws = left[rng.integers(0, left.size, size=(resamples, left.size))].mean(axis=1) - right[
+        rng.integers(0, right.size, size=(resamples, right.size))
+    ].mean(axis=1)
+    low, high = np.percentile(draws, [2.5, 97.5])
+    return Interval(
+        point=float(left.mean() - right.mean()),
+        low=float(low),
+        high=float(high),
+        n=int(left.size + right.size),
+    )
+
+
 class FieldReport(BaseModel):
     """Per-field accuracy and the named reasons behind its misses."""
 

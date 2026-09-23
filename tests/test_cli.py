@@ -92,17 +92,26 @@ def test_locate_fails_when_a_statement_is_not_found(tmp_path: Path) -> None:
 
 
 def test_no_command_promises_work_that_does_not_exist() -> None:
-    """train, quantise, serve and bench are absent rather than stubbed. Help must not offer them.
+    """bench is absent rather than stubbed. Help must not offer it.
 
     breakeven is present: it computes from inputs the reader supplies. So is baseline,
     which runs a model over held-out filings through the gateway, report, which writes the
-    results table from the runs that exist, and train, whose dataset and plan commands run
-    anywhere and whose run command says which extra a machine is missing rather than
-    pretending it could have trained.
+    results tables from the runs that exist, and train, quantise and serve, whose GPU
+    commands say which extra a machine is missing rather than pretending they could have
+    run, and whose other commands run anywhere. gate writes the files the release gate reads.
     """
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for absent in ("quantise", "serve", "bench "):
-        assert absent not in result.output
-    for present in ("data", "baseline", "breakeven", "schema", "report", "train"):
+    assert "bench " not in result.output
+    for present in (
+        "data",
+        "baseline",
+        "breakeven",
+        "schema",
+        "report",
+        "train",
+        "quantise",
+        "serve",
+        "gate",
+    ):
         assert present in result.output

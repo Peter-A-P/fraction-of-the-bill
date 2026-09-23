@@ -123,6 +123,13 @@ to the volume under `adapters/<name>`, and a run already there is skipped, so th
 command on a replacement pod picks up where the lost one stopped. One pod a size, once the
 first run has shown the recipe works: the cost is the same and the wait is a third.
 
+**A host reboot does not restart the run.** On 2026-09-23 the host under both the 4B and 7B
+pods dropped its heartbeat for four minutes and came back rebooted: `/workspace` and the
+Python environment on it survived, the container disk and with it the model cache did not,
+and nothing was running. The same `sweep.sh` command, started again, carries on from the
+newest checkpoint on the volume; the base model downloads again. Two pods on one host are
+one failure, not two, so where there is a choice, rent them on different hosts.
+
 ## 7. Gate: the first fine-tune measured
 
 The best 2B run is evaluated on the post-cutoff test set with `smallprint baseline run`,
