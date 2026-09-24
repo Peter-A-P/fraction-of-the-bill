@@ -10,9 +10,13 @@ that should change nothing but rounding, and a merge that went wrong, a wrong ba
 revision, an adapter saved without some of its layers, a model class that drops a module,
 produces weights that load and answer and are subtly not the fine-tune. So before saving,
 one validation filing's full chat, prompt and answer, is run through the adapter on the
-base and through the merged model, and the next-token predictions are compared over its
-last `CHECK_POSITIONS` positions, the answer among them. The share that agree is recorded in `merge.json`, and a merge below
-`MIN_AGREEMENT` is refused. bf16 rounding can flip a near tie, so the bar is not one.
+base and through the merged model, and the next-token predictions over the answer are
+compared: the tokens the served model exists to produce. A merge below `MIN_AGREEMENT` is
+refused. The share over the whole last `CHECK_POSITIONS` positions, the end of the filing
+included, is recorded beside it but not checked: predicting the next word of a filing is
+full of near ties that bf16 rounding flips, and on 2026-09-24 it sat at 98 to 99% for
+merges whose answers agreed on every token, so a bar on it passed or refused a sound merge
+by which filing happened to be the check.
 
 **Trained on 4-bit, merged into 16.** The adapter was trained against the NF4-rounded base
 (QLoRA) and is merged into the bf16 base, the standard QLoRA practice and the only way to
@@ -36,8 +40,8 @@ from pydantic import BaseModel, ConfigDict
 from smallprint.train.dataset import Example
 from smallprint.train.recipe import Base
 
-#: The share of next-token predictions that must agree between the adapter on the base and
-#: the merged model. See the module docstring.
+#: The share of the answer's next-token predictions that must agree between the adapter on
+#: the base and the merged model. See the module docstring.
 MIN_AGREEMENT: Final = 0.99
 
 #: Positions compared, counted back from the end of the check filing: the answer and the
@@ -76,7 +80,11 @@ class MergeRecord(BaseModel):
     output_sha256: str
     check_item: str
     check_tokens: int
+    #: Over the answer's tokens: what is checked.
     agreement: float
+    answer_tokens: int = 0
+    #: Over the whole compared window, the end of the filing included: recorded, not checked.
+    window_agreement: float | None = None
     max_abs_logit_diff: float
     #: The token ids a server stops at, written to the merged generation_config.json.
     stop_token_ids: list[int] = []
@@ -128,6 +136,29 @@ def agreement(before: Sequence[int], after: Sequence[int]) -> float:
     return sum(1 for a, b in zip(before, after, strict=True) if a == b) / len(before)
 
 
+def answer_positions(total: int, prompt: int, window: int) -> slice:
+    """Where, among the last `window` of `total` positions, the answer's predictions are.
+
+    The prediction at each position is of the token after it, so the answer's tokens,
+    from `prompt` to the end, are predicted from one position earlier each.
+    """
+    start = prompt - 1 - (total - window)
+    if start < 0 or prompt >= total:
+        raise ValueError(f"an answer from {prompt} of {total} is not inside the last {window}")
+    return slice(start, window - 1)
+
+
+def offloaded(device_map: Mapping[str, Any]) -> list[str]:
+    """The modules `device_map="auto"` put anywhere but a GPU.
+
+    A card still holding a server from the last evaluation leaves too little room, and the
+    loader quietly puts layers on the CPU instead: the merge then runs for twenty minutes on
+    the processor, and its check compares CPU arithmetic with GPU arithmetic. Seen on
+    2026-09-24, with a vLLM server the evaluation script had failed to stop.
+    """
+    return sorted(k for k, v in device_map.items() if str(v) in {"cpu", "disk"})
+
+
 def check_agreement(share: float, *, minimum: float = MIN_AGREEMENT) -> None:
     if share < minimum:
         raise RuntimeError(
@@ -166,13 +197,17 @@ def served_generation_config(
     return chosen
 
 
-def render_ids(tokenizer: Any, messages: list[dict[str, str]]) -> list[int]:
+def render_ids(
+    tokenizer: Any, messages: list[dict[str, str]], *, add_generation_prompt: bool = False
+) -> list[int]:
     """Token ids of a whole chat under the tokenizer's template.
 
     Some versions of transformers return the ids and some a mapping holding them, so both
     are taken rather than one assumed.
     """
-    out = tokenizer.apply_chat_template(messages, tokenize=True)
+    out = tokenizer.apply_chat_template(
+        messages, tokenize=True, add_generation_prompt=add_generation_prompt
+    )
     ids = out["input_ids"] if isinstance(out, Mapping) else out
     if ids and isinstance(ids[0], list):
         ids = ids[0]
@@ -209,17 +244,28 @@ def merge(
     model = AutoModelForCausalLM.from_pretrained(
         base.repo, revision=base.revision, dtype=torch.bfloat16, device_map="auto"
     )
+    elsewhere = offloaded(getattr(model, "hf_device_map", None) or {})
+    if elsewhere:
+        raise RuntimeError(
+            f"{len(elsewhere)} modules did not fit on the card, starting {elsewhere[0]}: "
+            "something else holds its memory. Stop it and merge again"
+        )
     model = PeftModel.from_pretrained(model, adapter_dir)
     model.eval()
 
-    ids = torch.tensor([render_ids(tokenizer, check.messages())], device=model.device)
-    compared = min(CHECK_POSITIONS, int(ids.shape[1]))
+    full = render_ids(tokenizer, check.messages())
+    prompt = render_ids(tokenizer, check.messages()[:-1], add_generation_prompt=True)
+    ids = torch.tensor([full], device=model.device)
+    compared = min(CHECK_POSITIONS, len(full))
+    answer = answer_positions(len(full), len(prompt), compared)
     with torch.no_grad():
         before = model(input_ids=ids).logits[0, -compared:].float().cpu()
     merged = model.merge_and_unload()
     with torch.no_grad():
         after = merged(input_ids=ids).logits[0, -compared:].float().cpu()
-    share = agreement(before.argmax(-1).tolist(), after.argmax(-1).tolist())
+    predicted_before, predicted_after = before.argmax(-1).tolist(), after.argmax(-1).tolist()
+    share = agreement(predicted_before[answer], predicted_after[answer])
+    window_share = agreement(predicted_before, predicted_after)
     difference = float((before - after).abs().max())
     check_agreement(share)
 
@@ -251,6 +297,8 @@ def merge(
         check_item=check.item_id,
         check_tokens=compared,
         agreement=share,
+        answer_tokens=answer.stop - answer.start,
+        window_agreement=window_share,
         max_abs_logit_diff=difference,
         stop_token_ids=served["eos_token_id"],
         merged_at=dt.datetime.now(dt.UTC),

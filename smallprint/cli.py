@@ -712,8 +712,10 @@ def quantise_merge(
         check=_check_example(dataset_dir),
     )
     typer.echo(
-        f"{out}: next tokens agree on {merged.agreement:.2%} of {merged.check_tokens} "
-        f"positions, largest logit difference {merged.max_abs_logit_diff:.4f}."
+        f"{out}: next tokens agree on {merged.agreement:.2%} of the answer's "
+        f"{merged.answer_tokens} and {merged.window_agreement or 0:.2%} of the last "
+        f"{merged.check_tokens} positions, largest logit difference "
+        f"{merged.max_abs_logit_diff:.4f}."
     )
 
 

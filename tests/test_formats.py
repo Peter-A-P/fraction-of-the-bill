@@ -198,6 +198,24 @@ def test_a_gguf_record_cites_the_merged_weights_it_was_made_from(tmp_path: Path)
 # -- the merge check ---------------------------------------------------------------------------
 
 
+def test_a_merge_with_layers_pushed_off_the_card_is_named() -> None:
+    assert merge.offloaded({"model.embed": 0, "model.layers.0": "cuda:0"}) == []
+    assert merge.offloaded({"model.layers.0": 0, "model.layers.30": "cpu", "lm_head": "disk"}) == [
+        "lm_head",
+        "model.layers.30",
+    ]
+
+
+def test_the_merge_is_checked_on_the_answer_s_predictions() -> None:
+    """The first check filing of 2026-09-24: 3,950 tokens, the answer the last 205. The
+    prediction of each answer token sits one position before it."""
+    where = merge.answer_positions(3950, 3745, 512)
+    assert (where.start, where.stop) == (306, 511)
+    assert where.stop - where.start == 205
+    with pytest.raises(ValueError, match="not inside"):
+        merge.answer_positions(3950, 3000, 512)
+
+
 def test_the_merge_carries_the_base_s_processor_configuration_and_nothing_else() -> None:
     """The Gemma listing as it was on 2026-09-24; OLMo ships no processor at all."""
     gemma = [
@@ -264,7 +282,9 @@ class Tokens:
     def __init__(self, out: object) -> None:
         self.out = out
 
-    def apply_chat_template(self, messages: list[dict[str, str]], tokenize: bool) -> object:
+    def apply_chat_template(
+        self, messages: list[dict[str, str]], tokenize: bool, add_generation_prompt: bool = False
+    ) -> object:
         return self.out
 
 

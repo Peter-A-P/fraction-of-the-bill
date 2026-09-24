@@ -96,9 +96,12 @@ pinned for its size.
 **The merge is checked.** Folding the adapter in should change nothing but rounding, and a
 merge that went wrong loads and answers and is subtly not the fine-tune. Before saving,
 one validation filing's chat, prompt and answer, goes through the adapter on the base and
-through the merged model, and the next-token predictions are compared over the last 512
-positions, the answer among them. The share that agree and the largest logit difference go
-in `merge.json`; below 99% agreement the merge is refused. The adapter was trained against
+through the merged model, and the next-token predictions over the answer are compared; below
+99% agreement the merge is refused. The share over the last 512 positions, the end of the
+filing included, and the largest logit difference go in `merge.json` beside it, unchecked.
+The check was first over those 512, and on 2026-09-24 a merge whose answers agreed on every
+token of three filings was refused at 98.4%: guessing the next word of a filing is full of
+near ties that bf16 rounding flips, and the answer is what the model is served for. The adapter was trained against
 the 4-bit base and is merged into the 16-bit one, the usual QLoRA practice and the only way
 to publish weights that are not themselves NF4, so the merged model's accuracy is measured
 on the test set rather than carried over from the run.

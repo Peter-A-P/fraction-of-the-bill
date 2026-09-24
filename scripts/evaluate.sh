@@ -40,9 +40,11 @@ esac
 
 argv=$(uv run --no-sync smallprint serve argv --model "$weights" --run "$name" --format "$fmt" --port "$port")
 echo "=== serving: $argv"
-eval "$argv" >"logs/serve-$served.log" 2>&1 &
+# exec, so that $! is the server itself: killing the subshell that started it left the
+# server running and holding the card, and the next merge ran on the CPU (2026-09-24).
+eval "exec $argv" >"logs/serve-$served.log" 2>&1 &
 server=$!
-trap 'kill "$server" 2>/dev/null || true' EXIT
+trap 'kill "$server" 2>/dev/null; wait "$server" 2>/dev/null || true' EXIT
 # Both servers answer /health with 200 once the weights are loaded.
 until curl -sf "http://127.0.0.1:$port/health" >/dev/null; do
   kill -0 "$server" 2>/dev/null || { echo "the server exited; see logs/serve-$served.log"; exit 1; }
