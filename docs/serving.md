@@ -103,6 +103,11 @@ the 4-bit base and is merged into the 16-bit one, the usual QLoRA practice and t
 to publish weights that are not themselves NF4, so the merged model's accuracy is measured
 on the test set rather than carried over from the run.
 
+**The merge carries the processor.** The Gemma bases load as vision-language models, and
+vLLM will not serve one without the base's `processor_config.json`, even for text alone;
+`save_pretrained` does not write it. The merge copies it from the base at its pinned
+revision. The first merged 2B, 2026-09-24, would not start without it.
+
 **AWQ and GPTQ come from one library.** llm-compressor, which took over AWQ when AutoAWQ
 was archived in 2025, writes both algorithms in one format, compressed-tensors, that vLLM
 serves with one flag. Both are 4-bit weights and 16-bit activations (W4A16). One library

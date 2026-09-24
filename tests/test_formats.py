@@ -198,6 +198,22 @@ def test_a_gguf_record_cites_the_merged_weights_it_was_made_from(tmp_path: Path)
 # -- the merge check ---------------------------------------------------------------------------
 
 
+def test_the_merge_carries_the_base_s_processor_configuration_and_nothing_else() -> None:
+    """The Gemma listing as it was on 2026-09-24; OLMo ships no processor at all."""
+    gemma = [
+        ".gitattributes",
+        "README.md",
+        "config.json",
+        "generation_config.json",
+        "model.safetensors",
+        "processor_config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+    ]
+    assert merge.processor_files(gemma) == ["processor_config.json"]
+    assert merge.processor_files(["config.json", "tokenizer.json", "vocab.json"]) == []
+
+
 def test_the_directory_digest_sees_names_and_contents_and_skips_its_own_record(
     tmp_path: Path,
 ) -> None:

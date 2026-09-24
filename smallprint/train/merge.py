@@ -47,6 +47,12 @@ CHECK_POSITIONS: Final = 512
 
 RECORD: Final = "merge.json"
 
+#: Files a base ships beside its weights that a server needs and `save_pretrained` does not
+#: write. The Gemma bases load as vision-language models, and vLLM refuses to serve one
+#: without its processor configuration, even for text: the first merged 2B, 2026-09-24,
+#: would not start for want of it. Copied from the base at its pinned revision.
+PROCESSOR_FILES: Final = ("preprocessor_config.json", "processor_config.json")
+
 INSTALL_HINT = (
     "merging needs the GPU extra, which is not installed on this machine: "
     "`uv sync --extra train` on the rented card"
@@ -128,6 +134,11 @@ def check_agreement(share: float, *, minimum: float = MIN_AGREEMENT) -> None:
         )
 
 
+def processor_files(repo_files: Sequence[str]) -> list[str]:
+    """Which of a base repository's files are processor configuration to carry over."""
+    return sorted(f for f in repo_files if f in PROCESSOR_FILES)
+
+
 def render_ids(tokenizer: Any, messages: list[dict[str, str]]) -> list[int]:
     """Token ids of a whole chat under the tokenizer's template.
 
@@ -158,6 +169,7 @@ def merge(
     """
     try:
         import torch
+        from huggingface_hub import hf_hub_download, list_repo_files
         from peft import PeftModel
         from transformers import AutoModelForCausalLM, AutoTokenizer
     except ImportError as missing:
@@ -189,6 +201,8 @@ def merge(
     out_dir.mkdir(parents=True)
     merged.save_pretrained(out_dir, safe_serialization=True)
     tokenizer.save_pretrained(out_dir)
+    for name in processor_files(list_repo_files(base.repo, revision=base.revision)):
+        shutil.copyfile(hf_hub_download(base.repo, name, revision=base.revision), out_dir / name)
     record = MergeRecord(
         run_id=run_id,
         size=size,

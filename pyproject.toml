@@ -135,7 +135,7 @@ warn_unreachable = true
 [[tool.mypy.overrides]]
 module = [
   "torch.*", "transformers.*", "trl.*", "peft.*", "bitsandbytes.*", "datasets.*",
-  "llmcompressor.*",
+  "llmcompressor.*", "huggingface_hub.*",
 ]
 ignore_missing_imports = true
 
