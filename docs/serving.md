@@ -40,7 +40,7 @@ version says and a throughput is only reproducible from its command line.
 |---|---|---|
 | Context | 8,192 tokens | The longest post-cutoff prompts are about 4,300 tokens on the most generous tokeniser measured, plus about 350 out. 4,096 would cut the tail, and a truncated prompt is a wrong answer the model did not choose. Not higher, because KV cache is throughput and throughput is the denominator of the cost per call |
 | vLLM quantisation | named, `--quantization compressed-tensors` | Not detected from the weights. AWQ and GPTQ are both written by llm-compressor in its compressed-tensors format; `awq` and `gptq` would select the kernels for the AutoAWQ and AutoGPTQ layouts, which these files are not |
-| vLLM sampling defaults | `--generation-config vllm` | Not the checkpoint's `generation_config.json`, which the merge copies from the base and nobody chose |
+| vLLM generation config | `--generation-config auto` | The checkpoint's, which the merge writes: the chat template's stop tokens and no sampling defaults. vLLM's own stop only at end-of-text, which a chat fine-tune does not emit |
 | llama.cpp chat template | `--jinja` | Renders the template embedded in the GGUF, the one the model was trained on. Without it llama-server guesses a built-in format from the template |
 | vLLM prefix caching | on | Every call carries the same system prompt; a real deployment would cache it |
 | GPU memory | 90% | Headroom so an out-of-memory error does not land mid-run |
@@ -107,6 +107,15 @@ on the test set rather than carried over from the run.
 vLLM will not serve one without the base's `processor_config.json`, even for text alone;
 `save_pretrained` does not write it. The merge copies it from the base at its pinned
 revision. The first merged 2B, 2026-09-24, would not start without it.
+
+**The merge sets where the model stops.** The fine-tune ends its answer with the chat
+template's end-of-turn token, `<turn|>` on Gemma and `<|im_end|>` on OLMo, and the base's
+`generation_config.json` stops only at end-of-text. Served that way, the first merged 2B
+wrote its answer, the end-of-turn token and the answer again, to the 2,048-token limit, on
+every filing: the answers were right and each took eight times the tokens it needed, which
+is a cost per call and a latency, not a detail. The merge writes a generation config with
+the instruction model's stop tokens, from the revision the chat template came from, and no
+sampling fields, and vLLM is told to read it.
 
 **AWQ and GPTQ come from one library.** llm-compressor, which took over AWQ when AutoAWQ
 was archived in 2025, writes both algorithms in one format, compressed-tensors, that vLLM

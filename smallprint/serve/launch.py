@@ -77,11 +77,13 @@ def vllm_argv(
         # The load test sends the same system prompt on every call; caching it is what a
         # real deployment of this extractor would do, so it is on for the measurement.
         "--enable-prefix-caching",
-        # Sampling defaults from vLLM, not from the checkpoint's generation_config.json,
-        # which the merge copies from the base and nobody chose. Every accuracy run sends
-        # its temperature explicitly in any case.
+        # The checkpoint's generation_config.json, which the merge writes: the stop tokens
+        # of the chat template the model was trained on, and no sampling defaults
+        # (smallprint/train/merge.py). With vLLM's own defaults the only stop is
+        # end-of-text, which a chat fine-tune does not emit, and every answer ran to the
+        # token limit (2026-09-24). Every accuracy run sends its temperature explicitly.
         "--generation-config",
-        "vllm",
+        "auto",
     ]
     if fmt is Format.BF16:
         argv += ["--dtype", "bfloat16"]

@@ -56,12 +56,12 @@ def test_a_name_without_a_format_is_refused_rather_than_guessed() -> None:
 
 
 def test_the_servers_render_the_chat_template_the_model_was_trained_on() -> None:
-    """llama-server guesses a format unless told to render the embedded template; vLLM takes
-    sampling defaults from the checkpoint unless told not to."""
+    """llama-server guesses a format unless told to render the embedded template; vLLM reads
+    the stop tokens from the checkpoint's generation config, which the merge writes."""
     gguf = launch.llamacpp_argv("m.gguf", "m", Format.GGUF_Q8_0)
     assert "--jinja" in gguf
     vllm = launch.vllm_argv("merged/2b", "m", Format.BF16)
-    assert vllm[vllm.index("--generation-config") + 1] == "vllm"
+    assert vllm[vllm.index("--generation-config") + 1] == "auto"
 
 
 # -- the gateway configuration ------------------------------------------------------------
@@ -212,6 +212,29 @@ def test_the_merge_carries_the_base_s_processor_configuration_and_nothing_else()
     ]
     assert merge.processor_files(gemma) == ["processor_config.json"]
     assert merge.processor_files(["config.json", "tokenizer.json", "vocab.json"]) == []
+
+
+def test_the_merged_model_stops_at_its_chat_template_s_end_of_turn_and_samples_nothing() -> None:
+    """The Gemma 2B base and instruction configurations as they were on 2026-09-24: the base
+    stops only at <eos>, id 1; the instruction model also at <turn|>, 106, and 50."""
+    base = {
+        "bos_token_id": 2,
+        "eos_token_id": 1,
+        "pad_token_id": 0,
+        "do_sample": True,
+        "temperature": 1.0,
+        "top_k": 64,
+        "top_p": 0.95,
+    }
+    instruct = {"bos_token_id": 2, "eos_token_id": [1, 106, 50]}
+    assert merge.served_generation_config(base, instruct) == {
+        "eos_token_id": [1, 106, 50],
+        "bos_token_id": 2,
+        "pad_token_id": 0,
+    }
+    assert merge.served_generation_config({}, {"eos_token_id": 7})["eos_token_id"] == [7]
+    with pytest.raises(ValueError, match="no stop token"):
+        merge.served_generation_config(base, {})
 
 
 def test_the_directory_digest_sees_names_and_contents_and_skips_its_own_record(

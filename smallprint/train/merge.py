@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import json
 import shutil
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -77,6 +78,8 @@ class MergeRecord(BaseModel):
     check_tokens: int
     agreement: float
     max_abs_logit_diff: float
+    #: The token ids a server stops at, written to the merged generation_config.json.
+    stop_token_ids: list[int] = []
     merged_at: dt.datetime
     versions: dict[str, str] = {}
 
@@ -137,6 +140,30 @@ def check_agreement(share: float, *, minimum: float = MIN_AGREEMENT) -> None:
 def processor_files(repo_files: Sequence[str]) -> list[str]:
     """Which of a base repository's files are processor configuration to carry over."""
     return sorted(f for f in repo_files if f in PROCESSOR_FILES)
+
+
+def served_generation_config(
+    base: Mapping[str, Any], instruct: Mapping[str, Any]
+) -> dict[str, Any]:
+    """The generation_config.json a merged model ships: its stop tokens, and no sampling.
+
+    A fine-tune ends its answer with its chat template's end-of-turn token, `<turn|>` on
+    Gemma and `<|im_end|>` on OLMo, and a base checkpoint names only its end-of-text token,
+    so a server reading the base's configuration never stops: the first merged 2B,
+    2026-09-24, wrote its answer, the end-of-turn token, and the answer again, to the
+    2,048-token limit on every filing. The stop tokens are the instruction model's, from the
+    revision the chat template came from. The base's sampling fields, temperature 1 and
+    top-k 64, are left out: nobody here chose them.
+    """
+    eos = instruct.get("eos_token_id")
+    ids = [eos] if isinstance(eos, int) else [int(t) for t in eos or []]
+    if not ids:
+        raise ValueError("the instruction model names no stop token")
+    chosen: dict[str, Any] = {"eos_token_id": ids}
+    for key in ("bos_token_id", "pad_token_id"):
+        if base.get(key) is not None:
+            chosen[key] = base[key]
+    return chosen
 
 
 def render_ids(tokenizer: Any, messages: list[dict[str, str]]) -> list[int]:
@@ -203,6 +230,17 @@ def merge(
     tokenizer.save_pretrained(out_dir)
     for name in processor_files(list_repo_files(base.repo, revision=base.revision)):
         shutil.copyfile(hf_hub_download(base.repo, name, revision=base.revision), out_dir / name)
+    written = out_dir / "generation_config.json"
+    base_config = json.loads(written.read_text(encoding="utf-8")) if written.is_file() else {}
+    instruct_config = json.loads(
+        Path(
+            hf_hub_download(
+                base.baseline_repo, "generation_config.json", revision=base.baseline_revision
+            )
+        ).read_text(encoding="utf-8")
+    )
+    served = served_generation_config(base_config, instruct_config)
+    written.write_text(json.dumps(served, indent=2) + "\n", encoding="utf-8", newline="\n")
     record = MergeRecord(
         run_id=run_id,
         size=size,
@@ -214,6 +252,7 @@ def merge(
         check_tokens=compared,
         agreement=share,
         max_abs_logit_diff=difference,
+        stop_token_ids=served["eos_token_id"],
         merged_at=dt.datetime.now(dt.UTC),
         versions=_versions(),
     )
