@@ -124,25 +124,32 @@ slightly worse. The probe itself was left to finish its two epochs, US$0.50 of c
 accuracy the tables report: the two-epoch adapter is graded beside the one-epoch one, and
 if the second epoch does buy accuracy the curve above is what missed it.
 
-**The 2B sweep, finished 2026-09-23**, validation loss on all 713 filings, one epoch each:
+**The sweeps, finished 2026-09-24**: 24 runs, one epoch each, validation loss on all 713
+filings. Each column's first row is the base recipe, rank 16, 1e-4, every training filing.
 
-| Varied | Value | Validation loss |
-|---|---|---:|
-| Base recipe | rank 16, 1e-4, all 5,060 | 0.00962 |
-| Rank | 8 | 0.00962 |
-| Rank | 64 | 0.00860 |
-| Learning rate | 5e-5 | 0.01032 |
-| Learning rate | 2e-4 | 0.00891 |
-| Volume | 1,000 | 0.01567 |
-| Volume | 2,500 | 0.01076 |
-| Volume | 5,000 | 0.00974 |
+| Varied | Value | 2B | 4B | 7B |
+|---|---|---:|---:|---:|
+| Base recipe | | 0.00962 | 0.00891 | 0.0167 |
+| Rank | 8 | 0.00962 | 0.00851 | 0.0177 |
+| Rank | 64 | 0.00860 | 0.00931 | 0.0158 |
+| Learning rate | 5e-5 | 0.01032 | 0.00839 | 0.0193 |
+| Learning rate | 2e-4 | 0.00891 | 0.00949 | 0.0169 |
+| Volume | 1,000 | 0.01567 | 0.01368 | 0.0333 |
+| Volume | 2,500 | 0.01076 | 0.00940 | 0.0202 |
+| Volume | 5,000 | 0.00974 | 0.00905 | 0.0173 |
 
-Rank 8 and 16 are the same run to five places; only rank 64 moves the loss. The higher
-learning rate helps and the lower one hurts. The volume curve drops steeply to 2,500 and
-barely at all from there to 5,000, which is the first evidence on the deferred 20k point:
-on loss, more data has stopped buying much. None of this is the result. A loss is not a
-graded field, and differences this size need the seeds before they mean anything; the
-recipe is chosen on graded validation accuracy, not on this table.
+The 7B's losses are on a different tokenizer and are comparable only down its own column.
+No setting is best at every size: rank 64 and the higher learning rate help the 2B, the
+lower learning rate and the smaller rank help the 4B, rank 64 helps the 7B. So each size's
+recipe is chosen on its own, and on graded validation accuracy rather than on this table:
+a loss is not a graded field, and gaps this size need the seeds before they mean anything.
+The volume curve bends hard between 2,500 and 5,000 at every size, which is the first
+evidence on the deferred 20k point: on loss, more data has stopped buying much.
+
+Wall clock, from the 2B probe starting to the last 4B run finishing: 35 hours, on up to
+three cards. Two of them shared a host that throttled to under half speed and one outage
+rebooted it; the 4B moved to a Secure Cloud 4090 and the 7B to the 2B's card, each resuming
+from its newest checkpoint on the volume (docs/runbook.md).
 
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
 training pool holds 5,060 filings, so the 20k point needs a corpus expansion of about
