@@ -38,8 +38,11 @@ the quality ceiling, `claude-sonnet-5` as a second vendor, and `gpt-5.6-luna` as
 anchor the break-even has to beat ([docs/baseline.md](docs/baseline.md)).
 
 All three have now been measured on the whole post-cutoff test set, zero-shot and
-two-shot: 4,296 calls, **US$59.63**, in the table below. **Nothing has been trained,
-quantised or served.** The GPU provider is chosen by the portfolio's rule: Runpod, one RTX
+two-shot: 4,296 calls, **US$59.63**, in the table below. **All three sizes are
+fine-tuned**, 24 runs of the sweep, each graded on the validation set, and **the first,
+the 2B, clears the cost anchor on the post-cutoff test set** (below;
+[docs/training.md](docs/training.md)). Nothing is quantised, load-tested or costed yet,
+so the break-even is still to come. The GPU provider is chosen by the portfolio's rule: Runpod, one RTX
 4090 on Community Cloud for training, at US$0.34 an hour on 2026-09-22, with checkpoints
 pushed to a network volume over its S3 API ([docs/gpu-prices.md](docs/gpu-prices.md)).
 The plan is in [PLAN.md](PLAN.md); the dataset design and the open
@@ -48,14 +51,20 @@ questions are in [docs/data.md](docs/data.md), the prompt and the runner in
 
 ## Result
 
-The small models are not trained yet, so the first table is empty. The frontier bar they
-have to reach is measured.
+The first small model is measured; the other two sizes, the seeds, the quantised formats
+and the cost per call are still to come.
 
 **Quality, on held-out filings published after the base models' training cutoff**
 
-| Model | Size | Field accuracy (95% CI) | Non-inferior to best API (delta, CI) | Pre-cutoff gap |
-|---|---|---|---|---|
-| _not yet_ | | | | |
+| Model | Size | Format | Fields correct (95% CI) | Every field right | Paired delta vs openai/gpt-5.6-sol few_shot | Pre-cutoff minus post-cutoff |
+|---|---|---|---|---|---|---|
+| `2b-r64-lr1e-4-nall-s0-e1` | 2b | bf16 | 96.9% (96.5% to 97.3%) | 65.7% (62.1% to 69.1%) | -0.0% (-0.4% to +0.3%) | not measured |
+
+A 2-billion-parameter fine-tune, one epoch of QLoRA on 5,060 training filings, is level
+with the most expensive frontier result on fields, and against the cost anchor,
+`gpt-5.6-luna` zero-shot, it is **+0.7 points (+0.3 to +1.1)**, paired over the same 705
+filings, with 65.7% of filings entirely right against 58.3%. Its median answer takes 1.46
+seconds on one RTX 4090. It is one seed of one recipe, chosen on the validation set.
 
 **The frontier baselines, the bar the above has to reach.** Written by `smallprint report`
 from the runs; not edited by hand. 705 post-cutoff filings, every call through the

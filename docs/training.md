@@ -178,18 +178,39 @@ it. So the recipe is chosen on graded accuracy, the six untested full-pool runs 
 nine volume points are graded too, and the scaling curve is reported in accuracy, not in
 the loss table above.
 
+**The rest of the sweep, graded 2026-09-25**, so the choice does not rest on loss:
+
+| Varied | Value | 2B | 4B | 7B |
+|---|---|---|---|---|
+| Base recipe | | 93.59% | 93.62% | 95.18% |
+| Rank | 8 | 92.24% | 94.24% | 94.98% |
+| Rank | 64 | **95.58%** | 94.92% | **95.70%** |
+| Learning rate | 5e-5 | 91.37% | 91.47% | 94.02% |
+| Learning rate | 2e-4 | 94.94% | **95.43%** | 95.32% |
+| Volume | 1,000 | 87.57% | 87.61% | 86.89% |
+| Volume | 2,500 | 92.34% | 93.36% | 94.08% |
+| Volume | 5,000 | 93.60% | 94.55% | 95.08% |
+
+Field accuracy on the 713 validation filings; intervals are about plus or minus 0.5 points
+and are in each run's summary on the volume. The 4B's best, learning rate 2e-4, had the
+worst loss of its five full-pool runs and would not have been graded at all on loss. The
+chosen recipes: **2B rank 64, 4B learning rate 2e-4, 7B rank 64**, within 0.3 points of
+each other. The lower learning rate is the worst full-pool run at every size, and the
+volume curve is steep to 2,500 and nearly flat from there to 5,000 at every size, which
+settles the deferred 20k point: the corpus expansion would not buy what it costs.
+
 **The first fine-tune measured, runbook step 7.** The 2B rank 64 run on the post-cutoff
-test set, paired filing by filing with the frontier runs: **96.91% of fields (96.50 to
-97.29) and 65.6% of whole filings**, against the cost anchor, `gpt-5.6-luna` zero-shot,
-by **+0.69 points of fields (+0.33 to +1.04)** and 65.6% against 58.4% of whole filings.
+test set, paired filing by filing with the frontier runs: **96.92% of fields (96.51 to
+97.30) and 65.7% of whole filings**, against the cost anchor, `gpt-5.6-luna` zero-shot,
+by **+0.70 points of fields (+0.34 to +1.05)** and 65.7% against 58.3% of whole filings.
 Against the best frontier result anyone paid for, `gpt-5.6-sol` two-shot at 35 times
-luna's price, it is -0.04 points (-0.36 to +0.26) and 65.6% against 67.0%. On 704 of the
-705 filings: one was refused by the server for a context too short for it, and is being
-rerun ([serving.md](serving.md)). The gate is cleared, so the larger sizes are not
-stopped; they were already trained. Its answers take 1.46 seconds at the median. The
+luna's price, it is level, -0.0 points (-0.4 to +0.3), and 65.7% against 67.0%. All 705
+filings; one was first refused by the server for a context too short for it and rerun
+([serving.md](serving.md)). The gate is cleared, so the larger sizes are not stopped;
+they were already trained. Its answers take 1.46 seconds at the median. The
 misses are the ones the frontier makes, fields the filing does not report and the model
-fills anyway: `cost_of_revenue` 70, `eps_basic` 48, `shares_diluted` 34, `operating_income`
-33, `eps_diluted` 32, all `hallucinated`.
+fills anyway, `hallucinated` in the grader's terms: `cost_of_revenue`, `eps_basic`,
+`shares_diluted`, `operating_income` and `eps_diluted` account for most of them.
 
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
 training pool holds 5,060 filings, so the 20k point needs a corpus expansion of about
