@@ -5,6 +5,7 @@ waits for one to be tested."""
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -152,6 +153,35 @@ def test_the_rounding_skips_the_output_head_and_the_towers_the_task_never_feeds(
         assert any("audio" in i for i in arguments["ignore"])
     with pytest.raises(ValueError, match="not made by llm-compressor"):
         formats.modifier(Format.GGUF_Q8_0)
+
+
+def test_calibration_runs_layer_by_layer_unless_layers_share_their_cache() -> None:
+    """The Gemma 2B's config as merged: 35 layers, the last 20 reading earlier layers'
+    cache. OLMo has no such field."""
+    gemma = {"text_config": {"num_hidden_layers": 35, "num_kv_shared_layers": 20}}
+    assert formats.pipeline(gemma) == "basic"
+    assert formats.pipeline({"num_hidden_layers": 32}) == "sequential"
+    assert formats.pipeline({"text_config": {"num_kv_shared_layers": 0}}) == "sequential"
+
+
+def test_the_rounding_targets_the_decoder_projections_of_both_families() -> None:
+    """Gemma's per-layer projections sit outside the decoder blocks and see no calibration
+    input; GPTQ stopped on one on 2026-09-25. Module names from the two bases."""
+    pattern = re.compile(formats.TARGETS[0].removeprefix("re:"))
+    rounded = [
+        "model.language_model.layers.3.self_attn.q_proj",
+        "model.language_model.layers.20.mlp.down_proj",
+        "model.layers.31.self_attn.o_proj",
+        "model.layers.0.mlp.gate_proj",
+    ]
+    kept = [
+        "model.language_model.per_layer_model_projection",
+        "model.language_model.layers.3.per_layer_projection",
+        "model.language_model.layers.3.per_layer_input_gate",
+        "lm_head",
+    ]
+    assert all(pattern.match(n) for n in rounded)
+    assert not any(pattern.match(n) for n in kept)
 
 
 # -- GGUF with llama.cpp's own tools ----------------------------------------------------------

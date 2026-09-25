@@ -1428,7 +1428,7 @@ requires-dist = [
     { name = "boundary", marker = "extra == 'gateway'", git = "https://github.com/Peter-A-P/compliant-ai-gateway.git?rev=v0.3.0" },
     { name = "datasets", marker = "extra == 'train'", specifier = "==5.0.1" },
     { name = "httpx", specifier = ">=0.28,<1" },
-    { name = "llmcompressor", marker = "extra == 'quant'", specifier = ">=0.8,<1" },
+    { name = "llmcompressor", marker = "extra == 'quant'", specifier = "==0.14.0" },
     { name = "lxml", specifier = ">=5,<6" },
     { name = "numpy", specifier = ">=2,<3" },
     { name = "peft", marker = "extra == 'train'", specifier = "==0.21.0" },

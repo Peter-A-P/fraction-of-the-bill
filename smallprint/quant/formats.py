@@ -20,9 +20,9 @@ seen, so a calibration set drawn from the test pool would be a leak into every q
 row of the results. `calibration` refuses anything but training filings, and draws them by
 keyed hash so every size and both algorithms calibrate on the same filings.
 
-**Rounded where the adapter went, and nowhere else.** The language model's linear layers.
-Not `lm_head`, which every published scheme keeps at 16 bits because the output
-distribution is where rounding shows first, and not the Gemma vision and audio towers,
+**Rounded where the adapter went, and nowhere else.** The attention and MLP projections of
+the decoder layers (`TARGETS`). Not `lm_head`, which every published scheme keeps at 16
+bits because the output distribution is where rounding shows first, and not the Gemma vision and audio towers,
 which this task never feeds: rounding them costs nothing and measures nothing, and
 calibrating them on text is meaningless.
 
@@ -37,7 +37,8 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
-from collections.abc import Sequence
+import json
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Final
 
@@ -60,7 +61,17 @@ CALIBRATION_SEED: Final = 20260923
 #: Weights in 4 bits, activations at 16, in groups of 128 columns.
 SCHEME: Final = "W4A16"
 
-#: What is never rounded. llm-compressor reads "re:" as a regular expression.
+#: What is rounded: the attention and MLP projections of every decoder layer, the layers
+#: the adapter trained, and the bulk of the weights. Not every `Linear`: the Gemma E bases
+#: carry small per-layer projections outside the decoder blocks that calibration on text
+#: never reaches, and GPTQ stops on a layer it has no activations for ("No statistics
+#: available", the first GPTQ build, 2026-09-25). llm-compressor reads "re:" as a regular
+#: expression; OLMo's names match it as Gemma's do.
+TARGETS: Final[tuple[str, ...]] = (
+    r"re:.*layers\.\d+\.(self_attn|mlp)\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)$",
+)
+
+#: What is never rounded, even if a target matched it.
 IGNORE: Final[tuple[str, ...]] = ("lm_head", r"re:.*vision.*", r"re:.*audio.*")
 
 #: llama-quantize's name for each GGUF format.
@@ -120,7 +131,22 @@ def modifier(fmt: Format) -> dict[str, Any]:
     """The llm-compressor modifier for a format, as the arguments it is built from."""
     if fmt not in (Format.AWQ, Format.GPTQ):
         raise ValueError(f"{fmt.value} is not made by llm-compressor")
-    return {"targets": ["Linear"], "scheme": SCHEME, "ignore": list(IGNORE)}
+    return {"targets": list(TARGETS), "scheme": SCHEME, "ignore": list(IGNORE)}
+
+
+def pipeline(config: Mapping[str, Any]) -> str:
+    """How llm-compressor runs calibration through a model: layer by layer, or all at once.
+
+    Layer by layer ("sequential") holds one layer's statistics at a time and is the only
+    way a 7B's GPTQ fits on a 24 GB card. It cannot run the Gemma E bases, whose later
+    layers read the key-value cache of earlier ones: a layer run on its own has no cache to
+    read, and the first GPTQ build of the 2B, 2026-09-25, stopped at the first shared layer
+    with `KeyError: 'sliding_attention'`. Those run whole ("basic"), which the 2B and 4B
+    are small enough for.
+    """
+    text = config.get("text_config", config)
+    shared = text.get("num_kv_shared_layers") if isinstance(text, Mapping) else None
+    return "basic" if shared else "sequential"
 
 
 def quantise(
@@ -151,8 +177,14 @@ def quantise(
     model = AutoModelForCausalLM.from_pretrained(model_dir, dtype=torch.bfloat16, device_map="auto")
     arguments = modifier(fmt)
     recipe = AWQModifier(**arguments) if fmt is Format.AWQ else GPTQModifier(**arguments)
+    config = json.loads((model_dir / "config.json").read_text(encoding="utf-8"))
     oneshot(
         model=model,
+        pipeline=pipeline(config),
+        # Named, not left for llm-compressor to find: the Gemma bases load as vision-language
+        # models, and it goes looking for their image processor, which needs torchvision and
+        # which calibration on text never uses. The first AWQ build, 2026-09-25, stopped there.
+        processor=tokenizer,
         dataset=Dataset.from_list(rows),
         recipe=recipe,
         max_seq_length=max_seq_len,

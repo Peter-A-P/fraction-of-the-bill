@@ -66,7 +66,8 @@ train = [
 # GGUF needs no Python package here: it is made by a llama.cpp checkout's own converter
 # and llama-quantize, whose commit the runbook records.
 quant = [
-  "llmcompressor>=0.8,<1",
+  # Pinned to what made the formats on the card, 2026-09-25.
+  "llmcompressor==0.14.0",
 ]
 serve = []
 

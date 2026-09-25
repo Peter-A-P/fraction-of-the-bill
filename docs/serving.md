@@ -125,13 +125,33 @@ was archived in 2025, writes both algorithms in one format, compressed-tensors, 
 serves with one flag. Both are 4-bit weights and 16-bit activations (W4A16). One library
 means the two formats differ in the algorithm that chose the weights and in nothing else.
 
+**AWQ and GPTQ are not made for the Gemma sizes**, found on the card on 2026-09-25. The
+Gemma E bases share their key-value cache: in the 2B, the last 20 of 35 layers have no key
+or value projection of their own and read an earlier layer's. llm-compressor 0.14 calibrates
+layer by layer, and a shared layer run alone has no cache to read (`KeyError:
+'sliding_attention'`); its AWQ mappings expect every layer to have all three projections
+and stop on the first that does not. Calibrating the whole model at once gets past both, and
+runs out of the 4090's 24 GB: the 2B is 10 GB in bf16 with its vision and audio towers
+attached, and GPTQ holds a statistic for every layer beside it, at 2,048-token calibration
+sequences as at 8,192. What would work is a larger card or custom per-layer mappings; neither
+is worth it for two formats when GGUF Q8_0 and Q4_K_M are made and measured for the same
+sizes, and AWQ and GPTQ are made for the 7B, whose architecture is standard. The table says
+"not made" for them, with this paragraph as the reason, rather than leaving the rows out.
+Three fixes from the attempt stay, each tested: llm-compressor is handed the tokenizer rather
+than left to load Gemma's image processor, which needs torchvision; only the decoder
+projections are rounded, since the Gemma bases' per-layer projections see no text and GPTQ
+stops on a layer with no statistics; and a model with shared layers is calibrated whole.
+
 **Calibration is from the training pool only.** AWQ and GPTQ choose their rounding by
 running real inputs through the model, so those inputs are data the format has seen. They
 are 256 training filings, drawn by keyed hash so every size and both algorithms calibrate
 on the same ones, and the code refuses any input holding a test filing. Validation filings
 are left out too: they steered the checkpoints.
 
-**Rounded where the adapter went.** The language model's linear layers. Not `lm_head`,
+**Rounded where the adapter went.** The attention and MLP projections of every decoder
+layer, the layers the adapter trained and the bulk of the weights. Not every linear layer:
+the Gemma E bases carry small per-layer projections outside the decoder blocks that
+calibration on text never reaches, and GPTQ stopped on one on 2026-09-25. Not `lm_head`,
 which published schemes keep at 16 bits because the output distribution is where rounding
 shows first, and not the Gemma vision and audio towers, which this task never feeds.
 
