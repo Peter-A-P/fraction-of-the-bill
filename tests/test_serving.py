@@ -76,7 +76,7 @@ def test_vllm_is_told_the_quantisation_rather_than_left_to_guess() -> None:
         argv = launch.vllm_argv("merged/4b-q", "smallprint-4b-q", fmt)
         assert argv[argv.index("--quantization") + 1] == "compressed-tensors"
     awq = launch.vllm_argv("merged/4b-awq", "smallprint-4b-awq", Format.AWQ)
-    assert awq[awq.index("--max-model-len") + 1] == "8192"
+    assert awq[awq.index("--max-model-len") + 1] == str(launch.MAX_MODEL_LEN)
     bf16 = launch.vllm_argv("merged/4b", "smallprint-4b", Format.BF16)
     assert "--quantization" not in bf16
     assert bf16[bf16.index("--dtype") + 1] == "bfloat16"
@@ -85,7 +85,15 @@ def test_vllm_is_told_the_quantisation_rather_than_left_to_guess() -> None:
 def test_llamacpp_gives_every_slot_the_full_context_and_a_slot_per_concurrent_request() -> None:
     argv = launch.llamacpp_argv(Path("quant/4b-q4.gguf"), "smallprint-4b-q4", Format.GGUF_Q4_K_M)
     assert argv[argv.index("--parallel") + 1] == "64"
-    assert argv[argv.index("--ctx-size") + 1] == str(8192 * 64)
+    assert argv[argv.index("--ctx-size") + 1] == str(launch.MAX_MODEL_LEN * 64)
+
+
+def test_the_longest_test_prompt_and_the_output_cap_fit_in_the_served_context() -> None:
+    """The first post-cutoff run of a fine-tune, 2026-09-25, lost one filing to a 400: a
+    6,349-token prompt and a 2,048-token cap are 8,397, and the server held 8,192."""
+    from smallprint.baseline import DEFAULT_MAX_TOKENS
+
+    assert launch.LONGEST_PROMPT + DEFAULT_MAX_TOKENS <= launch.MAX_MODEL_LEN
 
 
 def test_a_format_sent_to_the_wrong_server_is_refused() -> None:

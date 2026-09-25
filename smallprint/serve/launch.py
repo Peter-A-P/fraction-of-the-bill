@@ -9,11 +9,14 @@ The flags that matter to a measurement are fixed here and not left to defaults, 
 default is whatever the installed version says, and a throughput number is only
 reproducible from its command line.
 
-**Context length.** 8,192 tokens. The longest prompts in the post-cutoff set are about 4,300
-tokens on the most generous tokeniser measured, with 350 or so out, so 4,096 would cut the
-tail and a truncated prompt is a wrong answer the model did not choose. Longer than needed
-costs KV cache and so throughput, which is the denominator of the cost per call, so it is
-not set higher than the data needs either.
+**Context length.** 10,240 tokens: the longest prompt in any test set plus the output cap
+every run sends, which a server counts together and refuses a request over. The longest
+post-cutoff prompt is 6,349 tokens on the Gemma tokeniser, measured on the pod on
+2026-09-25 after the first test run lost that filing to a 400 at 8,192; OLMo's longest is
+5,202. The cap is `baseline.DEFAULT_MAX_TOKENS`, 2,048, the same the frontier runs sent,
+so the fine-tunes are asked on the same terms. A truncated or refused prompt is a wrong
+answer the model did not choose. Longer than needed costs KV cache and so throughput, which
+is the denominator of the cost per call, so it is not set higher than the data needs either.
 
 **Concurrency.** llama.cpp serves a fixed number of parallel slots and queues the rest, so
 its slot count is set to the highest concurrency the load test runs. Fewer slots would
@@ -38,7 +41,11 @@ from smallprint.quant.quality import Format
 PROVIDER: Final = "selfhosted"
 
 #: Tokens of context each server is started with. See the module docstring.
-MAX_MODEL_LEN: Final = 8192
+MAX_MODEL_LEN: Final = 10_240
+
+#: The longest prompt in any test set, in tokens on the tokeniser that makes it longest,
+#: measured 2026-09-25. See the module docstring.
+LONGEST_PROMPT: Final = 6349
 
 #: The concurrency levels the load test runs, per PLAN.md section 2.6.
 CONCURRENCY: Final[tuple[int, ...]] = (1, 8, 32, 64)

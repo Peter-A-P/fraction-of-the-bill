@@ -38,14 +38,14 @@ version says and a throughput is only reproducible from its command line.
 
 | Setting | Value | Why |
 |---|---|---|
-| Context | 8,192 tokens | The longest post-cutoff prompts are about 4,300 tokens on the most generous tokeniser measured, plus about 350 out. 4,096 would cut the tail, and a truncated prompt is a wrong answer the model did not choose. Not higher, because KV cache is throughput and throughput is the denominator of the cost per call |
+| Context | 10,240 tokens | The longest test prompt, 6,349 tokens on the Gemma tokeniser, plus the 2,048-token output cap every run sends, which the server counts together. It was 8,192 until the first post-cutoff run of a fine-tune lost that filing to a 400 on 2026-09-25. A refused prompt is a wrong answer the model did not choose. Not higher, because KV cache is throughput and throughput is the denominator of the cost per call |
 | vLLM quantisation | named, `--quantization compressed-tensors` | Not detected from the weights. AWQ and GPTQ are both written by llm-compressor in its compressed-tensors format; `awq` and `gptq` would select the kernels for the AutoAWQ and AutoGPTQ layouts, which these files are not |
 | vLLM generation config | `--generation-config auto` | The checkpoint's, which the merge writes: the chat template's stop tokens and no sampling defaults. vLLM's own stop only at end-of-text, which a chat fine-tune does not emit |
 | llama.cpp chat template | `--jinja` | Renders the template embedded in the GGUF, the one the model was trained on. Without it llama-server guesses a built-in format from the template |
 | vLLM prefix caching | on | Every call carries the same system prompt; a real deployment would cache it |
 | GPU memory | 90% | Headroom so an out-of-memory error does not land mid-run |
 | llama.cpp slots | 64 | The highest concurrency tested. Fewer slots would measure llama.cpp's queue rather than the model |
-| llama.cpp context | 8,192 times the slots | llama.cpp divides its context between slots |
+| llama.cpp context | 10,240 times the slots | llama.cpp divides its context between slots |
 
 Each served model is registered with the gateway as an `openai_compat` provider flagged
 `self_hosted`, priced from the overlay described in [cost.md](cost.md).
