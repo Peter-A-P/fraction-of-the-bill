@@ -164,8 +164,12 @@ def test_an_upload_that_never_finished_is_not_resumed_from(tmp_path: Path) -> No
     assert fresh.resume_step() == 10
 
 
-def fake_s3(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> checkpoint.CommandSyncer:
-    """The Runpod syncer's own arguments, with `aws` swapped for a stand-in over a directory."""
+def fake_s3(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retries: int = 0
+) -> checkpoint.CommandSyncer:
+    """The Runpod syncer's own arguments, with `aws` swapped for a stand-in over a directory.
+    No retries unless asked: a reclaimed machine gets none, and the tests that simulate one
+    need the failure to stand."""
     monkeypatch.setenv("FAKE_S3_ROOT", str(tmp_path / "s3"))
     real = checkpoint.runpod_s3("s3://vol123/checkpoints/run-a", "EU-RO-1")
     stand_in = (sys.executable, str(Path(__file__).parent / "fake_s3.py"))
@@ -175,6 +179,8 @@ def fake_s3(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> checkpoint.Comma
         list_argv=(*stand_in, *real.list_argv[1:]),
         remove_argv=(*stand_in, *real.remove_argv[1:]),
         empty_listing=real.empty_listing,
+        retries=retries,
+        pause=lambda _: None,
     )
 
 
@@ -198,6 +204,7 @@ def test_a_listing_that_fails_for_real_still_stops_the_run(
         argv=remote.argv,
         list_argv=(sys.executable, "-c", "import sys; sys.exit('AccessDenied')"),
         empty_listing=1,
+        pause=lambda _: None,
     )
     with pytest.raises(RuntimeError, match="AccessDenied"):
         broken.names()
@@ -267,6 +274,36 @@ def test_the_store_keeps_the_newest_checkpoints_and_removes_older_ones_once_the_
 def test_keeping_no_checkpoint_at_all_is_refused(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="newest"):
         checkpoint.CheckpointStore(tmp_path / "run", keep=0)
+
+
+def test_a_store_command_the_api_fails_is_tried_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Runpod's S3 API answered one upload of 2026-09-25 with its own authentication timing
+    out, and the run died at step 250 of 634. Two failures, then the upload goes through."""
+    remote = fake_s3(tmp_path, monkeypatch, retries=3)
+    counter = tmp_path / "flaky"
+    counter.write_text("2")
+    monkeypatch.setenv("FAKE_S3_FLAKY", str(counter))
+    store = checkpoint.CheckpointStore(tmp_path / "run", remote)
+    store.save(write_checkpoint(tmp_path / "run", 5))
+    assert counter.read_text() == "0"
+    assert remote.names() == ["checkpoint-5"]
+
+
+def test_a_store_that_keeps_failing_still_stops_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    waits: list[float] = []
+    remote = fake_s3(tmp_path, monkeypatch, retries=3)
+    remote.pause = waits.append
+    counter = tmp_path / "flaky"
+    counter.write_text("99")
+    monkeypatch.setenv("FAKE_S3_FLAKY", str(counter))
+    store = checkpoint.CheckpointStore(tmp_path / "run", remote)
+    with pytest.raises(RuntimeError, match="after 4 tries"):
+        store.save(write_checkpoint(tmp_path / "run", 5))
+    assert waits == list(checkpoint.BACKOFF)
 
 
 def test_a_fresh_run_with_nowhere_to_resume_from_starts_at_zero(tmp_path: Path) -> None:

@@ -261,6 +261,11 @@ thirty runs of thirteen checkpoints is more than the 50 GB volume holds. Older o
 removed only after the new one's marker is in the store, marker first, so a failed upload
 removes nothing and a removal cut off halfway leaves nothing that claims to be whole.
 
+**A store command that fails is tried again**, three more times over two minutes. Runpod's
+S3 API answered one upload on 2026-09-25 with its own authentication timing out, and the
+4B's two-epoch run stopped at step 250 of 634. Every command here is safe to repeat; one
+that fails four times is a real failure and still stops the run.
+
 `latest` looks locally first and remotely second. A live instance has the weights on disk
 and a download is minutes of rent; a fresh instance after a reclaim has a bare disk, and
 that is the case the remote copy exists for.

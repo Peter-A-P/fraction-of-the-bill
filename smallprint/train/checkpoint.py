@@ -17,7 +17,8 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Final, Protocol
 
@@ -28,6 +29,13 @@ CHECKPOINT = re.compile(r"^checkpoint-(\d+)$")
 #: interrupted mid-upload, and resuming from half a file is worse than resuming from the
 #: step before it.
 COMPLETE: Final = ".complete"
+
+#: Seconds to wait before each retry of a store command that failed. An object store's API
+#: fails now and then for reasons of its own: on 2026-09-25 Runpod's answered one upload
+#: with AccessDenied, "failed to fetch user keys ... context deadline exceeded", its own
+#: authentication timing out, and the run died at step 250 of 634 with two good hours on
+#: the card. A command that still fails after these is a real failure and stops the run.
+BACKOFF: Final = (10.0, 30.0, 90.0)
 
 
 def step_of(path: Path) -> int | None:
@@ -93,6 +101,8 @@ class CommandSyncer:
         list_argv: Sequence[str],
         remove_argv: Sequence[str] = (),
         empty_listing: int | None = None,
+        retries: int = len(BACKOFF),
+        pause: Callable[[float], None] = time.sleep,
     ) -> None:
         self.uri = uri.rstrip("/")
         self.argv = tuple(argv)
@@ -102,23 +112,32 @@ class CommandSyncer:
         #: The exit code the list command gives for "nothing here", when it is not zero.
         #: `aws s3 ls` exits 1, silently, which is every new run's first question.
         self.empty_listing = empty_listing
+        #: How many times a failed command is tried again, waiting `BACKOFF` between.
+        self.retries = retries
+        self.pause = pause
 
     def _run(self, *args: str, empty_ok: bool = False) -> str:
-        # The argv is configuration from boundary.yaml's sibling, not user input.
-        finished = subprocess.run([*args], capture_output=True, text=True, check=False)
-        if (
-            empty_ok
-            and finished.returncode == self.empty_listing
-            and not finished.stdout.strip()
-            and not finished.stderr.strip()
-        ):
-            return ""
-        if finished.returncode != 0:
-            raise RuntimeError(
-                f"{' '.join(args[:2])} failed with {finished.returncode}: "
-                f"{finished.stderr.strip()[:400]}"
-            )
-        return finished.stdout
+        """Run a store command, retrying a failure. Every command here is safe to repeat:
+        a sync sends only what is missing, and a listing or a removal repeated changes
+        nothing more."""
+        for attempt in range(self.retries + 1):
+            # The argv is configuration from boundary.yaml's sibling, not user input.
+            finished = subprocess.run([*args], capture_output=True, text=True, check=False)
+            if (
+                empty_ok
+                and finished.returncode == self.empty_listing
+                and not finished.stdout.strip()
+                and not finished.stderr.strip()
+            ):
+                return ""
+            if finished.returncode == 0:
+                return finished.stdout
+            if attempt < self.retries:
+                self.pause(BACKOFF[min(attempt, len(BACKOFF) - 1)])
+        raise RuntimeError(
+            f"{' '.join(args[:2])} failed with {finished.returncode} after "
+            f"{self.retries + 1} tries: {finished.stderr.strip()[:400]}"
+        )
 
     def push(self, local: Path, name: str) -> None:
         """Upload, then mark. A sync copies files in no promised order, so a marker sent with

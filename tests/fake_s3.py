@@ -1,7 +1,9 @@
 """A stand-in for `aws s3`, over a local directory, for testing `CommandSyncer`.
 
 `FAKE_S3_ROOT` is where the buckets live. `FAKE_S3_FAIL_AFTER=n` makes a sync copy n files
-and then fail, the way an upload does when the machine under it is reclaimed. Files are
+and then fail, the way an upload does when the machine under it is reclaimed.
+`FAKE_S3_FLAKY` names a file holding a count: while it is above zero, every command fails
+before doing anything and takes one off it, the way the store's own API sometimes does. Files are
 copied in name order, so the marker, `.complete`, goes before the weights if the caller
 hands it over with them: an order a real sync does not rule out.
 """
@@ -34,6 +36,13 @@ def main(argv: list[str]) -> int:
             continue
         positional.append(arg)
     command, *paths = positional
+    flaky = os.environ.get("FAKE_S3_FLAKY")
+    if flaky:
+        left = int(Path(flaky).read_text())
+        if left > 0:
+            Path(flaky).write_text(str(left - 1))
+            print("AccessDenied: failed to fetch user keys: deadline exceeded", file=sys.stderr)
+            return 1
     if command == "ls":
         root = local(paths[0])
         base = Path(os.environ["FAKE_S3_ROOT"]) / paths[0].removeprefix("s3://").split("/")[0]
