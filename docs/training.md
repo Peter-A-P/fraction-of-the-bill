@@ -151,6 +151,46 @@ three cards. Two of them shared a host that throttled to under half speed and on
 rebooted it; the 4B moved to a Secure Cloud 4090 and the 7B to the 2B's card, each resuming
 from its newest checkpoint on the volume (docs/runbook.md).
 
+**Graded, 2026-09-24.** Loss chose ten candidates, the best three of each size and the
+two-epoch probe; each was merged, served through the gateway and graded on the 713
+validation filings, field accuracy with its 95% interval:
+
+| Run | Fields | Whole filings | Its loss rank |
+|---|---|---:|---:|
+| 2B rank 64 | **95.58%** (95.09 to 96.04) | 58.8% | 1 |
+| 2B learning rate 2e-4 | 94.94% (94.38 to 95.48) | 54.3% | 2 |
+| 2B base recipe, two epochs | 94.26% (93.63 to 94.86) | 50.9% | 4 |
+| 2B base recipe | 93.59% (92.96 to 94.18) | 43.3% | 3 |
+| 4B rank 8 | **94.24%** (93.69 to 94.78) | 48.1% | 2 |
+| 4B base recipe | 93.62% (93.07 to 94.16) | 41.2% | 3 |
+| 4B learning rate 5e-5 | 91.47% (90.67 to 92.23) | 35.5% | 1 |
+| 7B rank 64 | **95.70%** (95.21 to 96.18) | 60.0% | 1 |
+| 7B learning rate 2e-4 | 95.32% (94.78 to 95.84) | 59.3% | 3 |
+| 7B base recipe | 95.18% (94.61 to 95.71) | 58.6% | 2 |
+
+**Validation loss is not a guide to this task's accuracy.** The 4B's lowest loss is its
+lowest accuracy, 2.8 points under its best. And the second epoch, which the loss said was
+very slightly worse, buys 0.7 points of fields and 7.6 more whole filings in a hundred: the
+one-epoch decision above was taken on loss, and on the evidence it cost accuracy. The loss
+is averaged over every token of an answer that is mostly punctuation and field names the
+model learns in the first hundred steps; which number goes in a field is a few tokens of
+it. So the recipe is chosen on graded accuracy, the six untested full-pool runs and the
+nine volume points are graded too, and the scaling curve is reported in accuracy, not in
+the loss table above.
+
+**The first fine-tune measured, runbook step 7.** The 2B rank 64 run on the post-cutoff
+test set, paired filing by filing with the frontier runs: **96.91% of fields (96.50 to
+97.29) and 65.6% of whole filings**, against the cost anchor, `gpt-5.6-luna` zero-shot,
+by **+0.69 points of fields (+0.33 to +1.04)** and 65.6% against 58.4% of whole filings.
+Against the best frontier result anyone paid for, `gpt-5.6-sol` two-shot at 35 times
+luna's price, it is -0.04 points (-0.36 to +0.26) and 65.6% against 67.0%. On 704 of the
+705 filings: one was refused by the server for a context too short for it, and is being
+rerun ([serving.md](serving.md)). The gate is cleared, so the larger sizes are not
+stopped; they were already trained. Its answers take 1.46 seconds at the median. The
+misses are the ones the frontier makes, fields the filing does not report and the model
+fills anyway: `cost_of_revenue` 70, `eps_basic` 48, `shares_diluted` 34, `operating_income`
+33, `eps_diluted` 32, all `hallucinated`.
+
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
 training pool holds 5,060 filings, so the 20k point needs a corpus expansion of about
 4,800 more companies: five to seven hours of fetching within the SEC's rate limit and
