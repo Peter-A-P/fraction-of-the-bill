@@ -13,6 +13,7 @@ self-hosted points of the Pareto chart.
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -92,20 +93,23 @@ def sweep(
         started_at=dt.datetime.now(dt.UTC),
     )
     record.write(out_dir)
-    for concurrency in sorted(levels):
-        result = run_level(
-            caller,
-            requests,
-            concurrency=concurrency,
-            total=total(concurrency),
-            purpose=model,
-            run_id=f"load-{model.rsplit('/', 1)[-1]}-c{concurrency}",
-            warmup_seconds=warmup_seconds,
-        )
-        record = record.model_copy(update={"levels": (*record.levels, result)})
-        record.write(out_dir)
-        if on_level is not None:
-            on_level(result)
+    # One event loop for every level; see run_level.
+    with asyncio.Runner() as runner:
+        for concurrency in sorted(levels):
+            result = run_level(
+                caller,
+                requests,
+                concurrency=concurrency,
+                total=total(concurrency),
+                purpose=model,
+                run_id=f"load-{model.rsplit('/', 1)[-1]}-c{concurrency}",
+                warmup_seconds=warmup_seconds,
+                runner=runner,
+            )
+            record = record.model_copy(update={"levels": (*record.levels, result)})
+            record.write(out_dir)
+            if on_level is not None:
+                on_level(result)
     record = record.model_copy(update={"finished_at": dt.datetime.now(dt.UTC)})
     record.write(out_dir)
     return record

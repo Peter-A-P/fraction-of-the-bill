@@ -148,9 +148,17 @@ def run_level(
     purpose: str,
     run_id: str,
     warmup_seconds: float = 0.0,
+    runner: asyncio.Runner | None = None,
 ) -> LevelResult:
-    """One concurrency level, run to completion and summarised."""
-    timings, retried, peak = asyncio.run(
+    """One concurrency level, run to completion and summarised.
+
+    `runner` is the event loop the level runs in. A sweep passes one for all its levels:
+    the gateway's HTTP client keeps its connections in the loop that first used them, and
+    a level run in a fresh loop reused them from a closed one, "Event loop is closed", on
+    the first load test on the card (2026-09-26).
+    """
+    run = runner.run if runner is not None else asyncio.run
+    timings, retried, peak = run(
         closed_loop(
             caller,
             requests,

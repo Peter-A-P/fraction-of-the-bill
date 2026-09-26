@@ -4,12 +4,14 @@ against records whose answers can be worked out by hand."""
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 import yaml
+from boundary import ChatRequest, ChatResponse
 from test_baseline import RIGHT, WRONG, items
 from test_formats import make_run
 from test_serving import SlowServer, some_requests
@@ -106,6 +108,39 @@ def test_the_sweep_runs_every_level_lowest_first_and_keeps_the_timings(tmp_path:
     assert again.finished_at is not None and again.level(4) == record.level(4)
     # The timings carry the prompt length the overlay divides by.
     assert bench.mean_tokens(again.levels[0], warmup_seconds=0.0) == (3000.0, 300.0)
+
+
+class LoopBoundServer(SlowServer):
+    """Like the gateway's HTTP client: keeps its connections in the first loop that used
+    them, and fails in any other."""
+
+    def __init__(self, seconds: float) -> None:
+        super().__init__(seconds)
+        self.loop: asyncio.AbstractEventLoop | None = None
+
+    async def achat_stream(self, request: ChatRequest, **kwargs: object) -> ChatResponse:
+        running = asyncio.get_running_loop()
+        self.loop = self.loop or running
+        if running is not self.loop:
+            raise RuntimeError("Event loop is closed")
+        return await super().achat_stream(request, **kwargs)  # type: ignore[arg-type]
+
+
+def test_every_level_of_a_sweep_runs_in_one_event_loop(tmp_path: Path) -> None:
+    """The first load test on the card, 2026-09-26, stopped at its second level: each level
+    had its own loop, and the gateway's connections belonged to the first."""
+    requests = some_requests()
+    record = bench.sweep(
+        LoopBoundServer(0.001),
+        requests,
+        model=requests[0].model,
+        price=PRICE,
+        levels=[1, 2, 4],
+        out_dir=tmp_path,
+        warmup_seconds=0.0,
+        total=lambda c: 3 * c,
+    )
+    assert [len(lv.timings) for lv in record.levels] == [3, 6, 12]
 
 
 def test_a_sweep_is_for_one_model(tmp_path: Path) -> None:
