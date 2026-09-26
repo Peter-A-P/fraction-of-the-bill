@@ -144,3 +144,24 @@ uploaded from step one against the risk of losing the machine. Serving is differ
 throughput measured there is the denominator of every self-hosted cost per call, so it has
 to be measured on a card and tier a business would actually deploy on, and the price in the
 break-even has to be one a business would actually pay.
+
+## The serving card, 2026-09-26
+
+The load test runs on the card a business would rent to serve this, so its rate is the one
+the cost per call and the break-even are built on. From the Runpod API at 16:35 UTC,
+Secure Cloud, on-demand, per GPU hour:
+
+| Card | VRAM | Secure | In stock |
+|---|---:|---:|---|
+| A40 | 48 GB | US$0.49 | low |
+| L4 | 24 GB | US$0.49 | none listed |
+| RTX A6000 | 48 GB | US$0.53 | low |
+| RTX 4090 | 24 GB | US$0.74 | low |
+| L40S | 48 GB | US$1.09 | low |
+
+**An A40 on Secure Cloud at US$0.49**, the rate the pod was rented at, 16:46 UTC. A data
+center card on the data center tier, the cheapest in stock at any size that holds every
+format with room for a cache: the L4 is the same price and was not offered. Not the
+RTX 4090 the training ran on, a consumer card whose driver terms exclude data center
+deployment, and whose Community tier is the cheap one precisely because it carries no
+guarantees a business would sign for.
