@@ -212,6 +212,42 @@ misses are the ones the frontier makes, fields the filing does not report and th
 fills anyway, `hallucinated` in the grader's terms: `cost_of_revenue`, `eps_basic`,
 `shares_diluted`, `operating_income` and `eps_diluted` account for most of them.
 
+**Seeds, the second epoch and the formats, 2026-09-26.** A second epoch on each size's
+chosen recipe buys nothing, paired on validation: 2B -0.07 (-0.37 to +0.24), 4B +0.08
+(-0.14 to +0.31), 7B +0.07 (-0.20 to +0.35). Only the weaker base recipe gained from it.
+So every size stays at one epoch, and each chosen recipe was trained with two more seeds.
+On the 705 post-cutoff filings, paired with `gpt-5.6-luna` zero-shot, the cost anchor:
+
+| Size, recipe | Seed | Fields | Whole filings | Minus luna, fields |
+|---|---|---|---:|---|
+| 2B, rank 64 | 0 / 1 / 2 | 96.92 / 96.99 / 96.55% | 65.7 / 68.7 / 63.5% | +0.70 / +0.78 / +0.33 |
+| 4B, learning rate 2e-4 | 0 / 1 / 2 | 96.89 / 96.49 / 96.24% | 66.5 / 63.5 / 63.4% | +0.67 / +0.27 / +0.02 |
+| 7B, rank 64 | 0 / 1 / 2 | 97.37 / 97.07 / 97.25% | 71.9 / 70.2 / 71.8% | +1.15 / +0.85 / +1.03 |
+
+Luna is 96.2% and 58.3%; `gpt-5.6-sol` two-shot, 35 times its price, 96.9% and 67.0%.
+Every seed of every size is above the anchor, and the 7B's three are clear of it with
+intervals that exclude zero, and above the most expensive frontier result on whole
+filings. The 4B is no better than the 2B and nearly twice as slow to answer. Pre-cutoff
+minus post-cutoff, seed 0: 2B -1.76, 4B -1.84, 7B -1.33 points, the same direction as the
+frontier models': no premium from memorisation.
+
+The formats, each paired with its own bf16 over the same filings (seed 0):
+
+| Format | 2B | 4B | 7B |
+|---|---|---|---|
+| GGUF Q8_0 | -0.17 (-0.48 to +0.02) | +0.01 (-0.09 to +0.11) | -0.04 (-0.12 to +0.04) |
+| GGUF Q4_K_M | -0.72 (-1.36 to -0.20) | **-96.8: 99.9% unreadable** | -0.11 (-0.28 to +0.05) |
+| AWQ | not made | not made | -0.22 (-0.39 to -0.05) |
+| GPTQ | not made | not made | -0.06 (-0.23 to +0.10) |
+
+The 4B at Q4_K_M still reads the right numbers off the page and has forgotten the
+format: it names `cash_and_equivalents` `cash_and_cash_equivalents`, the usual accounting
+term, and invents keys the schema does not have, so the grader refuses nearly every
+answer. The 2B lost 0.7 points at the same rounding and the 7B nothing measurable. AWQ and
+GPTQ are not made for the Gemma sizes ([serving.md](serving.md)); the 7B's were calibrated
+on the first 1,024 tokens of each filing, the most AWQ's cached activations fit beside a
+7B on 24 GB. Whether a format ships is the release gate's call on these deltas.
+
 **Plan amendment.** `PLAN.md` asked for the data-scaling curve at 1k, 5k and 20k. The
 training pool holds 5,060 filings, so the 20k point needs a corpus expansion of about
 4,800 more companies: five to seven hours of fetching within the SEC's rate limit and
