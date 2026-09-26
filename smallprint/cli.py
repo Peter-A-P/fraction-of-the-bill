@@ -809,10 +809,18 @@ def serve_argv(
     run: str = typer.Option(..., help="The training run's name; the served name follows."),
     fmt: Format = typer.Option(..., "--format", help="Which format the weights are."),
     port: int = typer.Option(8000, help="The port the server listens on."),
+    kv_tokens: int | None = typer.Option(
+        None, help="llama.cpp only: the shared cache, in tokens. Sized to the card."
+    ),
 ) -> None:
     """Print the command line that serves these weights, every flag that matters set."""
     name = launch.served_name(run, fmt)
-    typer.echo(shlex.join(launch.argv_for(model.as_posix(), name, fmt, port=port)))
+    options: dict[str, int] = {"port": port}
+    if kv_tokens is not None:
+        if fmt.server != "llamacpp":
+            raise typer.BadParameter("vLLM sizes its own cache", param_hint="--kv-tokens")
+        options["kv_tokens"] = kv_tokens
+    typer.echo(shlex.join(launch.argv_for(model.as_posix(), name, fmt, **options)))
 
 
 @serve_app.command("config")

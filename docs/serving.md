@@ -41,11 +41,11 @@ version says and a throughput is only reproducible from its command line.
 | Context | 10,240 tokens | The longest test prompt, 6,349 tokens on the Gemma tokeniser, plus the 2,048-token output cap every run sends, which the server counts together. It was 8,192 until the first post-cutoff run of a fine-tune lost that filing to a 400 on 2026-09-25. A refused prompt is a wrong answer the model did not choose. Not higher, because KV cache is throughput and throughput is the denominator of the cost per call |
 | vLLM quantisation | named, `--quantization compressed-tensors` | Not detected from the weights. AWQ and GPTQ are both written by llm-compressor in its compressed-tensors format; `awq` and `gptq` would select the kernels for the AutoAWQ and AutoGPTQ layouts, which these files are not |
 | vLLM generation config | `--generation-config auto` | The checkpoint's, which the merge writes: the chat template's stop tokens and no sampling defaults. vLLM's own stop only at end-of-text, which a chat fine-tune does not emit |
-| llama.cpp chat template | `--jinja` | Renders the template embedded in the GGUF, the one the model was trained on. Without it llama-server guesses a built-in format from the template |
+| llama.cpp chat template | `--jinja`; for the 7B, `--chat-template chatml` | Renders the template embedded in the GGUF, the one the model was trained on. Without it llama-server guesses a built-in format from the template. llama.cpp cannot run OLMo 3's template (2026-09-26); its built-in ChatML renders our system and user turns and the generation prompt to exactly the trained string, checked through `/apply-template` against transformers, with no start token added |
 | vLLM prefix caching | on | Every call carries the same system prompt; a real deployment would cache it |
 | GPU memory | 90% | Headroom so an out-of-memory error does not land mid-run |
 | llama.cpp slots | 64 | The highest concurrency tested. Fewer slots would measure llama.cpp's queue rather than the model |
-| llama.cpp context | 10,240 times the slots | llama.cpp divides its context between slots |
+| llama.cpp cache | one pool shared by the slots, `--kv-unified`, sized to the card | Reserving the full context for each of 64 slots is 655,360 tokens: the Gemma 2B's cache holds it, and the OLMo 7B's, about 384 KB a token, asked for 35 GB and stopped (2026-09-26). The 7B is served with a 24,576-token pool, 9 GB beside its weights (32,768 did not fit), which is how vLLM pages its cache; each request is still capped at 10,240 |
 
 Each served model is registered with the gateway as an `openai_compat` provider flagged
 `self_hosted`, priced from the overlay described in [cost.md](cost.md).

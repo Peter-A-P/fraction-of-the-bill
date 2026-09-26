@@ -50,6 +50,15 @@ LONGEST_PROMPT: Final = 6349
 #: The concurrency levels the load test runs, per PLAN.md section 2.6.
 CONCURRENCY: Final[tuple[int, ...]] = (1, 8, 32, 64)
 
+#: Sizes whose embedded chat template llama.cpp cannot run, and the built-in template it
+#: uses instead. OLMo 3's is refused by llama.cpp's template engine ("Unable to generate
+#: parser for this template", 2026-09-26). Its built-in ChatML renders a system and a user
+#: turn and the generation prompt to exactly the string the trainer's template does,
+#: checked through the server's /apply-template against transformers on the pod, and the
+#: server adds no start token to it; the model's end-of-text token, which ends its answers,
+#: is the GGUF's end-of-sequence. The Gemma template runs as it is.
+BUILTIN_TEMPLATES: Final[dict[str, str]] = {"7b": "chatml"}
+
 #: Share of the card's memory vLLM may claim. The rest is the headroom that keeps an
 #: out-of-memory error from landing in the middle of a timed run.
 GPU_MEMORY_UTILISATION: Final = 0.90
@@ -111,9 +120,20 @@ def llamacpp_argv(
     port: int = 8000,
     max_model_len: int = MAX_MODEL_LEN,
     parallel: int = max(CONCURRENCY),
+    kv_tokens: int | None = None,
     seed: int = 0,
 ) -> list[str]:
-    """`llama-server` for a GGUF file, every layer on the GPU."""
+    """`llama-server` for a GGUF file, every layer on the GPU.
+
+    One key-value cache shared by every slot (`--kv-unified`), `kv_tokens` long, rather than
+    a slice of it reserved for each: that is how vLLM pages its cache, and the only way a
+    7B serves 64 slots on a 24 GB card at all. Reserving the full context for every slot
+    is 655,360 tokens, which the Gemma 2B's small cache holds and the OLMo 7B's, about
+    384 KB a token, cannot: its first GGUF server asked for 35 GB of cache and stopped
+    (2026-09-26). Unset, the pool is the full context for every slot, as before. A request
+    still cannot exceed `max_model_len`, which the gateway's output cap and the longest
+    prompt are sized against; concurrency is then bounded by the pool, as it is in vLLM.
+    """
     if fmt.server != "llamacpp":
         raise ValueError(f"{fmt.value} is served by vLLM, not llama.cpp")
     return [
@@ -124,21 +144,29 @@ def llamacpp_argv(
         served_name,
         "--port",
         str(port),
-        # llama.cpp divides the context between its slots, so each slot gets the full
-        # length only if the total is the per-request length times the slot count.
         "--ctx-size",
-        str(max_model_len * parallel),
+        str(kv_tokens if kv_tokens is not None else max_model_len * parallel),
+        "--kv-unified",
+        "--kv-unified-per-slot",
+        str(max_model_len),
         "--parallel",
         str(parallel),
         "--n-gpu-layers",
         "999",
         "--cont-batching",
-        # The template embedded in the GGUF, rendered as the trainer rendered it. See the
-        # module docstring.
-        "--jinja",
+        # The template embedded in the GGUF, rendered as the trainer rendered it, or where
+        # llama.cpp cannot run it, the built-in one that renders the same string. See the
+        # module docstring and BUILTIN_TEMPLATES.
+        *template_flags(served_name),
         "--seed",
         str(seed),
     ]
+
+
+def template_flags(served_name: str) -> list[str]:
+    """How llama-server renders the chat: the GGUF's own template, or a checked built-in."""
+    builtin = BUILTIN_TEMPLATES.get(served_name.split("-", 1)[0])
+    return ["--chat-template", builtin] if builtin else ["--jinja"]
 
 
 def argv_for(model: Path | str, served_name: str, fmt: Format, **options: Any) -> list[str]:

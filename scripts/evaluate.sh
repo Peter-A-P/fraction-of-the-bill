@@ -38,7 +38,11 @@ case "$fmt" in
     ;;
 esac
 
-argv=$(uv run --no-sync smallprint serve argv --model "$weights" --run "$name" --format "$fmt" --port "$port")
+# KV_TOKENS sizes llama.cpp's shared cache to the card; vLLM sizes its own.
+kv=()
+if [[ $fmt == gguf-* && -n ${KV_TOKENS:-} ]]; then kv=(--kv-tokens "$KV_TOKENS"); fi
+argv=$(uv run --no-sync smallprint serve argv --model "$weights" --run "$name" --format "$fmt" \
+  --port "$port" "${kv[@]}")
 echo "=== serving: $argv"
 # exec, so that $! is the server itself: killing the subshell that started it left the
 # server running and holding the card, and the next merge ran on the CPU (2026-09-24).

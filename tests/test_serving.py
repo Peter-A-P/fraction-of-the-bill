@@ -88,6 +88,28 @@ def test_llamacpp_gives_every_slot_the_full_context_and_a_slot_per_concurrent_re
     assert argv[argv.index("--ctx-size") + 1] == str(launch.MAX_MODEL_LEN * 64)
 
 
+def test_llamacpp_renders_olmo_with_the_builtin_chatml_it_was_checked_against() -> None:
+    """llama.cpp cannot run OLMo 3's embedded template; its ChatML renders the same prompt.
+    The Gemma sizes keep their own."""
+    olmo = launch.llamacpp_argv("7b.gguf", "7b-r64-lr1e-4-nall-s0-e1-gguf-q8_0", Format.GGUF_Q8_0)
+    assert olmo[olmo.index("--chat-template") + 1] == "chatml"
+    assert "--jinja" not in olmo
+    gemma = launch.llamacpp_argv("2b.gguf", "2b-r64-lr1e-4-nall-s0-e1-gguf-q8_0", Format.GGUF_Q8_0)
+    assert "--jinja" in gemma
+    assert "--chat-template" not in gemma
+
+
+def test_llamacpp_shares_one_cache_between_slots_sized_to_the_card() -> None:
+    """The OLMo 7B's GGUF server asked for 35 GB of cache with a slice reserved per slot,
+    2026-09-26. One shared pool, sized to the card; each request still capped at the
+    served context."""
+    argv = launch.llamacpp_argv("7b-q8.gguf", "m", Format.GGUF_Q8_0, kv_tokens=32_768)
+    assert "--kv-unified" in argv
+    assert argv[argv.index("--ctx-size") + 1] == "32768"
+    assert argv[argv.index("--kv-unified-per-slot") + 1] == str(launch.MAX_MODEL_LEN)
+    assert argv[argv.index("--parallel") + 1] == "64"
+
+
 def test_the_longest_test_prompt_and_the_output_cap_fit_in_the_served_context() -> None:
     """The first post-cutoff run of a fine-tune, 2026-09-25, lost one filing to a 400: a
     6,349-token prompt and a 2,048-token cap are 8,397, and the server held 8,192."""

@@ -174,13 +174,20 @@ def quantise(
     for e in chosen:
         ids = render_ids(tokenizer, e.messages())[:max_seq_len]
         rows.append({"input_ids": ids, "attention_mask": [1] * len(ids)})
-    model = AutoModelForCausalLM.from_pretrained(model_dir, dtype=torch.bfloat16, device_map="auto")
+    config = json.loads((model_dir / "config.json").read_text(encoding="utf-8"))
+    chosen_pipeline = pipeline(config)
+    # Layer by layer, the model waits in CPU memory and each layer is brought to the card in
+    # turn; loaded onto the card whole, the 7B's 15 GB left too little beside AWQ's cached
+    # activations, and its first AWQ build ran out of memory (2026-09-26).
+    placement = "auto" if chosen_pipeline == "basic" else None
+    model = AutoModelForCausalLM.from_pretrained(
+        model_dir, dtype=torch.bfloat16, device_map=placement
+    )
     arguments = modifier(fmt)
     recipe = AWQModifier(**arguments) if fmt is Format.AWQ else GPTQModifier(**arguments)
-    config = json.loads((model_dir / "config.json").read_text(encoding="utf-8"))
     oneshot(
         model=model,
-        pipeline=pipeline(config),
+        pipeline=chosen_pipeline,
         # Named, not left for llm-compressor to find: the Gemma bases load as vision-language
         # models, and it goes looking for their image processor, which needs torchvision and
         # which calibration on text never uses. The first AWQ build, 2026-09-25, stopped there.
