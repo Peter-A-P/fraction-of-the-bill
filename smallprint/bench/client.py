@@ -27,6 +27,7 @@ from collections.abc import Callable, Sequence
 from typing import Protocol
 
 from boundary import ChatRequest, ChatResponse, Mode
+from boundary.errors import ProviderError
 from pydantic import BaseModel, ConfigDict
 
 from smallprint.bench.load import LoadSummary, RequestTiming, summarise
@@ -115,13 +116,31 @@ async def closed_loop(
             counters["in_flight"] += 1
             counters["peak"] = max(counters["peak"], counters["in_flight"])
             sent = clock()
+            response: ChatResponse | None
             try:
                 response = await caller.achat_stream(
                     request, purpose="load:" + purpose, run_id=run_id, mode=Mode.STANDARD
                 )
+            except ProviderError:
+                # A connection the server dropped is a failed request, counted against its
+                # level, not the end of the load test: the first on the card, 2026-09-26,
+                # lost three finished levels to one ReadError in the fourth.
+                response = None
             finally:
                 counters["in_flight"] -= 1
             done = clock()
+            if response is None:
+                timings.append(
+                    RequestTiming(
+                        sent_at=sent,
+                        first_token_at=None,
+                        done_at=done,
+                        output_tokens=0,
+                        ok=False,
+                        input_tokens=0,
+                    )
+                )
+                continue
             counters["retried"] += 1 if response.retries else 0
             first = sent + response.ttft_ms / 1000 if response.ttft_ms is not None else None
             timings.append(

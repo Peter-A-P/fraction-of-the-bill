@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 import yaml
 from boundary import ChatRequest, ChatResponse
+from boundary.errors import ProviderError
 from test_baseline import RIGHT, WRONG, items
 from test_formats import make_run
 from test_serving import SlowServer, some_requests
@@ -141,6 +142,40 @@ def test_every_level_of_a_sweep_runs_in_one_event_loop(tmp_path: Path) -> None:
         total=lambda c: 3 * c,
     )
     assert [len(lv.timings) for lv in record.levels] == [3, 6, 12]
+
+
+class DroppingServer(SlowServer):
+    """Drops every third connection, as vLLM did under 64 concurrent streams."""
+
+    def __init__(self, seconds: float) -> None:
+        super().__init__(seconds)
+        self.calls = 0
+
+    async def achat_stream(self, request: ChatRequest, **kwargs: object) -> ChatResponse:
+        self.calls += 1
+        if self.calls % 3 == 0:
+            raise ProviderError("selfhosted", "ReadError", "")
+        return await super().achat_stream(request, **kwargs)  # type: ignore[arg-type]
+
+
+def test_a_dropped_connection_is_a_failed_request_not_the_end_of_the_test(
+    tmp_path: Path,
+) -> None:
+    requests = some_requests()
+    record = bench.sweep(
+        DroppingServer(0.001),
+        requests,
+        model=requests[0].model,
+        price=PRICE,
+        levels=[1, 4],
+        out_dir=tmp_path,
+        warmup_seconds=0.0,
+        total=lambda c: 6 * c,
+    )
+    assert [len(lv.timings) for lv in record.levels] == [6, 24]
+    failed = [t for lv in record.levels for t in lv.timings if not t.ok]
+    assert len(failed) == 10
+    assert all(t.output_tokens == 0 and t.first_token_at is None for t in failed)
 
 
 def test_a_sweep_is_for_one_model(tmp_path: Path) -> None:
