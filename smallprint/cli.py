@@ -24,6 +24,7 @@ from smallprint import __version__
 from smallprint.baseline import (
     DEFAULT_MAX_TOKENS,
     TEMPERATURE,
+    BaselineSummary,
     Prediction,
     grade_run,
     open_gateway,
@@ -770,6 +771,67 @@ def _grades(run_dir: Path, items: list[SplitItem]) -> list[ItemGrade]:
     """A run's grades over the items the build still holds."""
     graded, _ = grade_run(within(read_predictions(run_dir), items)[0], items)
     return graded
+
+
+@app.command()
+def card(
+    run_dir: Path = typer.Option(..., help="The training run: its run.json, as sweep.sh keeps it."),
+    evaluation: Path = typer.Option(..., help="Its bf16 run on the post-cutoff filings."),
+    anchor: Path = typer.Option(..., help="The cost anchor's run on the same filings."),
+    out: Path = typer.Option(..., help="Where the card goes, a README.md."),
+    pre_cutoff: Path | None = typer.Option(None, help="Its bf16 run on the pre-cutoff filings."),
+    fmt_runs: list[Path] = typer.Option(
+        [], "--format-run", help="A quantised format's run on the same filings. Repeat."
+    ),
+    bench_dir: Path | None = typer.Option(None, "--bench", help="Its bf16 load test."),
+    utilisation: float = typer.Option(0.5, help="The utilisation the served cost assumes."),
+    build_dir: Path | None = typer.Option(None, help="Defaults to the build the runs name."),
+) -> None:
+    """The model card for one fine-tune, generated from its records and never typed."""
+    from smallprint import cards
+    from smallprint.bench.cost import usd_per_call
+
+    record = read_run_record(run_dir)
+    manifest = read_manifest(evaluation)
+    items = _items_for(evaluation, build_dir)
+    reference = _grades(evaluation, items)
+    verdicts = []
+    for run in fmt_runs:
+        _, run_name, fmt = launch.parse_served_name(read_manifest(run).model)
+        if run_name != record.run_id and run_name not in manifest.model:
+            raise typer.BadParameter(f"{run} is another model's", param_hint="--format-run")
+        verdicts.append(judge(fmt, _grades(run, items), reference))
+    served = None
+    if bench_dir is not None:
+        load = read_load(bench_dir)
+        level = load.level(SERVING_CONCURRENCY)
+        if level is None or level.summary is None:
+            raise typer.BadParameter(f"no level {SERVING_CONCURRENCY}", param_hint="--bench")
+        rps = level.summary.requests_per_second.point
+        per_1000 = 1000 * usd_per_call(load.price.usd_per_hour, rps, utilisation)
+        served = (
+            f"US${per_1000:,.3f} served ({load.price}; {rps:.2f} requests a second at "
+            f"{SERVING_CONCURRENCY} in flight, {utilisation:.0%} utilisation)"
+        )
+
+    def summary_of(run: Path) -> BaselineSummary:
+        run_items = _items_for(run, build_dir)
+        return summarise(read_manifest(run), read_predictions(run), run_items)
+
+    text = cards.render(
+        name=launch.parse_served_name(manifest.model)[1],
+        base=BASES[record.config.size],
+        record=record,
+        evaluation=summary_of(evaluation),
+        evaluation_prompt=manifest.prompt_fingerprint,
+        anchor=summary_of(anchor),
+        verdicts=verdicts,
+        pre_cutoff=summary_of(pre_cutoff) if pre_cutoff is not None else None,
+        served_cost=served,
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8", newline="\n")
+    typer.echo(f"Written to {out}.")
 
 
 @quantise_app.command("judge")

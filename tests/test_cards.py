@@ -96,3 +96,21 @@ def test_a_headline_number_alone_is_not_a_card(tmp_path: Path) -> None:
     summary = evaluated(tmp_path / "bare", {}, cost=0.0002)
     with pytest.raises(ValueError, match="not a card"):
         card(tmp_path, evaluation=summary.model_copy(update={"fields": ()}))
+
+
+def test_a_model_costed_by_its_load_test_says_so_on_the_card(tmp_path: Path) -> None:
+    """The accuracy runs came before any price for the served model existed, so the ledger
+    has them uncosted; the card carries the cost the load test measured, with its terms."""
+    uncosted = evaluated(tmp_path / "model", {}, cost=0.0)
+    uncosted = uncosted.model_copy(update={"usd_per_1000": None})
+    text = cards.render(
+        name="smallprint-2b",
+        base=BASES["2b"],
+        record=record(),
+        evaluation=uncosted,
+        evaluation_prompt=zero_shot().fingerprint,
+        anchor=evaluated(tmp_path / "anchor", {}, cost=0.001),
+        served_cost="US$0.083 served (A40 at US$0.49/h, 50% utilisation)",
+    )
+    assert "US$0.083 served (A40 at US$0.49/h, 50% utilisation)" in text
+    assert "not costed" not in text.split("## How it fails")[0].split("| Cost per 1,000")[1]

@@ -105,11 +105,14 @@ def render(
     verdicts: Sequence[Verdict] = (),
     pre_cutoff: BaselineSummary | None = None,
     dataset_url: str = "",
+    served_cost: str | None = None,
 ) -> str:
     """The card, as Markdown with Hugging Face front matter.
 
     `evaluation_prompt` is the prompt fingerprint from the evaluation run's manifest. It
-    must match the one the training file was written with.
+    must match the one the training file was written with. `served_cost` is the cost per
+    1,000 from the load test, with its card, rate and utilisation, for a model whose accuracy
+    run was made before any price for it existed and so went uncosted in the ledger.
     """
     if not evaluation.fields:
         raise ValueError("a card needs the per-field table; a headline number is not a card")
@@ -127,7 +130,7 @@ def render(
     cost = (
         f"US${evaluation.usd_per_1000.point:,.2f}"
         if evaluation.usd_per_1000 is not None
-        else "not costed"
+        else served_cost or "not costed"
     )
     anchor_cost = (
         f"US${anchor.usd_per_1000.point:,.2f}" if anchor.usd_per_1000 is not None else "not costed"
