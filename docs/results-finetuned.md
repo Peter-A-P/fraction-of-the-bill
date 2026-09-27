@@ -73,6 +73,8 @@ Measured on 705 test_post_cutoff filings, every call through the gateway, temper
 | `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | -0.2% (-0.5% to +0.0%) | 0.70 (0.70 to 0.70) | 24,862 (18,454 to 28,287) | US$0.387 (US$0.387 to US$0.387) | 0.4M |
 | `7b-r64-lr1e-4-nall-s0-e1` | awq | -0.2% (-0.4% to -0.0%) | 1.39 (1.39 to 1.39) | 11,107 (8,308 to 12,223) | US$0.196 (US$0.196 to US$0.196) | 0.4M |
 | `7b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 1.16 (1.16 to 1.16) | 17,322 (16,672 to 17,468) | US$0.235 (US$0.235 to US$0.235) | 0.4M |
+| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | | not measured at c=32, or retried | | | |
+| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | | not measured at c=32, or retried | | | |
 | `7b-r64-lr1e-4-nall-s0-e1` | gptq | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 0.4M |
 
 Self-hosted cost is the GPU-hour rate over the throughput measured at 32 requests in flight, at 50% utilisation; break-even is against `openai/gpt-5.6-luna zero_shot` at US$0.87 per 1,000, the cheapest frontier run, from the gateway ledger.

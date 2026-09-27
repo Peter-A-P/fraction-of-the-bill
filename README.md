@@ -93,14 +93,18 @@ utilisation, against luna's US$0.87 per 1,000:
 | `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | -0.2% (-0.5% to +0.0%) | 0.70 (0.70 to 0.70) | 24,862 (18,454 to 28,287) | US$0.387 (US$0.387 to US$0.387) | 0.4M |
 | `7b-r64-lr1e-4-nall-s0-e1` | awq | -0.2% (-0.4% to -0.0%) | 1.39 (1.39 to 1.39) | 11,107 (8,308 to 12,223) | US$0.196 (US$0.196 to US$0.196) | 0.4M |
 | `7b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 1.16 (1.16 to 1.16) | 17,322 (16,672 to 17,468) | US$0.235 (US$0.235 to US$0.235) | 0.4M |
+| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | | not measured at c=32, or retried | | | |
+| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | | not measured at c=32, or retried | | | |
 | `7b-r64-lr1e-4-nall-s0-e1` | gptq | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 0.4M |
 
 The 2B in bf16 answers for **US$0.083 per 1,000, about a tenth of the cheapest frontier
 model, and more accurately**; the 7B for US$0.196 in GPTQ, a quarter, and the most accurate
 model measured. A dedicated card pays for itself from about 0.4 million extractions a month.
 llama.cpp serves GGUF well to one caller and badly to many: its throughput falls as the load
-rises, which puts its cost per call four to five times vLLM's on the same card. The 7B's
-GGUF and the 4B were not load-tested; the pod was stopped before their turn
+rises, which puts the 2B's GGUF at four to five times vLLM's cost on the same card. The 7B's
+GGUF managed 0.2 requests a second at one and at eight in flight and failed every request at
+32 and 64, whose prompts did not fit its cache together; at its best that is US$1.36 per
+1,000, **more than the API**. The 4B was not load-tested: the 2B beats it on both axes
 ([docs/serving.md](docs/serving.md)).
 
 **The frontier baselines, the bar the above has to reach.** Written by `smallprint report`

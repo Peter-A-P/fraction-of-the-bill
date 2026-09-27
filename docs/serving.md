@@ -225,10 +225,15 @@ training stack was not pinned until the first fine-tune, and whether both handle
 On a Secure Cloud A40 at US$0.49 an hour ([gpu-prices.md](gpu-prices.md#the-serving-card-2026-09-26)),
 1,360 streamed requests a model through the gateway, at 1, 8, 32 and 64 in flight. The
 tables are in [results-finetuned.md](results-finetuned.md). Six models were measured: the
-2B in bf16, Q8_0 and Q4_K_M, and the 7B in bf16, AWQ and GPTQ. The 7B's GGUF and the 4B's
-bf16 were queued after them and not measured: the laptop's guard found nothing running on
-the pod for twenty minutes and terminated it, and the pod's own log went with it, so why the
-queue stopped is not known. The 4B is dominated on both axes by the 2B in any case.
+2B in bf16, Q8_0 and Q4_K_M, and the 7B in bf16, AWQ and GPTQ. The 7B's GGUF was measured on
+2026-09-27, after two attempts whose servers never started: llama.cpp's shared cache was set
+to 90,112 tokens, 34 GB at the 7B's 384 KB a token, which with the weights does not fit an
+A40's 48 GB. At 49,152 tokens it served 0.2 requests a second at one in flight and the same
+at eight, and failed every request at 32 and 64, whose prompts, about 4,000 tokens each,
+cannot fit the pool together; llama.cpp refused them rather than queue them. At its best
+that is US$1.36 per 1,000, above the API's US$0.87, and the report's table, which prices
+every model at 32 in flight, shows the 7B GGUF as not measured there. The 4B was not
+load-tested: the 2B is ahead of it on both axes.
 
 **llama.cpp is a server for one caller.** vLLM's throughput rises with the load, to 4.5
 requests a second for the 2B at 64 in flight; llama.cpp's falls, from 1.1 at 8 to 0.4 at
