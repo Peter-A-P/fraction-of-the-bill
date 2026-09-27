@@ -125,6 +125,23 @@ filings are where paying more shows: the ceiling model gets 8.7 more of every hu
 filings entirely right, for 35 times the price. Detail and failure modes in
 [docs/results-baseline.md](docs/results-baseline.md).
 
+**Published**, 2026-09-27, private on Hugging Face until reviewed, each model with the card
+generated from its records ([cards/](cards)):
+
+| Repository | What |
+|---|---|
+| `Peter-A-P/smallprint-2b` | The 2B, merged, bf16 |
+| `Peter-A-P/smallprint-2b-lora` | Its LoRA adapter |
+| `Peter-A-P/smallprint-2b-gguf` | Q8_0. Its Q4_K_M lost 0.7 points and is not published |
+| `Peter-A-P/smallprint-7b` | The 7B, merged, bf16 |
+| `Peter-A-P/smallprint-7b-lora` | Its LoRA adapter |
+| `Peter-A-P/smallprint-7b-awq`, `-gptq` | W4A16, for vLLM |
+| `Peter-A-P/smallprint-7b-gguf` | Q8_0 and Q4_K_M, for llama.cpp on one machine |
+| `Peter-A-P/smallprint-sec-extraction` | The corpus, with its datasheet (a dataset repository) |
+
+The 4B is not published: the 2B is ahead of it on both axes, and its one format that passed
+the gate was not kept.
+
 **No contamination premium.** The same model on the 1,396 filings published *before* the
 training cutoff scores 94.2%, which is 2.0 points **worse** than the post-cutoff set, not
 better. Memorising a filing does not help you copy a number off the page you were handed.
