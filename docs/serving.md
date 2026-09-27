@@ -219,3 +219,25 @@ requests-per-second that every cost in this project is divided by. The llm-compr
 llama.cpp versions are not pinned until the first format is made on the card, as the
 training stack was not pinned until the first fine-tune, and whether both handle the Gemma
 4 and OLMo 3 architectures is the first thing that run finds out.
+
+## The load test, 2026-09-26
+
+On a Secure Cloud A40 at US$0.49 an hour ([gpu-prices.md](gpu-prices.md#the-serving-card-2026-09-26)),
+1,360 streamed requests a model through the gateway, at 1, 8, 32 and 64 in flight. The
+tables are in [results-finetuned.md](results-finetuned.md). Six models were measured: the
+2B in bf16, Q8_0 and Q4_K_M, and the 7B in bf16, AWQ and GPTQ. The 7B's GGUF and the 4B's
+bf16 were queued after them and not measured: the laptop's guard found nothing running on
+the pod for twenty minutes and terminated it, and the pod's own log went with it, so why the
+queue stopped is not known. The 4B is dominated on both axes by the 2B in any case.
+
+**llama.cpp is a server for one caller.** vLLM's throughput rises with the load, to 4.5
+requests a second for the 2B at 64 in flight; llama.cpp's falls, from 1.1 at 8 to 0.4 at
+64, with the slowest first tokens at over a minute. Its unified cache and continuous
+batching do not make it a many-caller server on this card, so a GGUF's cost per call is four
+to five times the same model's in vLLM. GGUF is the format for a laptop or a single user,
+which is the plan's 4 GB edge point, not for the break-even.
+
+**Two fixes the first attempts forced**, each with a test: a sweep runs every level in one
+event loop, because the gateway's connections belong to the loop that opened them; and a
+connection the server drops at 64 in flight is a failed request in its level, not the end of
+the test. The 2B's bf16 at 64 lost 4 of 640 that way.

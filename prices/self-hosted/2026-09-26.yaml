@@ -1,0 +1,61 @@
+version: 1
+date: '2026-09-26'
+currency: USD
+source: Measured, not quoted. A40 on_demand at runpod, US$0.49/h read 2026-09-26 from
+  Runpod GraphQL API, pod costPerHr at rental, Secure Cloud on-demand; 3.29437 req/s
+  measured; utilisation 50%; prefill share 0.086 of GPU time; mean 3686 tokens in,
+  208 out; US$0.00008263 a call. Measured, not quoted. A40 on_demand at runpod, US$0.49/h
+  read 2026-09-26 from Runpod GraphQL API, pod costPerHr at rental, Secure Cloud on-demand;
+  0.673523 req/s measured; utilisation 50%; prefill share 0.078 of GPU time; mean
+  1869 tokens in, 211 out; US$0.00040418 a call. Measured, not quoted. A40 on_demand
+  at runpod, US$0.49/h read 2026-09-26 from Runpod GraphQL API, pod costPerHr at rental,
+  Secure Cloud on-demand; 0.704264 req/s measured; utilisation 50%; prefill share
+  0.074 of GPU time; mean 1896 tokens in, 211 out; US$0.00038653 a call. Measured,
+  not quoted. A40 on_demand at runpod, US$0.49/h read 2026-09-26 from Runpod GraphQL
+  API, pod costPerHr at rental, Secure Cloud on-demand; 1.38689 req/s measured; utilisation
+  50%; prefill share 0.080 of GPU time; mean 2977 tokens in, 152 out; US$0.00019628
+  a call. Measured, not quoted. A40 on_demand at runpod, US$0.49/h read 2026-09-26
+  from Runpod GraphQL API, pod costPerHr at rental, Secure Cloud on-demand; 1.156
+  req/s measured; utilisation 50%; prefill share 0.218 of GPU time; mean 2974 tokens
+  in, 152 out; US$0.00023549 a call. Measured, not quoted. A40 on_demand at runpod,
+  US$0.49/h read 2026-09-26 from Runpod GraphQL API, pod costPerHr at rental, Secure
+  Cloud on-demand; 1.3871 req/s measured; utilisation 50%; prefill share 0.082 of
+  GPU time; mean 2976 tokens in, 152 out; US$0.00019625 a call.
+per_million_tokens:
+  selfhosted:
+    2b-r64-lr1e-4-nall-s0-e1-bf16:
+      input: 0.0019224433787092463
+      output: 0.3626455680143758
+      cache_read: null
+      cache_write: null
+      batch_multiplier: null
+    2b-r64-lr1e-4-nall-s0-e1-gguf-q4_k_m:
+      input: 0.016835976259013057
+      output: 1.767920321426305
+      cache_read: null
+      cache_write: null
+      batch_multiplier: null
+    2b-r64-lr1e-4-nall-s0-e1-gguf-q8_0:
+      input: 0.015065815817502283
+      output: 1.694338613386592
+      cache_read: null
+      cache_write: null
+      batch_multiplier: null
+    7b-r64-lr1e-4-nall-s0-e1-awq:
+      input: 0.005271614709387311
+      output: 1.186126998002498
+      cache_read: null
+      cache_write: null
+      batch_multiplier: null
+    7b-r64-lr1e-4-nall-s0-e1-bf16:
+      input: 0.017240475442141433
+      output: 1.2084049391391087
+      cache_read: null
+      cache_write: null
+      batch_multiplier: null
+    7b-r64-lr1e-4-nall-s0-e1-gptq:
+      input: 0.00538619721355194
+      output: 1.1829193054506926
+      cache_read: null
+      cache_write: null
+      batch_multiplier: null
