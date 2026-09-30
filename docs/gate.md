@@ -14,6 +14,8 @@ Run on 2026-09-30 with gate 0.1.0.dev2, at its commit `789358c`, the first with 
 | 7B, seed 0, bf16 | `gpt-5.6-sol` two-shot, the best frontier result | block | `net_income` -2.7 (-4.1 to -1.3), `shares_diluted` -1.8 (-3.0 to -0.7) |
 | 2B, seed 0, bf16 | `gpt-5.6-luna` zero-shot | block | `operating_income` -3.0 (-4.7 to -1.6), `net_income` -2.0 (-3.8 to -0.3) |
 | 2B, seed 0, bf16 | `gpt-5.6-sol` two-shot | block | `operating_income` -3.5 (-5.0 to -2.1), `net_income` -3.4 (-5.0 to -2.0) |
+| 4B, seed 0, bf16 | `gpt-5.6-luna` zero-shot | block | `net_income` -2.4 (-4.1 to -0.7) |
+| 4B, seed 0, bf16 | `gpt-5.6-sol` two-shot | block | `net_income` -3.8 (-5.5 to -2.3), `cost_of_revenue` -1.8 (-3.1 to -0.6) |
 
 **What this changes.** Averaged over the fifteen fields, both fine-tunes are ahead of the
 cost anchor, and the 7B of everything measured. The gate asks a stricter question, whether
@@ -21,8 +23,8 @@ any one field could be three points worse, and it answers it field by field. The
 it against the model it is priced against, on every field. The 2B does not: it is ahead on
 eleven fields and level on two, and on operating income and net income it cannot rule out
 a three-point loss. It trades those two for large gains on the fields the frontier gets
-wrong, cash and state of incorporation. Neither fine-tune clears it against the two-shot
-ceiling at 35 times the anchor's price, where net income is the field that holds both back.
+wrong, cash and state of incorporation. The 4B is blocked on net income alone against the anchor. No fine-tune clears it
+against the two-shot ceiling at 35 times the anchor's price, where net income is the field that holds both back.
 
 So the claim the gate supports is narrower than the average: **the 7B is non-inferior to
 the cheapest frontier model on every field, at a quarter of its cost per call**; the 2B is

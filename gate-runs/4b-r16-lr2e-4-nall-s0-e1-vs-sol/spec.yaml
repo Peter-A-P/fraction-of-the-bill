@@ -1,0 +1,67 @@
+version: 1
+name: fraction-of-the-bill
+delta_points: 3.0
+alpha: 0.05
+resamples: 2000
+seed: 0
+suites:
+- key: period_end
+  source:
+    kind: outcomes_file
+    block: period_end
+- key: fiscal_period
+  source:
+    kind: outcomes_file
+    block: fiscal_period
+- key: revenue
+  source:
+    kind: outcomes_file
+    block: revenue
+- key: cost_of_revenue
+  source:
+    kind: outcomes_file
+    block: cost_of_revenue
+- key: operating_income
+  source:
+    kind: outcomes_file
+    block: operating_income
+- key: net_income
+  source:
+    kind: outcomes_file
+    block: net_income
+- key: eps_basic
+  source:
+    kind: outcomes_file
+    block: eps_basic
+- key: eps_diluted
+  source:
+    kind: outcomes_file
+    block: eps_diluted
+- key: shares_diluted
+  source:
+    kind: outcomes_file
+    block: shares_diluted
+- key: total_assets
+  source:
+    kind: outcomes_file
+    block: total_assets
+- key: total_liabilities
+  source:
+    kind: outcomes_file
+    block: total_liabilities
+- key: cash_and_equivalents
+  source:
+    kind: outcomes_file
+    block: cash_and_equivalents
+- key: stockholders_equity
+  source:
+    kind: outcomes_file
+    block: stockholders_equity
+- key: auditor_name
+  source:
+    kind: outcomes_file
+    block: auditor_name
+- key: state_of_incorporation
+  source:
+    kind: outcomes_file
+    block: state_of_incorporation
