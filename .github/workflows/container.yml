@@ -1,0 +1,27 @@
+name: container
+
+# The serving container, built and asked for its command line. Manual and on changes to the
+# container or the code it prints the command line from, because the vLLM image is 10 GB
+# and every push would pay for pulling it.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [docker/**, smallprint/serve/**, .github/workflows/container.yml]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # The runner's own toolchains take most of its disk; the vLLM image needs it.
+      - run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/Dockerfile -t smallprint-serve .
+      # No GPU here, so vLLM is not started: the check is that the entrypoint builds the
+      # command line every measurement was taken with, from the installed package.
+      - run: |
+          docker run --rm --entrypoint /opt/smallprint/bin/smallprint smallprint-serve \
+            serve argv --model Peter-A-P/smallprint-7b-gptq --run 7b-r64-lr1e-4-nall-s0-e1 \
+            --format gptq | tee argv.txt
+          grep -q -- "--quantization compressed-tensors" argv.txt
+          docker run --rm --entrypoint vllm smallprint-serve --version
