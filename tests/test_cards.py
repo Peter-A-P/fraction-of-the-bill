@@ -114,3 +114,33 @@ def test_a_model_costed_by_its_load_test_says_so_on_the_card(tmp_path: Path) -> 
     )
     assert "US$0.083 served (A40 at US$0.49/h, 50% utilisation)" in text
     assert "not costed" not in text.split("## How it fails")[0].split("| Cost per 1,000")[1]
+
+
+def test_the_card_carries_the_gate_s_decisions_and_the_fields_that_block(tmp_path: Path) -> None:
+    decision = {
+        "record_id": "c9eb7d588c0cfcf8",
+        "passed": False,
+        "baseline": {"label": "openai/gpt-5.6-sol"},
+        "suites": [
+            {"suite": "revenue", "difference": 0.0, "lo": -0.004, "hi": 0.004, "verdict": "pass"},
+            {
+                "suite": "net_income",
+                "difference": -0.027,
+                "lo": -0.041,
+                "hi": -0.013,
+                "verdict": "block",
+            },
+        ],
+    }
+    text = cards.render(
+        name="smallprint-4b",
+        base=BASES["4b"],
+        record=record(),
+        evaluation=evaluated(tmp_path / "model", {}, cost=0.0002),
+        evaluation_prompt=zero_shot().fingerprint,
+        anchor=evaluated(tmp_path / "anchor", {}, cost=0.001),
+        gate=[decision],
+    )
+    row = "| `openai/gpt-5.6-sol` | block | `net_income` -2.7 (-4.1 to -1.3) | `c9eb7d588c0cfcf8` |"
+    assert row in text
+    assert "not been run" in cards.gate_table([])

@@ -15,8 +15,8 @@ number averages them into something no one can act on.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Final
+from collections.abc import Mapping, Sequence
+from typing import Any, Final
 
 from smallprint.baseline import BaselineSummary
 from smallprint.grade import Interval, MissReason
@@ -94,6 +94,27 @@ def quant_table(verdicts: Sequence[Verdict]) -> str:
     return "\n".join(lines)
 
 
+def gate_table(records: Sequence[Mapping[str, Any]]) -> str:
+    """The release gate's decisions on this model, from its ledger records (project 03)."""
+    if not records:
+        return "The release gate has not been run on this model."
+    rows = [
+        "| Against | Verdict | Fields that block | Record |",
+        "|---|---|---|---|",
+    ]
+    for r in records:
+        blocking = [
+            f"`{s['suite']}` {100 * s['difference']:+.1f} ({100 * s['lo']:+.1f} to {100 * s['hi']:+.1f})"
+            for s in r["suites"]
+            if s.get("verdict") == "block"
+        ]
+        rows.append(
+            f"| `{r['baseline']['label']}` | {'pass' if r['passed'] else 'block'} | "
+            f"{', '.join(blocking) or 'none'} | `{r['record_id']}` |"
+        )
+    return "\n".join(rows)
+
+
 def render(
     *,
     name: str,
@@ -106,6 +127,7 @@ def render(
     pre_cutoff: BaselineSummary | None = None,
     dataset_url: str = "",
     served_cost: str | None = None,
+    gate: Sequence[Mapping[str, Any]] = (),
 ) -> str:
     """The card, as Markdown with Hugging Face front matter.
 
@@ -170,6 +192,15 @@ another model anywhere in producing these numbers.
 | Cost per 1,000 extractions | {cost} | {anchor_cost} |
 
 {evaluation.graded:,} filings. {gap}
+
+## The release gate
+
+Non-inferiority field by field, paired on the same filings, a three-point margin per field
+and Holm's adjustment across the fifteen, decided by the portfolio's release gate
+(project 03) on this model's outcomes. A field blocks when the gate cannot rule out a
+three-point loss on it.
+
+{gate_table(gate)}
 
 ## How it fails
 

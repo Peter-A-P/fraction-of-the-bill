@@ -811,6 +811,9 @@ def card(
     ),
     bench_dir: Path | None = typer.Option(None, "--bench", help="Its bf16 load test."),
     utilisation: float = typer.Option(0.5, help="The utilisation the served cost assumes."),
+    gate_ledger: Path | None = typer.Option(
+        None, help="The release gate's ledger; its decisions on this model go on the card."
+    ),
     build_dir: Path | None = typer.Option(None, help="Defaults to the build the runs name."),
 ) -> None:
     """The model card for one fine-tune, generated from its records and never typed."""
@@ -854,6 +857,15 @@ def card(
         verdicts=verdicts,
         pre_cutoff=summary_of(pre_cutoff) if pre_cutoff is not None else None,
         served_cost=served,
+        gate=[
+            record
+            for line in (
+                gate_ledger.read_text(encoding="utf-8").splitlines() if gate_ledger else []
+            )
+            if line.strip()
+            for record in [json.loads(line)]
+            if record.get("candidate", {}).get("label") == manifest.model
+        ],
     )
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8", newline="\n")
