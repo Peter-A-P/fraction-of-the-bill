@@ -217,18 +217,9 @@ uv run gate compare --spec spec.yaml --baseline baseline.json \
     --candidate candidate.json --ledger gate-ledger.jsonl
 ```
 
-Run from a checkout of the gate with its `gate` extra. It has not been run on real outcomes
-yet. The first comparison is a fine-tune's post-cutoff run against the best frontier run on the
-same filings, the pairing the README's paired-delta column already uses.
-
-## Not done yet
-
-Nothing here has run against a real server or a real merge. The first time it does is on
-the rented card, and the first thing that run produces is the seconds-per-step and
-requests-per-second that every cost in this project is divided by. The llm-compressor and
-llama.cpp versions are not pinned until the first format is made on the card, as the
-training stack was not pinned until the first fine-tune, and whether both handle the Gemma
-4 and OLMo 3 architectures is the first thing that run finds out.
+Run from a checkout of the gate with its `gate` extra. First run on real outcomes on
+2026-09-30, the 2B and 7B against the cost anchor and the best frontier run: the decisions,
+the files and the ledger are in [gate.md](gate.md) and [gate-runs/](../gate-runs).
 
 ## The load test, 2026-09-26
 

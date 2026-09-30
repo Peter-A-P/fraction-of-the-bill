@@ -1,0 +1,31 @@
+## Gate: BLOCK
+
+Spec `fraction-of-the-bill` (a63a5a76c892744c).
+
+Baseline `openai/gpt-5.6-luna`, candidate `selfhosted/2b-r64-lr1e-4-nall-s0-e1-bf16`.
+
+| Suite | Paired items | Baseline | Candidate | Difference | Margin | Holm p | Verdict |
+|---|---:|---|---|---|---:|---:|---|
+| period_end | 705 | 100.0% (99.6 to 100.0) | 100.0% (99.6 to 100.0) | +0.0% (-0.4 to +0.4) | -3% | 0.000 | pass |
+| fiscal_period | 705 | 98.9% (98.0 to 99.6) | 100.0% (99.6 to 100.0) | +1.1% (+0.3 to +2.0) | -3% | 0.000 | pass |
+| revenue | 705 | 100.0% (99.6 to 100.0) | 99.6% (99.0 to 100.0) | -0.4% (-1.0 to +0.3) | -3% | 0.000 | pass |
+| cost_of_revenue | 705 | 86.5% (83.8 to 88.9) | 87.7% (85.1 to 90.1) | +1.1% (-0.3 to +2.6) | -3% | 0.000 | pass |
+| operating_income | 705 | 98.2% (97.2 to 99.0) | 95.2% (93.5 to 96.6) | -3.0% (-4.7 to -1.6) | -3% | 0.465 | block |
+| net_income | 705 | 97.3% (96.0 to 98.4) | 95.3% (93.6 to 96.9) | -2.0% (-3.8 to -0.3) | -3% | 0.226 | block |
+| eps_basic | 705 | 91.9% (89.8 to 93.9) | 92.6% (90.5 to 94.5) | +0.7% (-0.1 to +1.7) | -3% | 0.000 | pass |
+| eps_diluted | 705 | 94.5% (92.6 to 96.2) | 94.5% (92.6 to 96.2) | +0.0% (-1.0 to +0.9) | -3% | 0.000 | pass |
+| shares_diluted | 705 | 93.0% (91.1 to 94.9) | 92.5% (90.4 to 94.3) | -0.6% (-1.4 to +0.1) | -3% | 0.000 | pass |
+| total_assets | 705 | 99.9% (99.6 to 100.0) | 99.6% (99.0 to 100.0) | -0.3% (-0.9 to +0.3) | -3% | 0.000 | pass |
+| total_liabilities | 705 | 90.5% (88.2 to 92.6) | 99.4% (98.9 to 99.9) | +8.9% (+6.8 to +11.2) | -3% | 0.000 | pass |
+| cash_and_equivalents | 705 | 99.7% (99.3 to 100.0) | 99.6% (99.0 to 100.0) | -0.1% (-0.4 to +0.4) | -3% | 0.000 | pass |
+| stockholders_equity | 705 | 98.3% (97.3 to 99.1) | 98.7% (97.7 to 99.4) | +0.4% (-0.7 to +1.7) | -3% | 0.000 | pass |
+| auditor_name | 705 | 99.7% (99.3 to 100.0) | 99.7% (99.3 to 100.0) | +0.0% (-0.4 to +0.4) | -3% | 0.000 | pass |
+| state_of_incorporation | 705 | 94.9% (93.2 to 96.5) | 99.4% (98.9 to 99.9) | +4.5% (+3.0 to +6.2) | -3% | 0.000 | pass |
+
+Difference is candidate minus baseline, paired by item, with its 95% bootstrap interval. A suite passes when the whole interval sits above the margin after Holm's adjustment across the decided suites; an under-powered suite warns and is not decided.
+
+**Reasons**
+
+- operating_income: cannot rule out a 3% drop: -3.0% (-4.7% to -1.6%) over 705 items, 26 worse and 5 better (p 0.465, Holm 0.465)
+- net_income: cannot rule out a 3% drop: -2.0% (-3.8% to -0.3%) over 705 items, 27 worse and 13 better (p 0.113, Holm 0.226)
+ledger record 85feabeb81103ba2 appended to gate-runs/ledger.jsonl

@@ -97,8 +97,11 @@ utilisation, against luna's US$0.87 per 1,000:
 | `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | | not measured at c=32, or retried | | | |
 | `7b-r64-lr1e-4-nall-s0-e1` | gptq | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 0.4M |
 
-The 2B in bf16 answers for **US$0.083 per 1,000, about a tenth of the cheapest frontier
-model, and more accurately**; the 7B for US$0.196 in GPTQ, a quarter, and the most accurate
+**The release gate** (project 03, field by field, three-point margin; [docs/gate.md](docs/gate.md))
+passes the 7B against the cost anchor on all fifteen fields, and blocks the 2B on operating
+income and net income, where it cannot rule out a three-point loss; neither passes against
+the two-shot ceiling. The 2B in bf16 answers for **US$0.083 per 1,000, about a tenth of the
+cheapest frontier model, and better on average**, though not on those two lines; the 7B for US$0.196 in GPTQ, a quarter, and the most accurate
 model measured. A dedicated card pays for itself from about 0.4 million extractions a month.
 llama.cpp serves GGUF well to one caller and badly to many: its throughput falls as the load
 rises, which puts the 2B's GGUF at four to five times vLLM's cost on the same card. The 7B's
