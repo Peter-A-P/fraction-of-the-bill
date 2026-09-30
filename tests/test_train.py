@@ -501,3 +501,22 @@ def test_the_monitor_losses_come_from_the_trainer_log_in_step_order() -> None:
         {"train_runtime": 3.0},
     ]
     assert monitor_losses(log) == [(50, 0.5), (100, 0.4)]
+
+
+def test_distilled_targets_replace_the_facts_for_training_filings_only() -> None:
+    """The ablation trains towards a frontier model's answers; validation still scores
+    against the facts, and a filing the model gave no usable answer for is left out."""
+    examples, manifest = dataset.build(pool(4, 2))
+    train = [e for e in examples if e.split is Split.TRAIN]
+    other = TRUTH.model_copy(update={"revenue": 1.0})
+    answers = {train[0].item_id: other, train[1].item_id: other, train[2].item_id: other}
+    distilled, record = dataset.distil(examples, manifest, answers, source="openai/luna")
+    assert record.targets == "openai/luna" and record.dropped == 1 and record.train == 3
+    assert [e.item_id for e in distilled if e.split is Split.TRAIN] == [
+        e.item_id for e in train[:3]
+    ]
+    assert all('"revenue": 1' in e.assistant for e in distilled if e.split is Split.TRAIN)
+    validation = [e for e in distilled if e.split is Split.VALIDATION]
+    assert validation == [e for e in examples if e.split is Split.VALIDATION]
+    with pytest.raises(ValueError, match="none of the training filings"):
+        dataset.distil(examples, manifest, {}, source="openai/luna")

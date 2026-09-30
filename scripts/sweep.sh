@@ -22,7 +22,9 @@ mkdir -p logs runs
 
 for recipe in "$@"; do
   IFS=: read -r rank lr volume seed <<<"$recipe"
-  name="$size-r$rank-lr$lr-n$volume-s$seed-e$epochs"
+  # NAME_SUFFIX and DATASET_DIR: a run on another training file, like the distillation
+  # ablation's, gets its own name, so it cannot resume or skip into the truth-trained run.
+  name="$size-r$rank-lr$lr-n$volume-s$seed-e$epochs${NAME_SUFFIX:-}"
   done_uri="s3://$VOLUME_ID/adapters/$name"
   if aws s3 ls "${s3[@]}" "$done_uri/run.json" >/dev/null 2>&1; then
     echo "=== $name already on the volume, skipped"
@@ -31,7 +33,7 @@ for recipe in "$@"; do
   args=(--size "$size" --epochs "$epochs" --rank "$rank" --learning-rate "$lr" --seed "$seed")
   if [ "$volume" != all ]; then args+=(--volume "$volume"); fi
   echo "=== $name started $(date -u +%FT%TZ)"
-  uv run --no-sync smallprint train run --dataset-dir data/train/full "${args[@]}" \
+  uv run --no-sync smallprint train run --dataset-dir "${DATASET_DIR:-data/train/full}" "${args[@]}" \
     --out "runs/$name" --checkpoint-uri "s3://$VOLUME_ID/checkpoints/$name" \
     --s3-datacenter "$DATACENTER" >"logs/$name.log" 2>&1
   aws s3 sync "${s3[@]}" --quiet "runs/$name/adapter" "$done_uri/adapter"

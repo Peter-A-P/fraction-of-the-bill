@@ -528,17 +528,43 @@ def train_dataset(
     out: Path = typer.Option(Path("data/train"), help="Where examples.jsonl is written."),
     volume: int | None = typer.Option(None, help="Training filings to use. All when omitted."),
     seed: int = typer.Option(VOLUME_SEED, help="Seed for the volume subset."),
+    targets_from: Path | None = typer.Option(
+        None, help="A run over the training filings whose answers replace the facts as targets."
+    ),
 ) -> None:
     """Write the training file: the same prompt the baselines used, the graded answer as target.
 
     Only the training and validation pools are ever written. The volume subsets are nested,
-    so the data-scaling curve varies how many filings and not which ones.
+    so the data-scaling curve varies how many filings and not which ones. With
+    `--targets-from`, the targets are that run's answers instead: the distillation ablation.
     """
+    from smallprint.grade import parse_extraction
+    from smallprint.train.dataset import distil
+
     items = [s for s in read_items(build_dir) if s.split in TRAINABLE]
     examples, manifest = build_examples(items, volume=volume, seed=seed)
+    if targets_from is not None:
+        run = read_manifest(targets_from)
+        if run.prompt_fingerprint != manifest.prompt_fingerprint or run.split != Split.TRAIN.value:
+            raise typer.BadParameter(
+                f"{targets_from} is {run.split} under prompt {run.prompt_fingerprint[:16]}; the "
+                f"targets must be the training filings under {manifest.prompt_fingerprint[:16]}",
+                param_hint="--targets-from",
+            )
+        answers = {}
+        for p in read_predictions(targets_from):
+            parsed = parse_extraction(p.text) if p.ok and p.text else None
+            if parsed is not None:
+                answers[p.item_id] = parsed
+        examples, manifest = distil(examples, manifest, answers, source=run.model)
     path = write_examples(out, examples, manifest, build_dir=build_dir)
     typer.echo(
-        f"{manifest.train:,} training and {manifest.validation:,} validation examples in {path}."
+        f"{manifest.train:,} training and {manifest.validation:,} validation examples in {path}"
+        + (
+            f", targets from {manifest.targets}, {manifest.dropped:,} dropped."
+            if manifest.targets != "xbrl"
+            else "."
+        )
     )
     typer.echo(
         f"Median {manifest.median_chars:,} characters, p95 {manifest.p95_chars:,}; "

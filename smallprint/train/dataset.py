@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Final
 
@@ -34,6 +34,7 @@ from pydantic import BaseModel, ConfigDict
 from smallprint.data.build import SplitItem
 from smallprint.data.split import Split
 from smallprint.prompts import Prompt, PromptStyle, answer, build_prompt, user_message
+from smallprint.schema import Extraction
 
 #: The splits a training file may be written from. The test pools are not here on purpose.
 TRAINABLE: Final[frozenset[Split]] = frozenset({Split.TRAIN, Split.VALIDATION})
@@ -85,6 +86,12 @@ class DatasetManifest(BaseModel):
     #: Character length of the whole example, for choosing a sequence length.
     median_chars: int
     p95_chars: int
+    #: Where the training targets came from: "xbrl", the filed facts, or the run whose
+    #: answers replaced them, for the distillation ablation. Validation targets are always
+    #: the facts: they score the checkpoints, and a distilled run is measured against truth.
+    targets: str = "xbrl"
+    #: Training filings left out because that run gave no usable answer for them.
+    dropped: int = 0
 
 
 #: The seed the volume subsets are drawn with. One constant, because the subsets have to
@@ -167,6 +174,36 @@ def build(
         median_chars=lengths[len(lengths) // 2],
         p95_chars=lengths[int(len(lengths) * 0.95)],
     )
+
+
+def distil(
+    examples: Sequence[Example],
+    manifest: DatasetManifest,
+    answers: Mapping[str, Extraction],
+    *,
+    source: str,
+) -> tuple[list[Example], DatasetManifest]:
+    """The same examples with another model's answers as the training targets.
+
+    For the distillation ablation (PLAN.md section 9): the same filings, prompt and recipe,
+    trained towards what a frontier model said rather than what the company filed. Each
+    answer is written by `prompts.answer`, as the facts are, so the two training files
+    differ in the values and never in the format. A training filing the model gave no
+    usable answer for is left out and counted; validation keeps the facts.
+    """
+    kept: list[Example] = []
+    dropped = 0
+    for e in examples:
+        if e.split is not Split.TRAIN:
+            kept.append(e)
+        elif e.item_id in answers:
+            kept.append(e.model_copy(update={"assistant": answer(answers[e.item_id])}))
+        else:
+            dropped += 1
+    train = sum(1 for e in kept if e.split is Split.TRAIN)
+    if not train:
+        raise ValueError(f"{source} answered none of the training filings")
+    return kept, manifest.model_copy(update={"targets": source, "dropped": dropped, "train": train})
 
 
 def write(
