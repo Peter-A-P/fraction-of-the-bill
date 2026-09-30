@@ -447,3 +447,7 @@ def test_the_spec_names_every_field_and_the_margin() -> None:
     spec = gate.spec()
     assert [s["key"] for s in spec["suites"]] == list(FIELDS)
     assert spec["delta_points"] == gate.DELTA_POINTS
+    # The gate's adapter reads a suite of kind outcomes_file from the side file's suite named by
+    # `block`, so the block is the side file's key, not the schema's spelling of the field.
+    for s in spec["suites"]:
+        assert s["source"] == {"kind": "outcomes_file", "block": s["key"]}

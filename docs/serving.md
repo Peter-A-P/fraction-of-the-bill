@@ -207,9 +207,19 @@ adjustment is for, and a block names the field. The margin is the gate's default
 points per field: on 705 filings a field near 97% has a paired standard error of about 0.75
 points, so a one-point margin would leave every suite under the gate's power screen.
 
-**Not runnable end to end yet.** The gate reads one source kind today, blocks of its own
-drift record. Reading these files is its downstream adapter, stage 8 of its plan, which is
-not built, and its spec model refuses the source kind these files name until it is.
+**Runnable since 2026-09-30.** The gate's downstream adapter reads these files as written
+(source kind `outcomes_file`, its `docs/gate-adapter.md`) and refuses one it cannot read
+exactly. The decision is recorded in this project's own ledger, each side file named by the
+hash of its bytes:
+
+```bash
+uv run gate compare --spec spec.yaml --baseline baseline.json \
+    --candidate candidate.json --ledger gate-ledger.jsonl
+```
+
+Run from a checkout of the gate with its `gate` extra. It has not been run on real outcomes
+yet. The first comparison is a fine-tune's post-cutoff run against the best frontier run on the
+same filings, the pairing the README's paired-delta column already uses.
 
 ## Not done yet
 

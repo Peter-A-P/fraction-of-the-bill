@@ -19,10 +19,15 @@ spec carries it. A tighter one could not be decided on 705 filings: a field near
 accuracy has a paired standard error of about 0.75 points, so a one-point margin would put
 every suite under the power screen and the gate would warn rather than decide.
 
-**Not yet runnable end to end.** The gate reads one source kind today, a block of its own
-drift record. Reading these files is its adapter, stage 8 of its plan, which is not built.
-The files are written in the shape its `Side` and `SuiteOutcomes` hold, so the adapter is a
-loader and not a translation.
+**Runnable since 2026-09-30.** The gate's adapter (its `gate/adapter.py` and
+`docs/gate-adapter.md`) reads these files as written: a spec whose suites are source kind
+`outcomes_file`, and one side file per side in the shape of its `Side` and `SuiteOutcomes`.
+It refuses a file it cannot read exactly (an unknown key, a grade that is not a boolean, a
+missing suite) rather than guessing, and names each file in its record by the hash of its
+bytes. The decision goes to this project's own ledger:
+
+    uv run gate compare --spec spec.yaml --baseline baseline.json \
+        --candidate candidate.json --ledger <this repository>/gate-ledger.jsonl
 """
 
 from __future__ import annotations
@@ -81,9 +86,9 @@ def side(
 def spec(*, delta_points: float = DELTA_POINTS) -> dict[str, Any]:
     """The eval spec, in the gate's `EvalSpec` shape, one suite per field.
 
-    The source kind `smallprint_outcomes` is the one the gate's adapter will need to add;
-    its spec model forbids unknown kinds today, so this file is refused by the gate until
-    then, loudly, which is better than being read as something it is not.
+    The source kind is the gate's `outcomes_file`: outcomes graded here, read from a side
+    file, and `block` names the suite in that file. The gate's spec model forbids unknown
+    kinds, so a misspelt kind is refused loudly rather than read as something it is not.
     """
     return {
         "version": 1,
@@ -93,7 +98,7 @@ def spec(*, delta_points: float = DELTA_POINTS) -> dict[str, Any]:
         "resamples": 2000,
         "seed": 0,
         "suites": [
-            {"key": suite_key(name), "source": {"kind": "smallprint_outcomes", "block": name}}
+            {"key": suite_key(name), "source": {"kind": "outcomes_file", "block": suite_key(name)}}
             for name in FIELDS
         ],
     }
