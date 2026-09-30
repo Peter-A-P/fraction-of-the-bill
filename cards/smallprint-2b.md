@@ -26,6 +26,18 @@ another model anywhere in producing these numbers.
 
 705 filings. On filings published before the base model's training cutoff it scores 95.2% (94.7% to 95.5%), against 96.9% (96.5% to 97.3%) after it. That difference is the contamination gap, reported and never used as the headline.
 
+## The release gate
+
+Non-inferiority field by field, paired on the same filings, a three-point margin per field
+and Holm's adjustment across the fifteen, decided by the portfolio's release gate
+(project 03) on this model's outcomes. A field blocks when the gate cannot rule out a
+three-point loss on it.
+
+| Against | Verdict | Fields that block | Record |
+|---|---|---|---|
+| `openai/gpt-5.6-sol` | block | `operating_income` -3.5 (-5.0 to -2.1), `net_income` -3.4 (-5.0 to -2.0) | `4bb6956e2ea1e120` |
+| `openai/gpt-5.6-luna` | block | `operating_income` -3.0 (-4.7 to -1.6), `net_income` -2.0 (-3.8 to -0.3) | `85feabeb81103ba2` |
+
 ## How it fails
 
 | Failure | Count | Per 1,000 fields |

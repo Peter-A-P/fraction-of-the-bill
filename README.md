@@ -142,8 +142,11 @@ generated from its records ([cards/](cards)):
 | `Peter-A-P/smallprint-7b-gguf` | Q8_0 and Q4_K_M, for llama.cpp on one machine |
 | `Peter-A-P/smallprint-sec-extraction` | The corpus, with its datasheet (a dataset repository) |
 
-The 4B is not published: the 2B is ahead of it on both axes, and its one format that passed
-the gate was not kept.
+| `Peter-A-P/smallprint-4b`, `-4b-lora`, `-4b-gguf` | The 4B, its adapter and its Q8_0. Its Q4_K_M forgot the output format and is not published |
+
+The 4B's Q8_0 was rebuilt from its adapter for publishing, 2026-09-30, because the file
+graded was not kept; the merge it came from passed the same check (100% of the answer's
+tokens). Every card carries the release gate's decisions on its model.
 
 **No contamination premium.** The same model on the 1,396 filings published *before* the
 training cutoff scores 94.2%, which is 2.0 points **worse** than the post-cutoff set, not
