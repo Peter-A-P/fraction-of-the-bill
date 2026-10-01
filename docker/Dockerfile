@@ -13,6 +13,8 @@
 # llama.cpp is the format for one machine, not for a server (docs/serving.md).
 FROM vllm/vllm-openai:v0.30.0
 
+# git for the gateway, which is installed from its tagged repository.
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir uv==0.9.* \
     && uv python install 3.13 \
     && uv venv -p 3.13 /opt/smallprint
