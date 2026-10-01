@@ -24,4 +24,5 @@ jobs:
             serve argv --model Peter-A-P/smallprint-7b-gptq --run 7b-r64-lr1e-4-nall-s0-e1 \
             --format gptq | tee argv.txt
           grep -q -- "--quantization compressed-tensors" argv.txt
-          docker run --rm --entrypoint vllm smallprint-serve --version
+          docker run --rm --entrypoint python3 smallprint-serve -c "import vllm; print(vllm.__version__)" | tee version.txt
+          grep -qx "0.30.0" version.txt
