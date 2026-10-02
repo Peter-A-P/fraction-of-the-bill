@@ -203,7 +203,7 @@ settles the deferred 20k point: the corpus expansion would not buy what it costs
 test set, paired filing by filing with the frontier runs: **96.92% of fields (96.51 to
 97.30) and 65.7% of whole filings**, against the cost anchor, `gpt-5.6-luna` zero-shot,
 by **+0.70 points of fields (+0.34 to +1.05)** and 65.7% against 58.3% of whole filings.
-Against the best frontier result anyone paid for, `gpt-5.6-sol` two-shot at 35 times
+Against the best frontier result anyone paid for, `gpt-5.6-sol` two-shot at 37 times
 luna's price, it is level, -0.0 points (-0.4 to +0.3), and 65.7% against 67.0%. All 705
 filings; one was first refused by the server for a context too short for it and rerun
 ([serving.md](serving.md)). The gate is cleared, so the larger sizes are not stopped;
@@ -224,7 +224,7 @@ On the 705 post-cutoff filings, paired with `gpt-5.6-luna` zero-shot, the cost a
 | 4B, learning rate 2e-4 | 0 / 1 / 2 | 96.89 / 96.49 / 96.24% | 66.5 / 63.5 / 63.4% | +0.67 / +0.27 / +0.02 |
 | 7B, rank 64 | 0 / 1 / 2 | 97.37 / 97.07 / 97.25% | 71.9 / 70.2 / 71.8% | +1.15 / +0.85 / +1.03 |
 
-Luna is 96.2% and 58.3%; `gpt-5.6-sol` two-shot, 35 times its price, 96.9% and 67.0%.
+Luna is 96.2% and 58.3%; `gpt-5.6-sol` two-shot, 37 times its price, 96.9% and 67.0%.
 Every seed of every size is above the anchor, and the 7B's three are clear of it with
 intervals that exclude zero, and above the most expensive frontier result on whole
 filings. The 4B is no better than the 2B and nearly twice as slow to answer. Pre-cutoff
@@ -321,7 +321,9 @@ frontier model answered instead of what the company filed. The question is when
 distillation is the right tool, and the expected answer is: when there is no truth.
 
 **The targets.** `gpt-5.6-luna` zero-shot, the cost anchor, over all 5,060 training
-filings through the gateway, 2026-09-30, US$4.48 at US$0.89 per 1,000. Graded against the
+filings through the gateway, 2026-09-30: US$4.48 as the ledger recorded it, US$5.20
+(US$1.03 per 1,000) at OpenAI's cache-write rate (see
+[baseline.md](baseline.md#the-six-runs-2026-09-20)). Graded against the
 facts it is 94.6% of fields right (94.4% to 94.9%) and 56.2% of filings entirely right, so
 about one field in nineteen it teaches is wrong. Seven answers would not parse and those
 filings are left out, so the distilled model trains on 5,053 against the control's 5,060:

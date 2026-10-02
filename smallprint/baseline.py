@@ -50,6 +50,7 @@ from smallprint.grade import (
     parse_extraction,
 )
 from smallprint.prompts import Prompt, PromptStyle
+from smallprint.recost import Recost
 
 #: The answer is fifteen fields of JSON, about 200 tokens. The ceiling is generous because
 #: a truncated answer grades as malformed and would be indistinguishable from a model that
@@ -372,6 +373,9 @@ class BaselineSummary(BaseModel):
     usd_per_1000: Measured | None
     uncosted_calls: int
     price_list: str | None
+    #: Set when the cost is not the ledger's as written but recomputed from the run's raw
+    #: bytes (smallprint/recost.py); says how. None means the recorded cost.
+    cost_basis: str | None = None
     input_tokens: int
     output_tokens: int
     latency_p50_ms: Measured
@@ -388,7 +392,8 @@ class BaselineSummary(BaseModel):
             f"  every field      {self.exact_match}",
             f"  unparseable      {self.unparseable}",
             f"  cost per 1,000   {cost}"
-            + (f" ({self.uncosted_calls} calls uncosted)" if self.uncosted_calls else ""),
+            + (f" ({self.uncosted_calls} calls uncosted)" if self.uncosted_calls else "")
+            + (f", {self.cost_basis}" if self.cost_basis else ""),
             f"  latency p50      {self.latency_p50_ms}",
             f"  latency p99      {self.latency_p99_ms}",
         ]
@@ -409,8 +414,13 @@ def summarise(
     items: Sequence[SplitItem],
     *,
     seed: int = 0,
+    recosted: Recost | None = None,
 ) -> BaselineSummary:
-    """Everything one run says, with an interval on every proportion and every time."""
+    """Everything one run says, with an interval on every proportion and every time.
+
+    With `recosted`, a call's cost is the one recomputed from its raw bytes where there is
+    one, and the summary says so; the predictions on disk are not changed.
+    """
     if not predictions:
         raise ValueError("no predictions to summarise")
     predictions, set_aside = within(predictions, items)
@@ -423,7 +433,11 @@ def summarise(
         0.0 if p.text is not None and parse_extraction(p.text) is not None else 1.0
         for p in answered
     ]
-    costed = [p.cost_usd for p in predictions if p.costed and p.cost_usd is not None]
+    costed = [
+        recosted.costs.get(p.ledger_id, p.cost_usd) if recosted is not None else p.cost_usd
+        for p in predictions
+        if p.costed and p.cost_usd is not None
+    ]
     ttft = [p.ttft_ms for p in predictions if p.ttft_ms is not None]
     prices = {p.price_list for p in predictions if p.price_list is not None}
 
@@ -448,7 +462,10 @@ def summarise(
             else None
         ),
         uncosted_calls=sum(1 for p in predictions if not p.costed),
-        price_list=", ".join(sorted(prices)) if prices else None,
+        price_list=(
+            recosted.price_list if recosted is not None else ", ".join(sorted(prices)) or None
+        ),
+        cost_basis=recosted.basis if recosted is not None else None,
         input_tokens=sum(p.input_tokens for p in predictions),
         output_tokens=sum(p.output_tokens for p in predictions),
         latency_p50_ms=percentile_measured([p.latency_ms for p in predictions], 50, seed=seed),

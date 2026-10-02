@@ -24,10 +24,10 @@ it against the model it is priced against, on every field. The 2B does not: it i
 eleven fields and level on two, and on operating income and net income it cannot rule out
 a three-point loss. It trades those two for large gains on the fields the frontier gets
 wrong, cash and state of incorporation. The 4B is blocked on net income alone against the anchor. No fine-tune clears it
-against the two-shot ceiling at 35 times the anchor's price, where net income is the field that holds both back.
+against the two-shot ceiling at 37 times the anchor's price, where net income is the field that holds both back.
 
 So the claim the gate supports is narrower than the average: **the 7B is non-inferior to
-the cheapest frontier model on every field, at a quarter of its cost per call**; the 2B is
+the cheapest frontier model on every field, at under a quarter of its cost per call**; the 2B is
 cheaper still and better on average, and worse on two income-statement lines. The gate
 decides on seed 0 of each; the other seeds' test runs are in
 [training.md](training.md#seeds-the-second-epoch-and-the-formats-2026-09-26).

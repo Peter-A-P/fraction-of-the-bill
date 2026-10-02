@@ -129,7 +129,9 @@ would be paying.
 | Middle, second vendor | `anthropic/claude-sonnet-5` | 2 / 10 | US$7.96 | US$16.76 |
 | Floor, the cost anchor | `openai/gpt-5.6-luna` | 0.2 / 1.2 | US$0.64 | US$1.17 |
 
-Rates are from the price list boundary v0.3.0 ships, dated 2026-09-14. The run costs are
+Rates are from the price list boundary v0.3.0 ships, dated 2026-09-14. (Those
+projections, like the ledger, priced OpenAI's cache writes as plain input; see the six runs
+below.) The run costs are
 projections from the rehearsal below: tokens per character measured per model against the
 character count of every item in the split, and mean output tokens measured per model and
 style. Six runs come to about **US$59**, and the most expensive single run is 74% of the
@@ -256,7 +258,19 @@ mode with retries off, or a change in the gateway. Not decided.
 ## The six runs, 2026-09-20
 
 All three models over all 716 post-cutoff filings, zero-shot and two-shot: 4,296 calls,
-US$59.63, no failures, one answer in 4,296 that would not parse. The table is in
+US$59.63 as the ledger recorded it, no failures, one answer in 4,296 that would not parse.
+
+**Corrected 2026-10-02: OpenAI's cache writes.** GPT-5.6 bills a token written to the
+prompt cache at 1.25x input and reports it as `cache_write_tokens`; boundary v0.3.0 read
+only `cached_tokens` and priced the writes as plain input, and every OpenAI call here wrote
+its whole prompt. Project 04's invoice check of September found it against OpenAI's
+console, about US$7.46 across these runs and their rehearsals, so the six runs and their
+rehearsals came to about US$67.09. The ledger rows stay as written. The published costs are
+recomputed from each run's kept response bytes by the pinned gateway, v0.35.0, which reads
+the writes, at its 2026-10-01 price list (`smallprint/recost.py`; the Anthropic runs
+reproduce their recorded cost to the cent, which checks the method). Per 1,000: luna
+zero-shot US$0.87 to US$1.01, two-shot US$1.62 to US$1.95; sol zero-shot US$15.46 to
+US$18.39, two-shot US$30.43 to US$37.07. The ratios below use the corrected costs. The table is in
 [results-baseline.md](results-baseline.md), written by `smallprint report`, and the three
 findings are these.
 
@@ -275,8 +289,8 @@ Every finding survived, and no paired delta moved by more than a tenth of a poin
 **The cheapest model is as accurate as the most expensive one.** Paired over the same
 filings, `gpt-5.6-sol` zero-shot is -0.3% (-0.8% to +0.2%) against `gpt-5.6-luna`
 zero-shot, and `claude-sonnet-5` zero-shot is -0.1% (-0.4% to +0.1%). Two intervals
-straddling zero, from models costing 18 and 14 times as much. Only `gpt-5.6-sol` two-shot
-clears it, by +0.7% (+0.5% to +1.0%), at 35 times the price. Field accuracy on this task
+straddling zero, from models costing 18 and 12 times as much. Only `gpt-5.6-sol` two-shot
+clears it, by +0.7% (+0.5% to +1.0%), at 37 times the price. Field accuracy on this task
 saturates around 96% and the money buys nothing above it.
 
 **Whole filings are where paying more shows.** Every field right on one filing goes from
@@ -292,7 +306,8 @@ the headline comparison uses zero-shot, and sol two-shot is carried as the best 
 result anyone paid for.
 
 **What the bar actually is.** The fine-tunes have to reach **96.2% of fields and 58.3% of
-filings, at US$0.87 per 1,000 calls**, which is luna zero-shot. Not the most expensive
+filings, at US$1.01 per 1,000 calls**, which is luna zero-shot (US$0.87 as the ledger
+recorded it, before the cache-write correction above). Not the most expensive
 model: the cheapest one that does the job, because that is what a team running this
 volume would be paying, and self-hosting has to beat what they would otherwise spend
 rather than what they could have spent.

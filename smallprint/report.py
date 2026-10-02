@@ -44,6 +44,7 @@ from smallprint.data.build import SplitItem
 from smallprint.data.split import Split
 from smallprint.grade import Interval, ItemGrade, paired_delta_ci, unpaired_delta_ci
 from smallprint.quant.quality import Format, judge
+from smallprint.recost import recost
 from smallprint.serve.launch import PROVIDER, parse_served_name, served_name
 
 #: A blank line between the parts of the report. Named because this module is all
@@ -105,7 +106,9 @@ def load(
         rows.append(
             Row(
                 directory=str(directory),
-                summary=summarise(manifest, predictions, items),
+                summary=summarise(
+                    manifest, predictions, items, recosted=recost(directory, manifest.model)
+                ),
                 grades=tuple(grades),
             )
         )
@@ -167,6 +170,19 @@ def spend(rows: Sequence[Row]) -> float:
     return sum((r.usd_per_1000 / 1000) * r.summary.graded for r in rows if r.summary.usd_per_1000)
 
 
+def recost_note(rows: Sequence[Row]) -> str:
+    """Says which costs are recomputed from the runs' bytes, and why, or nothing."""
+    recosted = sorted({r.summary.price_list or "" for r in rows if r.summary.cost_basis})
+    if not recosted:
+        return ""
+    return (
+        " Costs are recomputed from each run's response bytes by the pinned gateway at price "
+        f"list {', '.join(recosted)}, which bills a GPT-5.6 cache write at 1.25x input; the "
+        "ledger as written priced writes as plain input and under-states OpenAI's runs by 16 "
+        "to 22% (smallprint/recost.py)."
+    )
+
+
 def baselines(
     root: Path,
     build_dir: Path,
@@ -189,7 +205,7 @@ def baselines(
     parts = [
         frontier_table(rows, against=against),
         f"Measured on {rows[0].summary.graded:,} {split} filings, "
-        f"US${spend(rows):,.2f} of calls through the gateway.",
+        f"US${spend(rows):,.2f} of calls through the gateway." + recost_note(rows),
         f"**Where `{rows[0].summary.model}` {rows[0].summary.style.value} misses:**",
         field_table(rows[0]),
     ]
@@ -504,7 +520,12 @@ def money(
         "Self-hosted cost is the GPU-hour rate over the throughput measured at "
         f"{SERVING_CONCURRENCY} requests in flight, at {QUOTED_UTILISATION:.0%} utilisation; "
         f"break-even is against `{anchor.key}` at US${anchor.usd_per_1000:,.2f} per 1,000, "
-        "the cheapest frontier run, from the gateway ledger."
+        "the cheapest frontier run, "
+        + (
+            "recomputed from its response bytes at OpenAI's cache-write rate."
+            if anchor.summary.cost_basis
+            else "from the gateway ledger."
+        )
     )
     parts = [
         serving_table(post, runs, anchor),

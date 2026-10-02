@@ -22,7 +22,7 @@ another model anywhere in producing these numbers.
 | Fields correct | 96.9% (96.5% to 97.3%) | 96.2% (95.8% to 96.6%) |
 | Every field right on a filing | 66.5% (63.0% to 69.9%) | 58.3% (54.6% to 62.0%) |
 | Answers that are not valid JSON | 0.0% (0.0% to 0.0%) | 0.0% (0.0% to 0.0%) |
-| Cost per 1,000 extractions | not costed | US$0.87 |
+| Cost per 1,000 extractions | not costed | US$1.01 |
 
 705 filings. On filings published before the base model's training cutoff it scores 95.1% (94.7% to 95.4%), against 96.9% (96.5% to 97.3%) after it. That difference is the contamination gap, reported and never used as the headline.
 

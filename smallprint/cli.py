@@ -54,6 +54,7 @@ from smallprint.grade import ItemGrade
 from smallprint.prompts import PromptStyle, build_prompt
 from smallprint.quant import formats
 from smallprint.quant.quality import Format, judge
+from smallprint.recost import recost
 from smallprint.report import SERVING_CONCURRENCY, baselines, finetuned, money
 from smallprint.schema import REQUIRED_FIELDS, SCHEMA, json_schema_for_prompt
 from smallprint.serve import launch
@@ -487,8 +488,9 @@ def baseline_run(
         gateway.close()
     predictions = read_predictions(out)
     typer.echo(f"{len(predictions):,} predictions in {out}. Run {manifest.run_id}.")
-    typer.echo(str(summarise(manifest, predictions, items)))
-    write_summary(out, summarise(manifest, predictions, items))
+    summary = summarise(manifest, predictions, items, recosted=recost(out, manifest.model))
+    typer.echo(str(summary))
+    write_summary(out, summary)
 
 
 @baseline_app.command("report")
@@ -502,7 +504,7 @@ def baseline_report(
     source = build_dir if build_dir is not None else Path(manifest.build_dir)
     items = read_split(source, manifest.split)
     predictions = read_predictions(run_dir)
-    summary = summarise(manifest, predictions, items)
+    summary = summarise(manifest, predictions, items, recosted=recost(run_dir, manifest.model))
     typer.echo(str(summary))
     if fields:
         typer.echo("")
@@ -888,7 +890,13 @@ def card(
 
     def summary_of(run: Path) -> BaselineSummary:
         run_items = _items_for(run, build_dir)
-        return summarise(read_manifest(run), read_predictions(run), run_items)
+        run_manifest = read_manifest(run)
+        return summarise(
+            run_manifest,
+            read_predictions(run),
+            run_items,
+            recosted=recost(run, run_manifest.model),
+        )
 
     text = cards.render(
         name=launch.parse_served_name(manifest.model)[1],

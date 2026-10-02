@@ -1,13 +1,13 @@
 | Model | Prompt | Fields correct (95% CI) | Every field right | Paired delta vs openai/gpt-5.6-luna zero_shot | Cost per 1,000 | Latency p50 | p99 |
 |---|---|---|---|---|---:|---:|---:|
-| `openai/gpt-5.6-luna` | zero-shot | 96.2% (95.8% to 96.6%) | 58.3% (54.6% to 62.0%) | baseline | US$0.87 | 2.33 s | 4.95 s |
-| `openai/gpt-5.6-luna` | few-shot | 96.2% (95.7% to 96.7%) | 60.4% (56.7% to 64.0%) | -0.0% (-0.3% to +0.3%) | US$1.62 | 2.17 s | 4.59 s |
+| `openai/gpt-5.6-luna` | zero-shot | 96.2% (95.8% to 96.6%) | 58.3% (54.6% to 62.0%) | baseline | US$1.01 | 2.33 s | 4.95 s |
+| `openai/gpt-5.6-luna` | few-shot | 96.2% (95.7% to 96.7%) | 60.4% (56.7% to 64.0%) | -0.0% (-0.3% to +0.3%) | US$1.95 | 2.17 s | 4.59 s |
 | `anthropic/claude-sonnet-5` | zero-shot | 96.1% (95.7% to 96.5%) | 57.4% (53.8% to 61.0%) | -0.1% (-0.4% to +0.1%) | US$11.96 | 3.04 s | 8.95 s |
-| `openai/gpt-5.6-sol` | zero-shot | 95.9% (95.3% to 96.5%) | 64.8% (61.3% to 68.4%) | -0.3% (-0.8% to +0.2%) | US$15.46 | 2.76 s | 6.49 s |
+| `openai/gpt-5.6-sol` | zero-shot | 95.9% (95.3% to 96.5%) | 64.8% (61.3% to 68.4%) | -0.3% (-0.8% to +0.2%) | US$18.39 | 2.76 s | 6.49 s |
 | `anthropic/claude-sonnet-5` | few-shot | 96.3% (95.8% to 96.8%) | 61.1% (57.4% to 64.7%) | +0.1% (-0.3% to +0.4%) | US$22.91 | 3.32 s | 9.86 s |
-| `openai/gpt-5.6-sol` | few-shot | 96.9% (96.6% to 97.3%) | 67.0% (63.4% to 70.5%) | +0.7% (+0.5% to +1.0%) | US$30.43 | 2.92 s | 6.53 s |
+| `openai/gpt-5.6-sol` | few-shot | 96.9% (96.6% to 97.3%) | 67.0% (63.4% to 70.5%) | +0.7% (+0.5% to +1.0%) | US$37.07 | 2.92 s | 6.53 s |
 
-Measured on 705 test_post_cutoff filings, US$58.69 of calls through the gateway.
+Measured on 705 test_post_cutoff filings, US$65.77 of calls through the gateway. Costs are recomputed from each run's response bytes by the pinned gateway at price list 2026-10-01, which bills a GPT-5.6 cache write at 1.25x input; the ledger as written priced writes as plain input and under-states OpenAI's runs by 16 to 22% (smallprint/recost.py).
 
 **Where `openai/gpt-5.6-luna` zero_shot misses:**
 
@@ -77,7 +77,7 @@ Measured on 705 test_post_cutoff filings, every call through the gateway, temper
 | `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | | not measured at c=32, or retried | | | |
 | `7b-r64-lr1e-4-nall-s0-e1` | gptq | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 0.4M |
 
-Self-hosted cost is the GPU-hour rate over the throughput measured at 32 requests in flight, at 50% utilisation; break-even is against `openai/gpt-5.6-luna zero_shot` at US$0.87 per 1,000, the cheapest frontier run, from the gateway ledger.
+Self-hosted cost is the GPU-hour rate over the throughput measured at 32 requests in flight, at 50% utilisation; break-even is against `openai/gpt-5.6-luna zero_shot` at US$1.01 per 1,000, the cheapest frontier run, recomputed from its response bytes at OpenAI's cache-write rate.
 
 **Break-even, extractions a month, across utilisation:**
 
@@ -86,8 +86,8 @@ Self-hosted cost is the GPU-hour rate over the throughput measured at 32 request
 | `2b-r64-lr1e-4-nall-s0-e1` | bf16 | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | 0.4M | 0.4M | 0.4M | 0.4M | 0.4M |
 | `2b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | never | 0.4M | 0.4M | 0.4M | 0.4M |
 | `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | never | 0.4M | 0.4M | 0.4M | 0.4M |
-| `7b-r64-lr1e-4-nall-s0-e1` | awq | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | never | 0.4M | 0.4M | 0.4M | 0.4M |
+| `7b-r64-lr1e-4-nall-s0-e1` | awq | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | 0.4M | 0.4M | 0.4M | 0.4M | 0.4M |
 | `7b-r64-lr1e-4-nall-s0-e1` | bf16 | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | never | 0.4M | 0.4M | 0.4M | 0.4M |
-| `7b-r64-lr1e-4-nall-s0-e1` | gptq | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | never | 0.4M | 0.4M | 0.4M | 0.4M |
+| `7b-r64-lr1e-4-nall-s0-e1` | gptq | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | 0.4M | 0.4M | 0.4M | 0.4M | 0.4M |
 
-![Field accuracy against cost per 1,000 extractions](pareto.svg)
+![Field accuracy against cost per 1,000 extractions](docs/pareto.svg)

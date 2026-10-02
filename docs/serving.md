@@ -232,7 +232,8 @@ to 90,112 tokens, 34 GB at the 7B's 384 KB a token, which with the weights does 
 A40's 48 GB. At 49,152 tokens it served 0.2 requests a second at one in flight and the same
 at eight, and failed every request at 32 and 64, whose prompts, about 4,000 tokens each,
 cannot fit the pool together; llama.cpp refused them rather than queue them. At its best
-that is US$1.36 per 1,000, above the API's US$0.87, and the report's table, which prices
+that is US$1.36 per 1,000, above the API's US$1.01 (US$0.87 before the cache-write correction in
+[baseline.md](baseline.md#the-six-runs-2026-09-20)), and the report's table, which prices
 every model at 32 in flight, shows the 7B GGUF as not measured there. The 4B was not
 load-tested: the 2B is ahead of it on both axes.
 

@@ -38,7 +38,8 @@ the quality ceiling, `claude-sonnet-5` as a second vendor, and `gpt-5.6-luna` as
 anchor the break-even has to beat ([docs/baseline.md](docs/baseline.md)).
 
 All three have now been measured on the whole post-cutoff test set, zero-shot and
-two-shot: 4,296 calls, **US$59.63**, in the table below. **All three sizes are
+two-shot: 4,296 calls, **US$59.63 as the ledger recorded them, US$67.09 at what OpenAI
+bills** (cache writes; below), in the table below. **All three sizes are
 fine-tuned**, 24 runs of the sweep, each graded on the validation set, and **the first,
 the 2B, clears the cost anchor on the post-cutoff test set** (below;
 [docs/training.md](docs/training.md)). The chosen recipes are
@@ -84,7 +85,7 @@ quantisation gate in [docs/results-finetuned.md](docs/results-finetuned.md), the
 and the seeds in [docs/training.md](docs/training.md).
 
 **What it costs to serve**, on a Secure Cloud A40 at US$0.49 an hour, 2026-09-26, at 50%
-utilisation, against luna's US$0.87 per 1,000:
+utilisation, against luna's US$1.01 per 1,000:
 
 | Model | Format | Accuracy delta vs bf16 (95% CI) | Req/s at c=32 | TTFT p99 ms | Cost per 1,000 | Break-even volume at 50% utilisation |
 |---|---|---|---:|---:|---:|---:|
@@ -100,9 +101,9 @@ utilisation, against luna's US$0.87 per 1,000:
 **The release gate** (project 03, field by field, three-point margin; [docs/gate.md](docs/gate.md))
 passes the 7B against the cost anchor on all fifteen fields, and blocks the 2B on operating
 income and net income, where it cannot rule out a three-point loss; neither passes against
-the two-shot ceiling. The 2B in bf16 answers for **US$0.083 per 1,000, about a tenth of the
-cheapest frontier model, and better on average**, though not on those two lines; the 7B for US$0.196 in GPTQ, a quarter, and the most accurate
-model measured. A dedicated card pays for itself from about 0.4 million extractions a month.
+the two-shot ceiling. The 2B in bf16 answers for **US$0.083 per 1,000, about a twelfth of the
+cheapest frontier model, and better on average**, though not on those two lines; the 7B for US$0.196 in GPTQ, a fifth, and the most accurate
+model measured. A dedicated card pays for itself from about 0.35 million extractions a month.
 llama.cpp serves GGUF well to one caller and badly to many: its throughput falls as the load
 rises, which puts the 2B's GGUF at four to five times vLLM's cost on the same card. The 7B's
 GGUF managed 0.2 requests a second at one and at eight in flight and failed every request at
@@ -118,20 +119,26 @@ not a server ([docs/serving.md](docs/serving.md#the-4-gb-edge-point-2026-09-30))
 
 **The frontier baselines, the bar the above has to reach.** Written by `smallprint report`
 from the runs; not edited by hand. 705 post-cutoff filings, every call through the
-gateway, US$59.63; re-graded on the audited build from the saved answers.
+gateway; re-graded on the audited build from the saved answers. **OpenAI's costs are
+recomputed** from the response bytes each run kept: the gateway this project first pinned
+(boundary v0.3.0) priced GPT-5.6's cache writes, which OpenAI bills at 1.25x input, as plain
+input, and every OpenAI call here wrote its whole prompt to the cache. Project 04's
+September invoice check found it against OpenAI's console. The ledger rows stay as written;
+the table is 16 to 22% higher for OpenAI's runs than they recorded, Anthropic's are
+unchanged, and luna zero-shot, the cost anchor, is US$1.01 per 1,000 rather than US$0.87.
 
 | Model | Prompt | Fields correct (95% CI) | Every field right | Paired delta vs openai/gpt-5.6-luna zero_shot | Cost per 1,000 | Latency p50 | p99 |
 |---|---|---|---|---|---:|---:|---:|
-| `openai/gpt-5.6-luna` | zero-shot | 96.2% (95.8% to 96.6%) | 58.3% (54.6% to 62.0%) | baseline | US$0.87 | 2.33 s | 4.95 s |
-| `openai/gpt-5.6-luna` | few-shot | 96.2% (95.7% to 96.7%) | 60.4% (56.7% to 64.0%) | -0.0% (-0.3% to +0.3%) | US$1.62 | 2.17 s | 4.59 s |
+| `openai/gpt-5.6-luna` | zero-shot | 96.2% (95.8% to 96.6%) | 58.3% (54.6% to 62.0%) | baseline | US$1.01 | 2.33 s | 4.95 s |
+| `openai/gpt-5.6-luna` | few-shot | 96.2% (95.7% to 96.7%) | 60.4% (56.7% to 64.0%) | -0.0% (-0.3% to +0.3%) | US$1.95 | 2.17 s | 4.59 s |
 | `anthropic/claude-sonnet-5` | zero-shot | 96.1% (95.7% to 96.5%) | 57.4% (53.8% to 61.0%) | -0.1% (-0.4% to +0.1%) | US$11.96 | 3.04 s | 8.95 s |
-| `openai/gpt-5.6-sol` | zero-shot | 95.9% (95.3% to 96.5%) | 64.8% (61.3% to 68.4%) | -0.3% (-0.8% to +0.2%) | US$15.46 | 2.76 s | 6.49 s |
+| `openai/gpt-5.6-sol` | zero-shot | 95.9% (95.3% to 96.5%) | 64.8% (61.3% to 68.4%) | -0.3% (-0.8% to +0.2%) | US$18.39 | 2.76 s | 6.49 s |
 | `anthropic/claude-sonnet-5` | few-shot | 96.3% (95.8% to 96.8%) | 61.1% (57.4% to 64.7%) | +0.1% (-0.3% to +0.4%) | US$22.91 | 3.32 s | 9.86 s |
-| `openai/gpt-5.6-sol` | few-shot | 96.9% (96.6% to 97.3%) | 67.0% (63.4% to 70.5%) | +0.7% (+0.5% to +1.0%) | US$30.43 | 2.92 s | 6.53 s |
+| `openai/gpt-5.6-sol` | few-shot | 96.9% (96.6% to 97.3%) | 67.0% (63.4% to 70.5%) | +0.7% (+0.5% to +1.0%) | US$37.07 | 2.92 s | 6.53 s |
 
 The cheapest model in the set matches the most expensive one on field accuracy. Whole
 filings are where paying more shows: the ceiling model gets 8.7 more of every hundred
-filings entirely right, for 35 times the price. Detail and failure modes in
+filings entirely right, for 37 times the price. Detail and failure modes in
 [docs/results-baseline.md](docs/results-baseline.md).
 
 **Published**, 2026-09-27, private on Hugging Face until reviewed, each model with the card

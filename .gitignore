@@ -59,6 +59,9 @@ wandb/
 .cache/
 *.sqlite
 *.sqlite3
+# SQLite's write-ahead log and index beside a ledger that is open or was not checkpointed.
+*.sqlite-wal
+*.sqlite-shm
 bench/results/raw/
 
 # OS and editors

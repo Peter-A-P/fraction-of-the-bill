@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460" width="760" height="460" class="c" role="img" aria-labelledby="title desc">
 <title id="title">Field accuracy against cost per 1,000 extractions</title>
-<desc id="desc">Self-hosted cost is the GPU-hour rate over the throughput measured at 32 requests in flight, at 50% utilisation; break-even is against `openai/gpt-5.6-luna zero_shot` at US$0.87 per 1,000, the cheapest frontier run, from the gateway ledger.</desc>
+<desc id="desc">Self-hosted cost is the GPU-hour rate over the throughput measured at 32 requests in flight, at 50% utilisation; break-even is against `openai/gpt-5.6-luna zero_shot` at US$1.01 per 1,000, the cheapest frontier run, recomputed from its response bytes at OpenAI&#x27;s cache-write rate.</desc>
 <style>
 .c { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
 .surface { fill: #fcfcfb; }
@@ -52,29 +52,29 @@
 <path class="s2 ring" d="M208.0,18.0L214.0,24.0L208.0,30.0L202.0,24.0Z"/>
 <text class="ink" x="220" y="28" font-size="13">Self-hosted fine-tune</text>
 <path class="front" d="M224.2,178.7H286.6V133.7H299.7V127.3"/>
-<g><title>gpt-5.6-luna zero-shot: 96.2% (95.8% to 96.6%), US$0.873 per 1,000</title>
-<line class="s1l" stroke-width="1.5" x1="394.2" y1="304.1" x2="394.2" y2="211.9"/>
-<circle class="s1 ring" cx="394.2" cy="258.0" r="5"/>
+<g><title>gpt-5.6-luna zero-shot: 96.2% (95.8% to 96.6%), US$1.013 per 1,000</title>
+<line class="s1l" stroke-width="1.5" x1="405.0" y1="304.1" x2="405.0" y2="211.9"/>
+<circle class="s1 ring" cx="405.0" cy="258.0" r="5"/>
 </g>
-<g><title>gpt-5.6-luna few-shot: 96.2% (95.7% to 96.7%), US$1.616 per 1,000</title>
-<line class="s1l" stroke-width="1.5" x1="438.6" y1="312.7" x2="438.6" y2="208.7"/>
-<circle class="s1 ring" cx="438.6" cy="259.1" r="5"/>
+<g><title>gpt-5.6-luna few-shot: 96.2% (95.7% to 96.7%), US$1.948 per 1,000</title>
+<line class="s1l" stroke-width="1.5" x1="452.1" y1="312.7" x2="452.1" y2="208.7"/>
+<circle class="s1 ring" cx="452.1" cy="259.1" r="5"/>
 </g>
 <g><title>claude-sonnet-5 zero-shot: 96.1% (95.7% to 96.5%), US$11.956 per 1,000</title>
 <line class="s1l" stroke-width="1.5" x1="582.9" y1="321.2" x2="582.9" y2="223.7"/>
 <circle class="s1 ring" cx="582.9" cy="271.9" r="5"/>
 </g>
-<g><title>gpt-5.6-sol zero-shot: 95.9% (95.3% to 96.5%), US$15.459 per 1,000</title>
-<line class="s1l" stroke-width="1.5" x1="601.4" y1="363.0" x2="601.4" y2="229.1"/>
-<circle class="s1 ring" cx="601.4" cy="293.4" r="5"/>
+<g><title>gpt-5.6-sol zero-shot: 95.9% (95.3% to 96.5%), US$18.385 per 1,000</title>
+<line class="s1l" stroke-width="1.5" x1="613.9" y1="363.0" x2="613.9" y2="229.1"/>
+<circle class="s1 ring" cx="613.9" cy="293.4" r="5"/>
 </g>
 <g><title>claude-sonnet-5 few-shot: 96.3% (95.8% to 96.8%), US$22.915 per 1,000</title>
 <line class="s1l" stroke-width="1.5" x1="629.8" y1="303.1" x2="629.8" y2="193.7"/>
 <circle class="s1 ring" cx="629.8" cy="245.2" r="5"/>
 </g>
-<g><title>gpt-5.6-sol few-shot: 96.9% (96.6% to 97.3%), US$30.429 per 1,000</title>
-<line class="s1l" stroke-width="1.5" x1="650.2" y1="219.4" x2="650.2" y2="131.6"/>
-<circle class="s1 ring" cx="650.2" cy="175.5" r="5"/>
+<g><title>gpt-5.6-sol few-shot: 96.9% (96.6% to 97.3%), US$37.070 per 1,000</title>
+<line class="s1l" stroke-width="1.5" x1="664.5" y1="219.4" x2="664.5" y2="131.6"/>
+<circle class="s1 ring" cx="664.5" cy="175.5" r="5"/>
 </g>
 <g><title>2b-r64-lr1e-4-nall-s0-e1 bf16: 96.9% (96.5% to 97.3%), US$0.083 per 1,000</title>
 <line class="s2l" stroke-width="1.5" x1="224.2" y1="224.8" x2="224.2" y2="134.8"/>

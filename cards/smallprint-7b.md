@@ -22,7 +22,7 @@ another model anywhere in producing these numbers.
 | Fields correct | 97.4% (97.0% to 97.7%) | 96.2% (95.8% to 96.6%) |
 | Every field right on a filing | 71.9% (68.5% to 75.2%) | 58.3% (54.6% to 62.0%) |
 | Answers that are not valid JSON | 0.0% (0.0% to 0.0%) | 0.0% (0.0% to 0.0%) |
-| Cost per 1,000 extractions | US$0.235 served (A40 on_demand at runpod, US$0.490/h, checked 2026-09-26; 1.16 requests a second at 32 in flight, 50% utilisation) | US$0.87 |
+| Cost per 1,000 extractions | US$0.235 served (A40 on_demand at runpod, US$0.490/h, checked 2026-09-26; 1.16 requests a second at 32 in flight, 50% utilisation) | US$1.01 |
 
 705 filings. On filings published before the base model's training cutoff it scores 96.0% (95.7% to 96.4%), against 97.4% (97.0% to 97.7%) after it. That difference is the contamination gap, reported and never used as the headline.
 
