@@ -247,3 +247,57 @@ which is the plan's 4 GB edge point, not for the break-even.
 event loop, because the gateway's connections belong to the loop that opened them; and a
 connection the server drops at 64 in flight is a failed request in its level, not the end of
 the test. The 2B's bf16 at 64 lost 4 of 640 that way.
+
+## The serving container
+
+[docker/Dockerfile](../docker/Dockerfile) is vLLM's own image at the version every load
+test ran on (`vllm/vllm-openai:v0.30.0`), with smallprint installed beside it in its own
+Python 3.13. smallprint is there for one job: [docker/serve.sh](../docker/serve.sh) asks
+`smallprint serve argv` for the command line and runs it, so the flags that decided a
+measurement (the context length, `--generation-config auto`, the quantisation scheme) come
+from the tested code and not from a copy of them in a shell script.
+
+    docker build -f docker/Dockerfile -t smallprint-serve .
+    docker run --gpus all -p 8000:8000 -e HF_TOKEN       -e MODEL=Peter-A-P/smallprint-7b-gptq -e RUN=7b-r64-lr1e-4-nall-s0-e1 -e FORMAT=gptq       smallprint-serve
+
+`FORMAT` is bf16, awq or gptq. GGUF is not served from it: llama.cpp is the format for one
+machine (the edge point below), not for a server. CI
+([container.yml](../.github/workflows/container.yml)) builds the image on every change to
+it or to the serving code, prints the 7B GPTQ's command line from inside it and checks the
+vLLM version. A CI runner has no GPU, so CI does not start the server.
+
+## The 4 GB edge point, 2026-09-30
+
+The one number measured off rented hardware, by rule, and labelled as such: the 2B's
+Q4_K_M on the local machine the plan calls the laptop, an NVIDIA GeForce GTX 1650 with
+4 GB (driver 581.95) beside an Intel Core i5-10400F and 16 GB of memory. llama.cpp is the
+release the pods build from source (b11191), as Windows' prebuilt CUDA 12.4 binaries,
+started with every layer on the card, one slot and the fine-tunes' 10,240-token context:
+
+    llama-server --model 2b-r64-lr1e-4-nall-s0-e1-q4_k_m.gguf \
+      --alias 2b-r64-lr1e-4-nall-s0-e1-gguf-q4_k_m --port 8090 \
+      --ctx-size 10240 --parallel 1 --n-gpu-layers 999 --jinja --seed 0
+
+The first 50 post-cutoff filings, one at a time, through the gateway like every other call
+(`--limit 50`, so the same 50 any rerun picks):
+
+| | Fields correct (95% CI) | Every field right | Latency p50 | p99 |
+|---|---|---|---:|---:|
+| GTX 1650, 4 GB | 97.9% (96.3% to 99.2%) | 84.0% (74.0% to 94.0%) | 12.2 s | 78.8 s |
+
+**The model fits and answers as it does on the A40.** 48 of the 50 answers are the same
+text, byte for byte, as the A40's Q4_K_M; paired over the same 50 filings the delta is 0.0%
+(-0.4% to +0.4%) against it and -0.1% (-0.8% to +0.5%) against the bf16. Fifty filings
+cannot say more than that it is the same model: the intervals are four to five times the
+width of the full test set's.
+
+**It is slow, and fine for one person.** A filing's prompt is about 2,600 tokens at the
+median; the card reads it at about 300 tokens a second and writes the 210-token answer at
+about 60, so a filing takes 10 to 13 seconds. The p99 is not the card: the machine was not
+kept for the run, a container image was being pulled onto it and another run was writing
+to the same gateway ledger, and three filings in a row came back at 79, 33 and 18 seconds
+while the server's own log shows it writing at a third of its usual rate. The median is
+the number to use, and a clean tail would need a rerun on an idle machine. That is about
+300 filings an hour on hardware already owned, which no frontier price beats for a single
+analyst, and nothing a team's volume should run on. No cost is quoted: there is no hourly
+price for a machine already paid for, and the break-even is about rented cards.

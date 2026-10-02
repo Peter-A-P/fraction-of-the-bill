@@ -110,6 +110,12 @@ GGUF managed 0.2 requests a second at one and at eight in flight and failed ever
 1,000, **more than the API**. The 4B was not load-tested: the 2B beats it on both axes
 ([docs/serving.md](docs/serving.md)).
 
+**The 4 GB edge point**, the one number measured off rented hardware: the 2B's Q4_K_M on a
+GTX 1650 with 4 GB, through the same gateway, answers the first 50 post-cutoff filings with
+97.9% of fields right (96.3% to 99.2%), 48 of the 50 answers identical to the A40's, at
+12.2 seconds a filing at the median. Enough for one analyst on a machine already owned;
+not a server ([docs/serving.md](docs/serving.md#the-4-gb-edge-point-2026-09-30)).
+
 **The frontier baselines, the bar the above has to reach.** Written by `smallprint report`
 from the runs; not edited by hand. 705 post-cutoff filings, every call through the
 gateway, US$59.63; re-graded on the audited build from the saved answers.
@@ -155,12 +161,6 @@ better. Memorising a filing does not help you copy a number off the page you wer
 **What a frontier model is actually bad at.** 99.0% of fields right when the filing
 reports them; **73.7% when it does not**, where the right answer is null and the model
 answers anyway. The weakness is abstention, not reading.
-
-**Quantisation cost, serving and money**
-
-| Model | Format | Accuracy delta vs bf16 (95% CI) | Req/s at c=32 | TTFT p99 ms | Cost per 1,000 | Break-even volume at 50% utilisation |
-|---|---|---|---|---|---|---|
-| _not yet_ | | | | | | |
 
 ## What this does not do
 
