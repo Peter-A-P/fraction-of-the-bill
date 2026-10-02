@@ -661,6 +661,9 @@ def train_run(
 @app.command()
 def report(
     runs: Path = typer.Option(Path("data/baseline"), help="A directory of run directories."),
+    also: list[Path] = typer.Option(
+        [], help="More directories of runs for the baseline table, such as the untuned bases."
+    ),
     build_dir: Path = typer.Option(Path("data/build"), help="The build the runs were made on."),
     split: str = typer.Option(Split.TEST_POST_CUTOFF.value, help="Which split the runs cover."),
     against: str | None = typer.Option(
@@ -686,7 +689,7 @@ def report(
         raise typer.BadParameter("serving numbers need the fine-tuned runs", param_hint="--bench")
     if chart is not None and bench_runs is None:
         raise typer.BadParameter("the chart needs the load tests", param_hint="--chart")
-    markdown = baselines(runs, build_dir, split, against=against)
+    markdown = baselines(runs, build_dir, split, against=against, also=also)
     if finetuned_runs is not None:
         markdown += "\n\n" + finetuned(finetuned_runs, runs, build_dir)
     if finetuned_runs is not None and bench_runs is not None:

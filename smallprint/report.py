@@ -109,7 +109,9 @@ def load(
                 grades=tuple(grades),
             )
         )
-    return sorted(rows, key=lambda r: r.usd_per_1000), skipped
+    # An uncosted run, an untuned base served before any price for it existed, goes last:
+    # NaN would sort it anywhere, and the first row is the anchor the deltas are paired with.
+    return sorted(rows, key=lambda r: (r.summary.usd_per_1000 is None, r.usd_per_1000)), skipped
 
 
 def _pct(interval: Interval) -> str:
@@ -142,9 +144,10 @@ def frontier_table(rows: Sequence[Row], *, against: str | None = None) -> str:
             if row is anchor
             else _signed(paired_delta_ci(list(row.grades), list(anchor.grades)))
         )
+        cost = f"US${row.usd_per_1000:,.2f}" if s.usd_per_1000 else "uncosted"
         lines.append(
             f"| `{s.model}` | {s.style.value.replace('_', '-')} | {_pct(s.accuracy)} | "
-            f"{_pct(s.exact_match)} | {delta} | US${row.usd_per_1000:,.2f} | "
+            f"{_pct(s.exact_match)} | {delta} | {cost} | "
             f"{s.latency_p50_ms.point / 1000:,.2f} s | {s.latency_p99_ms.point / 1000:,.2f} s |"
         )
     return "\n".join(lines)
@@ -164,10 +167,23 @@ def spend(rows: Sequence[Row]) -> float:
     return sum((r.usd_per_1000 / 1000) * r.summary.graded for r in rows if r.summary.usd_per_1000)
 
 
-def baselines(root: Path, build_dir: Path, split: str, *, against: str | None = None) -> str:
-    """The whole frontier baseline section: the table, and the fields of the cheapest run."""
+def baselines(
+    root: Path,
+    build_dir: Path,
+    split: str,
+    *,
+    against: str | None = None,
+    also: Sequence[Path] = (),
+) -> str:
+    """The whole baseline section: the table, and the fields of the cheapest run.
+
+    `also` adds the runs of other directories to the same table, which is how the untuned
+    bases sit beside the frontier models they are compared with, paired over the same
+    filings, without living in the frontier runs' directory.
+    """
     items = read_split(build_dir, split)
-    rows, skipped = load(run_dirs(root, split), items)
+    directories = [d for r in (root, *also) for d in run_dirs(r, split)]
+    rows, skipped = load(directories, items)
     if not rows:
         return "_No runs._"
     parts = [

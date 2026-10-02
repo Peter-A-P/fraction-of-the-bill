@@ -260,6 +260,11 @@ US$59.63, no failures, one answer in 4,296 that would not parse. The table is in
 [results-baseline.md](results-baseline.md), written by `smallprint report`, and the three
 findings are these.
 
+The untuned bases join the same table from their own directory, paired over the same
+filings: `smallprint report --runs data/baseline --also data/untuned`. They were served
+before any price for them existed, so their cost column says "uncosted" and they sort after
+every costed run; the cheapest costed run stays the anchor every delta is paired with.
+
 **Re-graded 2026-09-22 on the audited build**, from the saved answers and at no cost. The
 hand audit tightened the filter (see [data.md](data.md#the-hand-audit-2026-09-22)), which
 dropped 11 of the 716 post-cutoff filings and 29 of the 1,425 pre-cutoff ones, and
