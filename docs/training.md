@@ -344,6 +344,20 @@ distilled model's share above that.
 
     smallprint train inherited --teacher data/baseline/openai-gpt-5.6-luna-zero_shot       --student data/finetuned/2b-r64-lr1e-4-nall-s0-e1-bf16-test_post_cutoff       --student data/finetuned/2b-r64-lr1e-4-nall-s0-e1-distill-luna-bf16-test_post_cutoff
 
+**The result, 2026-10-02: rejected.** The distilled 2B is 95.6% of fields against the
+control's 96.9%, paired -1.3 points (-1.7 to -1.0), and below its own teacher, -0.6 (-0.9 to
+-0.4). It gets 52.1% of filings entirely right against 65.7%, and repeats 69.8% (64.3% to
+74.9%) of luna's wrong fields with the identical answer against the control's 52.5%. What it
+inherited is luna's failure to abstain: on `total_liabilities` it invents a value 71 times
+where the filing prints none (luna 66, the control once). Validation said the same before
+the test set was opened: 94.0% against 95.6%. The write-up is in [rejected.md](rejected.md).
+
+The run took three pods. The first two removed themselves about 50 minutes in, at the first
+checkpoint, because the network volume was full and the upload was refused; with no logs
+reaching the volume either, the cause was found by trying an upload from the laptop. Space
+was freed by deleting the 7B's published GGUF files and the 4B's broken Q4_K_M from the
+volume, and the third pod ran to the end.
+
 **The vendor's terms, recorded late.** PLAN.md section 8 says the terms on training with a
 vendor's outputs are read and recorded *before* the distillation set is generated. They were
 not; they were read on 2026-10-02, after the set was made and while the model trained. The

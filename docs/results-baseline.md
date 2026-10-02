@@ -8,8 +8,10 @@
 | `openai/gpt-5.6-sol` | few-shot | 96.9% (96.6% to 97.3%) | 67.0% (63.4% to 70.5%) | +0.7% (+0.5% to +1.0%) | US$37.07 | 2.92 s | 6.53 s |
 | `selfhosted/untuned-2b-it` | few-shot | 73.6% (72.1% to 75.2%) | 5.2% (3.7% to 7.0%) | -22.6% (-24.1% to -21.1%) | uncosted | 2.70 s | 3.10 s |
 | `selfhosted/untuned-2b-it` | zero-shot | 49.9% (48.2% to 51.6%) | 3.0% (1.8% to 4.3%) | -46.3% (-48.0% to -44.6%) | uncosted | 2.58 s | 3.01 s |
+| `selfhosted/untuned-2b-it` | zero-shot, reasoning | 79.8% (78.2% to 81.4%) | 9.5% (7.4% to 11.8%) | -16.4% (-18.0% to -14.8%) | uncosted | 19.53 s | 28.19 s |
 | `selfhosted/untuned-4b-it` | few-shot | 82.6% (81.1% to 84.1%) | 24.0% (20.9% to 27.2%) | -13.6% (-15.1% to -12.2%) | uncosted | 4.82 s | 5.36 s |
 | `selfhosted/untuned-4b-it` | zero-shot | 87.5% (86.4% to 88.5%) | 23.1% (20.0% to 26.2%) | -8.8% (-9.7% to -7.8%) | uncosted | 4.56 s | 5.08 s |
+| `selfhosted/untuned-4b-it` | zero-shot, reasoning | 89.2% (88.2% to 90.3%) | 27.4% (24.1% to 30.6%) | -7.0% (-8.0% to -6.1%) | uncosted | 38.87 s | 58.53 s |
 | `selfhosted/untuned-7b-it` | few-shot | 57.7% (56.0% to 59.3%) | 1.7% (0.9% to 2.7%) | -38.6% (-40.2% to -36.9%) | uncosted | 4.98 s | 5.72 s |
 | `selfhosted/untuned-7b-it` | zero-shot | 47.7% (46.3% to 49.1%) | 0.6% (0.1% to 1.1%) | -48.5% (-49.9% to -47.1%) | uncosted | 4.96 s | 5.64 s |
 

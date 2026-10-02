@@ -117,6 +117,12 @@ def load(
     return sorted(rows, key=lambda r: (r.summary.usd_per_1000 is None, r.usd_per_1000)), skipped
 
 
+def _prompt(summary: BaselineSummary) -> str:
+    """The prompt column: the style, and reasoning when it was on, so two runs of one model
+    with the same style are never two identical-looking rows."""
+    return summary.style.value.replace("_", "-") + (", reasoning" if summary.thinking else "")
+
+
 def _pct(interval: Interval) -> str:
     return f"{interval.point:.1%} ({interval.low:.1%} to {interval.high:.1%})"
 
@@ -149,7 +155,7 @@ def frontier_table(rows: Sequence[Row], *, against: str | None = None) -> str:
         )
         cost = f"US${row.usd_per_1000:,.2f}" if s.usd_per_1000 else "uncosted"
         lines.append(
-            f"| `{s.model}` | {s.style.value.replace('_', '-')} | {_pct(s.accuracy)} | "
+            f"| `{s.model}` | {_prompt(s)} | {_pct(s.accuracy)} | "
             f"{_pct(s.exact_match)} | {delta} | {cost} | "
             f"{s.latency_p50_ms.point / 1000:,.2f} s | {s.latency_p99_ms.point / 1000:,.2f} s |"
         )

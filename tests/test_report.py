@@ -134,3 +134,16 @@ def test_the_distillation_numbers_come_from_one_command(
     facts, distilled = result.output.split("  facts")[1].split("  distilled")
     assert "teacher's errors repeated 0.0%" in facts
     assert "teacher's errors repeated 100.0%" in distilled
+
+
+def test_a_reasoning_run_is_labelled_so_in_the_table(tmp_path: Path) -> None:
+    """The untuned Gemma bases ran zero-shot twice, reasoning off and on: two rows that
+    must not look the same."""
+    make_run(tmp_path / "off", {}, model="selfhosted/base", cost=None)
+    rows, _ = report.load(report.run_dirs(tmp_path), items())
+    on = rows[0].model_copy(
+        update={"summary": rows[0].summary.model_copy(update={"thinking": True})}
+    )
+    table = report.frontier_table([rows[0], on])
+    assert "| zero-shot |" in table.splitlines()[2]
+    assert "| zero-shot, reasoning |" in table.splitlines()[3]

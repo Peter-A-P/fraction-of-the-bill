@@ -279,6 +279,33 @@ filings: `smallprint report --runs data/baseline --also data/untuned`. They were
 before any price for them existed, so their cost column says "uncosted" and they sort after
 every costed run; the cheapest costed run stays the anchor every delta is paired with.
 
+## The untuned bases, 2026-09-30 and 2026-10-02
+
+Each base's instruction model, untouched, served by vLLM on a Secure Cloud A40 and run over
+the 705 post-cutoff filings through the gateway, zero-shot and two-shot with the same
+prompt. The Gemma bases ran zero-shot once more with reasoning on: the `<|think|>` token at
+the head of the system prompt, vLLM's `gemma4` reasoning parser keeping the thought out of
+the answer, and an 8,192-token ceiling for the two together. OLMo 3 Instruct has no
+reasoning switch. The rows are in [results-baseline.md](results-baseline.md).
+
+| Base | Zero-shot | Two-shot | Reasoning on | p50 a filing, off / on |
+|---|---:|---:|---:|---:|
+| 2B, Gemma 4 E2B | 49.9% | 73.6% | 79.8% | 2.6 s / 19.5 s |
+| 4B, Gemma 4 E4B | 87.5% | 82.6% | 89.2% | 4.6 s / 38.9 s |
+| 7B, OLMo 3 | 47.7% | 57.7% | | 5.0 s |
+
+**No prompt reaches the bar.** The best, the 4B with reasoning, is -7.0 points (-8.0 to
+-6.1) against luna zero-shot, and gets 27.4% of filings entirely right against 58.3%.
+**Scale is most of the gap**: a third of the 2B's zero-shot fields and 28.5% of the 7B's are
+a figure printed "in thousands" copied as written, which the prompt's rules forbid. Two
+examples cut that to 10.8% for the 2B and 18.8% for the 7B, and reasoning cuts it further,
+but nothing removes it. The 4B is the exception that reads scale correctly unprompted, and
+for it two examples cost 4.9 points, mostly by putting scale errors back. **Reasoning buys
+30 points on the 2B and 1.7 on the 4B**, at eight times the latency, and 4.1% of the 2B's
+reasoned answers would not parse. The fine-tunes take every base to about 97%
+([training.md](training.md)), and this comparison is the second of the two rejected
+approaches in [rejected.md](rejected.md).
+
 **Re-graded 2026-09-22 on the audited build**, from the saved answers and at no cost. The
 hand audit tightened the filter (see [data.md](data.md#the-hand-audit-2026-09-22)), which
 dropped 11 of the 716 post-cutoff filings and 29 of the 1,425 pre-cutoff ones, and

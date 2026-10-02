@@ -193,6 +193,19 @@ locating a label need different widths: the filter now requires the printed figu
 own precision, and a share count on a row that is one
 ([docs/data.md](docs/data.md#the-hand-audit-2026-09-22)).
 
+## Tried and rejected: distilling from the frontier
+
+The usual way to get training labels without truth is to have a frontier model write them.
+Trained on luna's answers to the same 5,060 filings instead of the XBRL facts, the same 2B
+recipe scores **95.6% of fields against 96.9%, paired -1.3 points (-1.7 to -1.0), and below
+its own teacher**, with 52.1% of filings entirely right against 65.7%. It repeats 69.8% of
+luna's wrong answers word for word against 52.5% for the model trained on the facts. What it
+learned is luna's one real weakness, answering where the filing has no answer: on total
+liabilities it invents a value 71 times, luna 66, the facts-trained model once. Distillation
+is for when there is no truth; it hands the student the teacher's failure modes
+([docs/rejected.md](docs/rejected.md)). Prompting the untuned bases was also measured and
+rejected: the best, the 4B with reasoning on, is 7.0 points under luna at 39 seconds a filing.
+
 ## How it works
 
 See [PLAN.md](PLAN.md). A dataset of SEC filings paired with the XBRL facts the companies
