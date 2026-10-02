@@ -102,3 +102,35 @@ def test_the_field_table_names_every_field_worst_first(tmp_path: Path) -> None:
     assert table.splitlines()[2].startswith("| `revenue`")  # wrong twice, so the worst
     assert "hallucinated" not in table  # WRONG misses by value and by absence, not invention
     assert "| `period_end` | 100.0%" in table
+
+
+def test_the_distillation_numbers_come_from_one_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The teacher misses filing 1; the distilled student copies it, the control does not."""
+    from typer.testing import CliRunner
+
+    from smallprint import cli
+
+    monkeypatch.setattr(cli, "read_split", lambda *_a, **_k: items())
+    make_run(tmp_path / "teacher", {1: WRONG}, model="openai/teacher", cost=0.001)
+    make_run(tmp_path / "facts", {}, model="selfhosted/facts", cost=None)
+    make_run(tmp_path / "distilled", {1: WRONG}, model="selfhosted/distilled", cost=None)
+
+    result = CliRunner().invoke(
+        cli.app,
+        [
+            "train",
+            "inherited",
+            "--teacher",
+            str(tmp_path / "teacher"),
+            "--student",
+            str(tmp_path / "facts"),
+            "--student",
+            str(tmp_path / "distilled"),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    facts, distilled = result.output.split("  facts")[1].split("  distilled")
+    assert "teacher's errors repeated 0.0%" in facts
+    assert "teacher's errors repeated 100.0%" in distilled

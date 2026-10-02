@@ -313,10 +313,45 @@ fingerprint, the base model's revision as resolved on the day, the library versi
 step it resumed from, the losses, and the measured seconds per step. Model cards are
 written from that file, so a card cannot claim something the run did not do.
 
-## Not done yet
+## Distillation against the truth
 
-The `train` extra in `pyproject.toml` is deliberately empty until the card is rented: the
-versions that matter are the ones agreeing with the CUDA build on the machine. The
-packages the code imports are torch, transformers, trl, peft, bitsandbytes and accelerate.
-No base model revision has been resolved, which `docs/models.md` requires before any run
-starts. Nothing has been trained.
+The ablation PLAN.md section 9 names second: the same 2B recipe that was chosen
+(`2b-r64-lr1e-4-nall-s0-e1`), the same filings, prompt and seed, trained towards what a
+frontier model answered instead of what the company filed. The question is when
+distillation is the right tool, and the expected answer is: when there is no truth.
+
+**The targets.** `gpt-5.6-luna` zero-shot, the cost anchor, over all 5,060 training
+filings through the gateway, 2026-09-30, US$4.48 at US$0.89 per 1,000. Graded against the
+facts it is 94.6% of fields right (94.4% to 94.9%) and 56.2% of filings entirely right, so
+about one field in nineteen it teaches is wrong. Seven answers would not parse and those
+filings are left out, so the distilled model trains on 5,053 against the control's 5,060:
+
+    smallprint baseline run --model openai/gpt-5.6-luna --split train --build-dir data/build/full       --out data/baseline-distill/luna-zero-train
+    smallprint train dataset --build-dir data/build/full --out data/train/distill-luna       --targets-from data/baseline-distill/luna-zero-train
+
+Validation keeps the facts, so selection is graded as for every other run, and the training
+file differs from the control's only in the values: both are written by `prompts.answer`.
+
+**What is measured.** On the 705 post-cutoff filings, which neither trained on, `smallprint
+train inherited` grades the control, the distilled model and the teacher, pairs every delta,
+and asks of each fine-tune what share of the teacher's wrong fields it got wrong *the same
+way*, the identical answer. The control matters: the 2B trained on the facts already repeats
+52.5% (46.8% to 58.1%) of luna's 400 wrong fields, and the 7B 45.0% (39.1% to 50.8%),
+because some filings are hard for every reader in the same place. Inheritance is the
+distilled model's share above that.
+
+    smallprint train inherited --teacher data/baseline/openai-gpt-5.6-luna-zero_shot       --student data/finetuned/2b-r64-lr1e-4-nall-s0-e1-bf16-test_post_cutoff       --student data/finetuned/2b-r64-lr1e-4-nall-s0-e1-distill-luna-bf16-test_post_cutoff
+
+**The vendor's terms, recorded late.** PLAN.md section 8 says the terms on training with a
+vendor's outputs are read and recorded *before* the distillation set is generated. They were
+not; they were read on 2026-10-02, after the set was made and while the model trained. The
+OpenAI Services Agreement (online version v.010126, section 3.3(e)) restricts using Output
+"to develop artificial intelligence models that compete with OpenAI's products and
+services", except for a Permitted Exception, which includes models "primarily intended to
+categorize, classify, or organize data ... if these models are not distributed or made
+commercially available to third parties". The distilled model is a structured-extraction
+model trained for one measurement, and it is not distributed: its adapter stays on the
+project's private volume, it is not published on Hugging Face, and the training file built
+from luna's answers is not committed or published either. The published models are trained
+on XBRL facts only, which is the reason this project needed no vendor's outputs in the first
+place.

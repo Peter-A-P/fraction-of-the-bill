@@ -572,6 +572,46 @@ def train_dataset(
     )
 
 
+@train_app.command("inherited")
+def train_inherited(
+    teacher: Path = typer.Option(..., help="The teacher's run over held-out filings."),
+    student: list[Path] = typer.Option(
+        ..., help="Runs over the same filings. The first is the reference for the deltas."
+    ),
+    build_dir: Path | None = typer.Option(None, help="Defaults to the build the teacher names."),
+) -> None:
+    """The distillation ablation's numbers: accuracy, the paired delta, the errors inherited.
+
+    Each student is graded over the teacher's filings, paired with the first student, and
+    asked what share of the teacher's wrong fields it got wrong the same way. Run it with the
+    model trained on the facts as the first student and the distilled one second: the first
+    is the control, the share any model trained on this task repeats by sharing a mistake.
+    """
+    from smallprint.grade import inherited_ci, paired_delta_ci
+
+    manifest = read_manifest(teacher)
+    items = read_split(build_dir or Path(manifest.build_dir), manifest.split)
+
+    def grades(run_dir: Path) -> list[ItemGrade]:
+        graded, failed = grade_run(within(read_predictions(run_dir), items)[0], items)
+        if failed:
+            raise typer.BadParameter(f"{run_dir}: {len(failed):,} filings failed")
+        return graded
+
+    t = grades(teacher)
+    reference: list[ItemGrade] | None = None
+    typer.echo(f"{len(t):,} {manifest.split} filings; teacher {manifest.model}")
+    for run_dir in student:
+        s = grades(run_dir)
+        accuracy = sum(g.accuracy for g in s) / len(s)
+        delta = "reference" if reference is None else str(paired_delta_ci(s, reference))
+        typer.echo(f"  {run_dir.name}")
+        typer.echo(f"    fields correct {accuracy:.1%}, paired delta {delta}")
+        typer.echo(f"    vs teacher {paired_delta_ci(s, t)}")
+        typer.echo(f"    teacher's errors repeated {inherited_ci(s, t)}")
+        reference = reference if reference is not None else s
+
+
 @train_app.command("plan")
 def train_plan(
     dataset_dir: Path = typer.Option(Path("data/train"), help="Written by train dataset."),

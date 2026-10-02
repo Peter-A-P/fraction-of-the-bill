@@ -18,6 +18,7 @@ from smallprint.grade import (
     accuracy_ci,
     field_report,
     grade_item,
+    inherited_ci,
     normalise_categorical,
     paired_delta_ci,
     parse_extraction,
@@ -292,3 +293,27 @@ def test_the_field_report_names_the_failure_modes_a_model_card_has_to_carry() ->
     assert report["revenue"].accuracy.point == 0.0
     assert report["revenue"].reasons == {"scale": 10}
     assert report["net_income"].reasons == {}
+
+
+def test_inheritance_counts_only_the_teachers_mistakes_made_the_same_way() -> None:
+    """Three filings where the teacher misreads revenue by a scale: the student copies it on
+    one, misreads it differently on another, and gets it right on the third. One of three
+    is inherited; being wrong some other way is not inheriting."""
+    teacher_answer = TRUTH.model_copy(update={"revenue": 1_234_567.0})
+    teacher = [grade_item(f"item-{i}", teacher_answer, TRUTH, CTX) for i in range(3)]
+    student = [
+        grade_item("item-0", teacher_answer, TRUTH, CTX),
+        grade_item("item-1", TRUTH.model_copy(update={"revenue": 7.0}), TRUTH, CTX),
+        grade_item("item-2", TRUTH, TRUTH, CTX),
+    ]
+    share = inherited_ci(student, teacher, resamples=200)
+    assert share.n == 3
+    assert share.point == pytest.approx(1 / 3)
+    assert 0.0 <= share.low <= share.point <= share.high <= 1.0
+
+
+def test_inheritance_refuses_runs_that_did_not_see_the_same_filings() -> None:
+    a = [grade_item("item-1", TRUTH, TRUTH, CTX)]
+    b = [grade_item("item-2", TRUTH, TRUTH, CTX)]
+    with pytest.raises(ValueError, match="identical items"):
+        inherited_ci(a, b)

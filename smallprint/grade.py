@@ -461,6 +461,52 @@ def paired_delta_ci(
     return Interval(point=float(deltas.mean()), low=low, high=high, n=deltas.size)
 
 
+def inherited_ci(
+    student: Sequence[ItemGrade],
+    teacher: Sequence[ItemGrade],
+    *,
+    resamples: int = 10_000,
+    seed: int = 0,
+) -> Interval:
+    """Of the fields `teacher` got wrong, the share `student` got wrong the same way.
+
+    For the distillation ablation (PLAN.md section 9): a model trained on a frontier model's
+    answers can learn its mistakes as well as its reading. "The same way" is the identical
+    answer, a null where the teacher left one out included, so a student that is wrong
+    differently is not counted as having inherited anything. Measured on held-out filings,
+    which neither model trained on, and resampled by filing, because a filing's fields are
+    not independent of each other. Raises unless both graded the same filings.
+    """
+    by_id_s = {g.item_id: g for g in student}
+    by_id_t = {g.item_id: g for g in teacher}
+    if by_id_s.keys() != by_id_t.keys():
+        raise ValueError(
+            f"inheritance needs identical items: {len(by_id_s)} vs {len(by_id_t)} graded"
+        )
+    errors, inherited = [], []
+    for k in sorted(by_id_t):
+        s_out = {o.field: o for o in by_id_s[k].outcomes}
+        wrong = [o for o in by_id_t[k].outcomes if not o.correct]
+        errors.append(len(wrong))
+        inherited.append(
+            sum(
+                1
+                for o in wrong
+                if not s_out[o.field].correct and s_out[o.field].predicted == o.predicted
+            )
+        )
+    e, i = np.array(errors, dtype=float), np.array(inherited, dtype=float)
+    if not e.sum():
+        raise ValueError("the teacher made no errors on these filings, so nothing can be inherited")
+    rng = np.random.default_rng(seed)
+    draws = rng.integers(0, e.size, size=(resamples, e.size))
+    shares = i[draws].sum(axis=1) / np.maximum(e[draws].sum(axis=1), 1)
+    low, high = np.percentile(shares, [2.5, 97.5])
+    return Interval(
+        point=float(i.sum() / e.sum()), low=float(low), high=float(high), n=int(e.sum())
+    )
+
+
 def unpaired_delta_ci(
     a: Sequence[ItemGrade],
     b: Sequence[ItemGrade],
