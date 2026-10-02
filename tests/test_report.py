@@ -147,3 +147,33 @@ def test_a_reasoning_run_is_labelled_so_in_the_table(tmp_path: Path) -> None:
     table = report.frontier_table([rows[0], on])
     assert "| zero-shot |" in table.splitlines()[2]
     assert "| zero-shot, reasoning |" in table.splitlines()[3]
+
+
+def test_the_scaling_curve_takes_volume_runs_and_the_ablations_take_suffixed_ones(
+    tmp_path: Path,
+) -> None:
+    """Run names decide the table. A learning rate written 1e-4 has a dash in it, which is how
+    the first version of the pattern found no scaling runs at all."""
+    names = {
+        "a": ("selfhosted/2b-r16-lr1e-4-n1000-s0-e1-bf16", {0: WRONG}),
+        "b": ("selfhosted/2b-r16-lr1e-4-n1000-s1-e1-bf16", {}),
+        "c": ("selfhosted/2b-r64-lr1e-4-nall-s0-e1-bf16", {}),
+        "d": ("selfhosted/2b-r64-lr1e-4-nall-s0-e1-distill-luna-bf16", {0: WRONG}),
+    }
+    for directory, (model, answers) in names.items():
+        make_run(tmp_path / directory, answers, model=model, cost=None)
+    rows, _ = report.load(report.run_dirs(tmp_path), items())
+    by_model = {r.summary.model: r for r in rows}
+    assert report.is_scaling(by_model[names["a"][0]])
+    assert not report.is_scaling(by_model[names["c"][0]])
+    assert report.is_ablation(by_model[names["d"][0]])
+
+    curve = report.scaling_table(rows)
+    assert curve.count("| 2b | 1,000 |") == 1
+    assert "| Seed 0 | Seed 1 | Mean of seeds" in curve  # the seeds that exist, no more
+    assert "| 96.7% | 100.0% | 98.3% (" in curve  # each seed, then their mean
+    assert "nall" not in curve and "distill" not in curve
+
+    ablations = report.ablation_table(rows)
+    assert "| `2b-r64-lr1e-4-nall-s0-e1-distill-luna` | `2b-r64-lr1e-4-nall-s0-e1` |" in ablations
+    assert "-3.3% (" in ablations  # two wrong fields of sixty, paired

@@ -17,6 +17,7 @@ difference here that cannot be paired: the two sets are different filings by con
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Final
@@ -42,7 +43,7 @@ from smallprint.chart import Point
 from smallprint.chart import render as render_chart
 from smallprint.data.build import SplitItem
 from smallprint.data.split import Split
-from smallprint.grade import Interval, ItemGrade, paired_delta_ci, unpaired_delta_ci
+from smallprint.grade import Interval, ItemGrade, mean_ci, paired_delta_ci, unpaired_delta_ci
 from smallprint.quant.quality import Format, judge
 from smallprint.recost import recost
 from smallprint.serve.launch import PROVIDER, parse_served_name, served_name
@@ -308,6 +309,95 @@ def quantisation_table(post: Sequence[Row]) -> str:
     return "\n".join(lines)
 
 
+#: A run name as `TrainConfig.run_id` and `scripts/sweep.sh` write it, and anything sweep.sh's
+#: NAME_SUFFIX added after it (the distillation run's `-distill-luna`).
+RUN_NAME = re.compile(
+    r"^(?P<size>[^-]+)-r(?P<rank>\d+)-lr(?P<lr>[0-9.]+(?:e-?\d+)?)-n(?P<volume>\d+|all)"
+    r"-s(?P<seed>\d+)-e(?P<epochs>\d+)(?P<suffix>-.+)?$"
+)
+
+
+def _parts(row: Row) -> re.Match[str] | None:
+    return RUN_NAME.match(_served(row)[1])
+
+
+def is_scaling(row: Row) -> bool:
+    """A run on a subset of the training filings: a point on the data-scaling curve."""
+    m = _parts(row)
+    return m is not None and m["volume"] != "all" and not m["suffix"]
+
+
+def is_ablation(row: Row) -> bool:
+    """A run sweep.sh named with a suffix: the recipe of the run without it, changed once."""
+    m = _parts(row)
+    return m is not None and bool(m["suffix"])
+
+
+def scaling_table(post: Sequence[Row]) -> str:
+    """The data-scaling curve: each size at each training volume, every seed beside the mean.
+
+    The mean's interval resamples filings, each filing scored as the mean of the seeds on it,
+    so it is the uncertainty of the test set; the spread of the seeds is shown beside it
+    rather than folded into an interval three runs cannot support.
+    """
+    curve: dict[tuple[str, int], dict[int, Row]] = {}
+    for row in post:
+        m = _parts(row)
+        if m is None or not is_scaling(row) or _served(row)[2] is not Format.BF16:
+            continue
+        curve.setdefault((m["size"], int(m["volume"])), {})[int(m["seed"])] = row
+    if not curve:
+        return "_No data-scaling runs._"
+    seeds = sorted({seed for runs in curve.values() for seed in runs})
+    lines = [
+        "| Size | Training filings | "
+        + " | ".join(f"Seed {s}" for s in seeds)
+        + " | Mean of seeds (95% CI) | Every field right, mean |",
+        "|---|---:|" + "---:|" * len(seeds) + "---|---:|",
+    ]
+    for (size, volume), runs in sorted(curve.items()):
+        cells = [
+            f"{runs[s].summary.accuracy.point:.1%}" if s in runs else "not measured" for s in seeds
+        ]
+        by_item: dict[str, list[float]] = {}
+        for row in runs.values():
+            for grade in row.grades:
+                by_item.setdefault(grade.item_id, []).append(grade.accuracy)
+        mean = mean_ci([sum(v) / len(v) for v in by_item.values()])
+        exact = sum(r.summary.exact_match.point for r in runs.values()) / len(runs)
+        note = "" if len(runs) == len(seeds) else f", {len(runs)} of {len(seeds)} seeds"
+        lines.append(
+            f"| {size} | {volume:,} | "
+            + " | ".join(cells)
+            + f" | {_pct(mean)}{note} | {exact:.1%} |"
+        )
+    return "\n".join(lines)
+
+
+def ablation_table(post: Sequence[Row]) -> str:
+    """Each ablation against the run it changes one thing in, paired over the same filings."""
+    by_run = {_served(r)[1]: r for r in post if _served(r)[2] is Format.BF16}
+    lines = [
+        "| Run | Changed from | Fields correct (95% CI) | Every field right | Paired delta |",
+        "|---|---|---|---|---|",
+    ]
+    for run, row in sorted(by_run.items()):
+        m = RUN_NAME.match(run)
+        if m is None or not m["suffix"]:
+            continue
+        control = by_run.get(run[: -len(m["suffix"])])
+        delta = (
+            _signed(paired_delta_ci(list(row.grades), list(control.grades)))
+            if control is not None
+            else "control not measured"
+        )
+        lines.append(
+            f"| `{run}` | `{run[: -len(m['suffix'])]}` | {_pct(row.summary.accuracy)} | "
+            f"{_pct(row.summary.exact_match)} | {delta} |"
+        )
+    return "\n".join(lines) if len(lines) > 2 else "_No ablations._"
+
+
 def finetuned(root: Path, frontier_root: Path, build_dir: Path) -> str:
     """The fine-tuned section: the quality table and the quantisation table."""
     post_items = read_split(build_dir, Split.TEST_POST_CUTOFF.value)
@@ -317,12 +407,20 @@ def finetuned(root: Path, frontier_root: Path, build_dir: Path) -> str:
     pre_dirs = run_dirs(root, Split.TEST_PRE_CUTOFF.value)
     pre = load(pre_dirs, read_split(build_dir, Split.TEST_PRE_CUTOFF.value))[0] if pre_dirs else []
     frontier, _ = load(run_dirs(frontier_root, Split.TEST_POST_CUTOFF.value), post_items)
+    # The curve and the ablations have tables of their own; the fine-tune table is the runs
+    # that could ship, every seed and format of the chosen recipes.
+    main = [r for r in post if not is_scaling(r) and not is_ablation(r)]
     parts = [
-        finetuned_table(post, pre, frontier),
+        finetuned_table(main, pre, frontier),
         f"Measured on {post[0].summary.graded:,} {Split.TEST_POST_CUTOFF.value} filings, "
         "every call through the gateway, temperature as each run's manifest records it.",
         "**Quantisation cost, paired over the same filings:**",
-        quantisation_table(post),
+        quantisation_table(main),
+        "**The data-scaling curve**, rank 16 at learning rate 1e-4, one epoch, on the "
+        "post-cutoff filings:",
+        scaling_table(post),
+        "**Ablations**, each against the run it changes one thing in:",
+        ablation_table(post),
     ]
     if skipped:
         parts.append(

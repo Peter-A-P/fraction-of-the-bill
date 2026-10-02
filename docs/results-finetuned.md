@@ -66,6 +66,26 @@ Measured on 705 test_post_cutoff filings, every call through the gateway, temper
 | `7b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | -0.1% (-0.3% to +0.0%) | `net_income` -0.6% | yes |
 | `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | -0.0% (-0.1% to +0.0%) | `shares_diluted` -0.4% | yes |
 
+**The data-scaling curve**, rank 16 at learning rate 1e-4, one epoch, on the post-cutoff filings:
+
+| Size | Training filings | Seed 0 | Seed 1 | Seed 2 | Mean of seeds (95% CI) | Every field right, mean |
+|---|---:|---:|---:|---:|---|---:|
+| 2b | 1,000 | 88.1% | 85.4% | 83.1% | 85.6% (84.3% to 86.8%) | 29.7% |
+| 2b | 2,500 | 93.1% | 92.1% | 91.4% | 92.2% (91.4% to 93.0%) | 43.3% |
+| 2b | 5,000 | 95.2% | 95.1% | 95.2% | 95.2% (94.7% to 95.7%) | 52.6% |
+| 4b | 1,000 | 89.3% | 88.8% | 91.9% | 90.0% (89.2% to 90.8%) | 36.5% |
+| 4b | 2,500 | 95.0% | 95.3% | not measured | 95.1% (94.7% to 95.6%), 2 of 3 seeds | 51.8% |
+| 4b | 5,000 | 96.2% | 95.8% | not measured | 96.0% (95.5% to 96.4%), 2 of 3 seeds | 59.1% |
+| 7b | 1,000 | 91.4% | 90.7% | 91.1% | 91.1% (90.1% to 92.0%) | 45.2% |
+| 7b | 2,500 | 95.9% | 96.0% | 96.0% | 96.0% (95.5% to 96.4%) | 58.7% |
+| 7b | 5,000 | 97.0% | 96.9% | not measured | 97.0% (96.5% to 97.3%), 2 of 3 seeds | 68.4% |
+
+**Ablations**, each against the run it changes one thing in:
+
+| Run | Changed from | Fields correct (95% CI) | Every field right | Paired delta |
+|---|---|---|---|---|
+| `2b-r64-lr1e-4-nall-s0-e1-distill-luna` | `2b-r64-lr1e-4-nall-s0-e1` | 95.6% (95.1% to 96.0%) | 52.1% (48.4% to 55.7%) | -1.3% (-1.7% to -1.0%) |
+
 | Model | Format | Accuracy delta vs bf16 (95% CI) | Req/s at c=32 | TTFT p99 ms | Cost per 1,000 | Break-even volume at 50% utilisation |
 |---|---|---|---:|---:|---:|---:|
 | `2b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 3.29 (3.29 to 3.29) | 3,628 (3,032 to 4,415) | US$0.083 (US$0.083 to US$0.083) | 0.4M |
