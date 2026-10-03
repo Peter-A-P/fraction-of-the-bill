@@ -189,3 +189,8 @@ Then, once, for every model load-tested that day:
 
 The overlay goes in `prices/self-hosted/` and the gateway configuration names it from then
 on, so every later self-hosted call is costed in the ledger from what was measured here.
+
+The website's numbers come from the same runs, and are written in the same sitting so the
+page cannot lag the tables ([deploy.md](deploy.md)):
+
+    smallprint site --build-dir data/build/full

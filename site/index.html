@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontier Quality at a Fraction of the Bill: when a small model you own beats paying per call</title>
+<meta name="description" content="A 2B model fine-tuned on SEC filings, with the companies' own XBRL facts as the answers, gets as many fields right as the dearest frontier API on filings published after it was trained. Served on one rented card it costs a small fraction per call, and this page works out the monthly volume at which owning it pays, with your own prices.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="https://peterparker.ca"><span class="mono-mark" aria-hidden="true">P</span>Peter Parker</a>
+    <p class="top-nav"><a href="https://peterparker.ca/projects/fraction-of-the-bill/">Project 06: Frontier Quality at a Fraction of the Bill</a></p>
+  </div>
+</header>
+<main>
+
+  <header class="hero">
+    <div class="cta">
+      <a class="button primary" href="#calculator">Work out your own break-even</a>
+      <a class="button" href="https://github.com/Peter-A-P/fraction-of-the-bill">Read the code</a>
+      <a class="button" href="https://huggingface.co/Peter-A-P">The models and the data</a>
+    </div>
+
+    <p class="eyebrow">Measured, priced and dated, and reproducible from the repository</p>
+    <h1>Your team pays a frontier API for every call. At what volume does a small model you own do the same job for less?</h1>
+    <p class="lead">
+      Plenty of AI work is the same narrow task, run thousands of times: read a document, pull out
+      the same fifteen numbers, put them in a database. Paying the most capable model in the world
+      per call for that is the default, and it is rarely questioned, because the alternative is
+      rarely measured on the same documents. <strong>This project measured it.</strong> It fine-tuned three
+      small open models to read company financial filings, graded every answer against the figure
+      the company itself filed, and rented the hardware to serve them, so the comparison is quality
+      against quality and dollars against dollars.
+    </p>
+    <div class="hero-points">
+      <div class="point">
+        <span class="point-figure up" id="hero-accuracy">-</span>
+        <span class="point-unit">of fields right, from a 2B model</span>
+        <span class="point-label" id="hero-accuracy-note">on filings published after it was trained</span>
+      </div>
+      <div class="point">
+        <span class="point-figure up" id="hero-cost">-</span>
+        <span class="point-unit">per 1,000 filings read</span>
+        <span class="point-label" id="hero-cost-note">on one rented card</span>
+      </div>
+      <div class="point">
+        <span class="point-figure up" id="hero-even">-</span>
+        <span class="point-unit">filings a month and owning it pays</span>
+        <span class="point-label" id="hero-even-note">against the cheapest API that does the job</span>
+      </div>
+      <div class="point">
+        <span class="point-figure up" id="hero-even-ceiling">-</span>
+        <span class="point-unit">a month against the API it matches</span>
+        <span class="point-label" id="hero-even-ceiling-note">the most accurate frontier result measured</span>
+      </div>
+    </div>
+    <p class="hero-note" id="hero-note">
+      Every figure on this page is read from the project's own results file, written by the same
+      code that writes the repository's tables.
+    </p>
+    <noscript><p class="noscript">The figures and the calculator on this page need JavaScript. Every number is also in the repository's README, as tables.</p></noscript>
+  </header>
+
+  <section class="section" id="task">
+    <h2>The task, and how it is marked</h2>
+    <div class="two-up">
+      <div>
+        <p class="section-lead">
+          Every US public company files its quarterly and annual reports with the SEC, and tags
+          the key figures in them in a machine-readable format called XBRL. The model gets the
+          financial statements as text and has to return fifteen fields: revenue, net income,
+          total assets, earnings per share, the auditor, and so on.
+        </p>
+        <p>
+          The tags are the answer key. <strong>No model marks another model's work</strong>:
+          each answer is compared with the figure the company filed, by code. Where a filing
+          does not report a field, the right answer is "not reported", and a model that makes a
+          number up is wrong.
+        </p>
+        <p>
+          The headline test set is <span id="task-filings">-</span> filings published
+          <strong>after</strong> the small models' training data was collected, from companies
+          none of the training filings came from, so a good score cannot be memory.
+        </p>
+      </div>
+      <div>
+        <pre class="task-sample" aria-label="The fifteen fields">period_end              date
+fiscal_period           FY, Q1, Q2 or Q3
+revenue                 US$
+cost_of_revenue         US$, or not reported
+operating_income        US$, or not reported
+net_income              US$
+eps_basic               US$ a share, or not reported
+eps_diluted             US$ a share, or not reported
+shares_diluted          a count, or not reported
+total_assets            US$
+total_liabilities       US$, or not reported
+cash_and_equivalents    US$
+stockholders_equity     US$
+auditor_name            a name, or not reported
+state_of_incorporation  a code, or not reported</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="frontier">
+    <h2>Quality against cost</h2>
+    <p class="section-lead">
+      Each mark is one model, its share of fields right against what 1,000 filings cost it, with
+      its 95% interval as a whisker. The frontier APIs are what their vendors billed through the
+      project's gateway. The fine-tunes are the card's hourly rent over the requests it served a
+      second, measured with <span class="conc">32</span> requests in flight, with the card busy
+      <span class="util">half</span> the time. Cost runs along a log scale: each gridline is ten
+      times the last.
+    </p>
+    <div class="legend" aria-hidden="true">
+      <span class="legend-item"><span class="swatch solid sw-frontier"></span>Frontier API, per call</span>
+      <span class="legend-item"><span class="swatch solid sw-hosted"></span>Fine-tuned, on a rented card</span>
+    </div>
+    <figure class="chart-figure">
+      <div class="chart wide-chart" id="pareto"></div>
+      <p class="readout" id="pareto-readout" aria-live="polite">Point at a mark for its figures.</p>
+      <figcaption id="pareto-caption"></figcaption>
+    </figure>
+    <div class="verdict" id="frontier-verdict"></div>
+  </section>
+
+  <section class="section" id="calculator">
+    <h2>Your break-even</h2>
+    <p class="section-lead">
+      An API is paid by the call. A card is rented by the hour, whether it serves one call or its
+      fill. So below some volume the API is cheaper, and above it the card is. Put in what you pay
+      and how hard you would run the card; the measured throughput does the rest.
+    </p>
+    <div class="controls">
+      <div class="control">
+        <label for="calc-served">Model, format and card<span class="hint">the throughput, as measured</span></label>
+        <select id="calc-served"></select>
+      </div>
+      <div class="control">
+        <label for="calc-rate">Card rent, US$ an hour<span class="hint" id="calc-rate-hint">as rented</span></label>
+        <input type="number" id="calc-rate" min="0.01" step="0.01" inputmode="decimal">
+      </div>
+      <div class="control">
+        <label for="calc-api">API, US$ per 1,000 calls<span class="hint" id="calc-api-hint">what you pay now</span></label>
+        <input type="number" id="calc-api" min="0.001" step="0.01" inputmode="decimal">
+      </div>
+      <div class="control">
+        <label for="calc-fixed">Fixed costs, US$ a month<span class="hint">people, storage, monitoring; zero counts the rent only</span></label>
+        <input type="number" id="calc-fixed" min="0" step="50" value="0" inputmode="decimal">
+      </div>
+      <div class="control wide">
+        <span class="label-text" id="presets-label">Or price the API at a run this project measured</span>
+        <div class="button-row" id="calc-api-presets" role="group" aria-labelledby="presets-label"></div>
+      </div>
+      <div class="control">
+        <label for="calc-util">How busy the card is: <output id="calc-util-out" for="calc-util">50%</output><span class="hint">your traffic and latency target decide this, not the test</span></label>
+        <input type="range" id="calc-util" min="10" max="90" step="5" value="50">
+      </div>
+      <div class="control">
+        <label for="calc-volume">Your volume, calls a month<span class="hint">to price your month on both</span></label>
+        <input type="number" id="calc-volume" min="0" step="10000" value="100000" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="answer" aria-live="polite">
+      <div class="stat lead-stat"><span class="figure" id="out-even">-</span><span class="caption" id="out-even-note">calls a month and the card is the cheaper</span></div>
+      <div class="stat"><span class="figure" id="out-own">-</span><span class="caption" id="out-own-note">per 1,000 on the card, at this load</span></div>
+      <div class="stat"><span class="figure" id="out-month-api">-</span><span class="caption" id="out-month-api-note">a month on the API at your volume</span></div>
+      <div class="stat"><span class="figure" id="out-month-own">-</span><span class="caption" id="out-month-own-note">a month on cards at your volume</span></div>
+    </div>
+
+    <div class="legend" aria-hidden="true">
+      <span class="legend-item"><span class="swatch sw-api"></span>API, by the call</span>
+      <span class="legend-item"><span class="swatch sw-own"></span>Rented cards, by the month</span>
+      <span class="legend-item"><span class="swatch sw-you"></span>Your volume</span>
+    </div>
+    <figure class="chart-figure">
+      <div class="chart" id="month"></div>
+      <figcaption>
+        The monthly bill on each against the volume. The cards' bill is a staircase: a whole
+        card's month is paid as soon as the volume needs one more. The break-even is where the
+        API's line first meets it.
+      </figcaption>
+    </figure>
+
+    <div class="assumption">
+      <p>
+        <strong>What this leaves to you.</strong> The rent is the only cost counted unless you
+        add one. The throughput is what the card was measured serving, on these filings, at 32
+        requests in flight; a card you rent for a different model or longer documents will
+        serve a different number. And "how busy" is a choice: traffic that arrives in bursts,
+        or a tight latency target, means a card that sits idle more of the month, and every
+        call it does serve carries more of the rent.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="table">
+    <h2>Every card measured, across how busy it is</h2>
+    <p class="section-lead">
+      Calls a month at which one card first costs no more than the API, as the project's own
+      code works it out. Where it says "never", the card at that load already costs more per
+      call than the API does, so no volume helps.
+    </p>
+    <div class="button-row" id="table-against" role="group" aria-label="The API to break even against"></div>
+    <div class="table-wrap">
+      <table class="tight" id="even-table"></table>
+    </div>
+    <p class="note" id="table-note"></p>
+  </section>
+
+  <section class="section" id="gate">
+    <h2>Where it falls short</h2>
+    <p class="section-lead">
+      An average can hide a field that got worse. So every fine-tune went through a release gate
+      field by field: it passes a field only if the whole 95% interval of the difference sits
+      above a three-point loss, after correcting for testing fifteen fields at once.
+    </p>
+    <div class="table-wrap">
+      <table id="gate-table"></table>
+    </div>
+    <div class="verdict" id="gate-verdict"></div>
+  </section>
+
+  <section class="section" id="honesty">
+    <h2>What this does not show</h2>
+    <ul>
+      <li><strong>One task.</strong> Fifteen fields from US financial filings. The method transfers
+        to any narrow, high-volume task with an answer key; the numbers do not.</li>
+      <li><strong>Prices move.</strong> Every rent and every API price here carries the day it was
+        read. The calculator is there so you can put in today's.</li>
+      <li><strong>OpenAI's costs are recomputed.</strong> The gateway first used priced GPT-5.6's
+        cache writes as plain input; they are billed at 1.25 times. The costs here are
+        recomputed from the bytes each call returned, which raised OpenAI's runs by 16 to 22%.</li>
+      <li><strong>Labels have errors.</strong> A hand audit of 200 items found 3.0% wrong, all since
+        fixed and none in the test sets; the repository says how they were found.</li>
+      <li><strong>Training is not counted.</strong> The fine-tune is a one-off cost, tens of dollars of
+        rented time here rather than a monthly one, and so is labelling the data if you have no
+        answer key. Spread it over the months you expect to run, as a fixed cost.</li>
+    </ul>
+  </section>
+
+</main>
+<footer class="foot">
+  <div class="foot-inner">
+    <p>
+      Source, method, every run and the tables these numbers are read from:
+      <a href="https://github.com/Peter-A-P/fraction-of-the-bill">github.com/Peter-A-P/fraction-of-the-bill</a>
+    </p>
+    <ul>
+      <li>Models and corpus: <a href="https://huggingface.co/Peter-A-P">huggingface.co/Peter-A-P</a></li>
+      <li id="foot-written">Results file written from the runs</li>
+      <li>Type: Newsreader and Inter, SIL Open Font License, served from this host</li>
+    </ul>
+  </div>
+</footer>
+<script src="breakeven.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

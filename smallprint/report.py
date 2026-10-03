@@ -456,7 +456,7 @@ def cost_anchor(frontier: Sequence[Row]) -> Row:
     return min(costed, key=lambda r: r.usd_per_1000)
 
 
-def _level(run: LoadRun, concurrency: int) -> LoadSummary | None:
+def measured_level(run: LoadRun, concurrency: int) -> LoadSummary | None:
     """A level's summary, or None if it was not run, measured nothing, or was retried."""
     level = run.level(concurrency)
     if level is None or level.summary is None or level.retried:
@@ -467,7 +467,7 @@ def _level(run: LoadRun, concurrency: int) -> LoadSummary | None:
 def self_hosted_per_1000(run: LoadRun, utilisation: float = QUOTED_UTILISATION) -> Interval | None:
     """Cost per 1,000 at the quoted concurrency and utilisation, with the interval the
     throughput's interval gives it: the low end of the cost is the high end of the rate."""
-    summary = _level(run, SERVING_CONCURRENCY)
+    summary = measured_level(run, SERVING_CONCURRENCY)
     if summary is None:
         return None
     rate = run.price.usd_per_hour
@@ -481,8 +481,8 @@ def self_hosted_per_1000(run: LoadRun, utilisation: float = QUOTED_UTILISATION) 
     )
 
 
-def _inputs(run: LoadRun, anchor: Row) -> BreakEvenInputs | None:
-    summary = _level(run, SERVING_CONCURRENCY)
+def breakeven_inputs(run: LoadRun, anchor: Row) -> BreakEvenInputs | None:
+    summary = measured_level(run, SERVING_CONCURRENCY)
     if summary is None:
         return None
     return BreakEvenInputs(
@@ -518,7 +518,7 @@ def serving_table(post: Sequence[Row], runs: Sequence[LoadRun], anchor: Row) -> 
         # The same weights load-tested on more than one card are more than one row, so the
         # card and its rate are in every row rather than in a caption.
         card = f"{run.price.gpu}, {run.price.usd_per_hour:,.2f}"
-        summary = _level(run, SERVING_CONCURRENCY)
+        summary = measured_level(run, SERVING_CONCURRENCY)
         if summary is None:
             lines.append(
                 f"| `{name}` | {fmt.value} | {card} | | not measured at c={SERVING_CONCURRENCY}, "
@@ -535,7 +535,7 @@ def serving_table(post: Sequence[Row], runs: Sequence[LoadRun], anchor: Row) -> 
                 else "not measured"
             )
         cost = self_hosted_per_1000(run)
-        inputs = _inputs(run, anchor)
+        inputs = breakeven_inputs(run, anchor)
         volume = _volume(break_even(inputs, QUOTED_UTILISATION)) if inputs else ""
         money_cell = (
             f"US${cost.point:,.3f} (US${cost.low:,.3f} to US${cost.high:,.3f})" if cost else ""
@@ -560,7 +560,7 @@ def breakeven_table(runs: Sequence[LoadRun], anchor: Row) -> str:
     ]
     for run in _by_run(runs):
         _, name, fmt = parse_served_name(run.model)
-        inputs = _inputs(run, anchor)
+        inputs = breakeven_inputs(run, anchor)
         if inputs is None:
             continue
         cells = [_volume(break_even(inputs, u)) for u in TABLE_UTILISATIONS]

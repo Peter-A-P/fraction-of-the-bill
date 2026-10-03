@@ -1,0 +1,980 @@
+{
+ "written": "2026-10-03",
+ "filings": 705,
+ "hours_per_month": 730.5,
+ "seconds_per_hour": 3600.0,
+ "concurrency": 32,
+ "quoted_utilisation": 0.5,
+ "anchor": "openai/gpt-5.6-luna zero_shot",
+ "ceiling": "openai/gpt-5.6-sol few_shot",
+ "frontier": [
+  {
+   "key": "openai/gpt-5.6-luna zero_shot",
+   "model": "openai/gpt-5.6-luna",
+   "prompt": "zero-shot",
+   "accuracy": {
+    "point": 0.9621749408983453,
+    "low": 0.9581087470449173,
+    "high": 0.9662411347517731
+   },
+   "every_field": {
+    "point": 0.5829787234042553,
+    "low": 0.5460992907801419,
+    "high": 0.6198581560283688
+   },
+   "usd_per_1000": 1.0133956028368794,
+   "recosted": true,
+   "latency_p50_s": 2.3323400000226684
+  },
+  {
+   "key": "openai/gpt-5.6-luna few_shot",
+   "model": "openai/gpt-5.6-luna",
+   "prompt": "few-shot",
+   "accuracy": {
+    "point": 0.962080378250591,
+    "low": 0.9573522458628843,
+    "high": 0.9665248226950356
+   },
+   "every_field": {
+    "point": 0.6042553191489362,
+    "low": 0.5673758865248227,
+    "high": 0.6397163120567376
+   },
+   "usd_per_1000": 1.947538865248227,
+   "recosted": true,
+   "latency_p50_s": 2.171296100015752
+  },
+  {
+   "key": "anthropic/claude-sonnet-5 zero_shot",
+   "model": "anthropic/claude-sonnet-5",
+   "prompt": "zero-shot",
+   "accuracy": {
+    "point": 0.9609456264775414,
+    "low": 0.9565957446808512,
+    "high": 0.9652009456264776
+   },
+   "every_field": {
+    "point": 0.574468085106383,
+    "low": 0.5375886524822695,
+    "high": 0.6099290780141844
+   },
+   "usd_per_1000": 11.956042553191493,
+   "recosted": true,
+   "latency_p50_s": 3.0359414000122342
+  },
+  {
+   "key": "openai/gpt-5.6-sol zero_shot",
+   "model": "openai/gpt-5.6-sol",
+   "prompt": "zero-shot",
+   "accuracy": {
+    "point": 0.9590543735224588,
+    "low": 0.9529078014184398,
+    "high": 0.964728132387707
+   },
+   "every_field": {
+    "point": 0.64822695035461,
+    "low": 0.6127659574468085,
+    "high": 0.6836879432624113
+   },
+   "usd_per_1000": 18.38533333333333,
+   "recosted": true,
+   "latency_p50_s": 2.760964499990223
+  },
+  {
+   "key": "anthropic/claude-sonnet-5 few_shot",
+   "model": "anthropic/claude-sonnet-5",
+   "prompt": "few-shot",
+   "accuracy": {
+    "point": 0.963309692671395,
+    "low": 0.9582009456264775,
+    "high": 0.9678486997635936
+   },
+   "every_field": {
+    "point": 0.6113475177304964,
+    "low": 0.574468085106383,
+    "high": 0.6468085106382979
+   },
+   "usd_per_1000": 22.914907801418437,
+   "recosted": true,
+   "latency_p50_s": 3.3165563000075053
+  },
+  {
+   "key": "openai/gpt-5.6-sol few_shot",
+   "model": "openai/gpt-5.6-sol",
+   "prompt": "few-shot",
+   "accuracy": {
+    "point": 0.9694562647754138,
+    "low": 0.9655791962174941,
+    "high": 0.9733333333333334
+   },
+   "every_field": {
+    "point": 0.6695035460992907,
+    "low": 0.6340425531914894,
+    "high": 0.7049645390070922
+   },
+   "usd_per_1000": 37.07005673758865,
+   "recosted": true,
+   "latency_p50_s": 2.924950299988268
+  }
+ ],
+ "served": [
+  {
+   "name": "2b-r64-lr1e-4-nall-s0-e1",
+   "size": "2b",
+   "format": "bf16",
+   "gpu": "RTXA5000",
+   "provider": "runpod",
+   "usd_per_hour": 0.27,
+   "price_checked": "2026-10-03",
+   "requests_per_second": 2.7957522793991556,
+   "ttft_p99_ms": 2850.779081694782,
+   "accuracy": {
+    "point": 0.9691725768321513,
+    "low": 0.9651063829787235,
+    "high": 0.9730496453900709
+   },
+   "every_field": {
+    "point": 0.6567375886524822,
+    "low": 0.6212765957446809,
+    "high": 0.6907801418439716
+   },
+   "usd_per_1000": 0.05365282221364656
+  },
+  {
+   "name": "2b-r64-lr1e-4-nall-s0-e1",
+   "size": "2b",
+   "format": "bf16",
+   "gpu": "A40",
+   "provider": "runpod",
+   "usd_per_hour": 0.49,
+   "price_checked": "2026-09-26",
+   "requests_per_second": 3.294374414127261,
+   "ttft_p99_ms": 3628.437878564,
+   "accuracy": {
+    "point": 0.9691725768321513,
+    "low": 0.9651063829787235,
+    "high": 0.9730496453900709
+   },
+   "every_field": {
+    "point": 0.6567375886524822,
+    "low": 0.6212765957446809,
+    "high": 0.6907801418439716
+   },
+   "usd_per_1000": 0.08263244792542465
+  },
+  {
+   "name": "2b-r64-lr1e-4-nall-s0-e1",
+   "size": "2b",
+   "format": "gguf-q4_k_m",
+   "gpu": "A40",
+   "provider": "runpod",
+   "usd_per_hour": 0.49,
+   "price_checked": "2026-09-26",
+   "requests_per_second": 0.6735230636755014,
+   "ttft_p99_ms": 27537.595208734274,
+   "accuracy": {
+    "point": 0.9619858156028369,
+    "low": 0.954420803782506,
+    "high": 0.9683215130023641
+   },
+   "every_field": {
+    "point": 0.6439716312056738,
+    "low": 0.6085106382978723,
+    "high": 0.6780496453900704
+   },
+   "usd_per_1000": 0.4041765410922542
+  },
+  {
+   "name": "2b-r64-lr1e-4-nall-s0-e1",
+   "size": "2b",
+   "format": "gguf-q8_0",
+   "gpu": "A40",
+   "provider": "runpod",
+   "usd_per_hour": 0.49,
+   "price_checked": "2026-09-26",
+   "requests_per_second": 0.7042636149695102,
+   "ttft_p99_ms": 24861.823809333146,
+   "accuracy": {
+    "point": 0.967470449172577,
+    "low": 0.9622695035460994,
+    "high": 0.9719148936170213
+   },
+   "every_field": {
+    "point": 0.6524822695035462,
+    "low": 0.6170212765957447,
+    "high": 0.6865248226950355
+   },
+   "usd_per_1000": 0.38653455387441477
+  },
+  {
+   "name": "7b-r64-lr1e-4-nall-s0-e1",
+   "size": "7b",
+   "format": "awq",
+   "gpu": "A40",
+   "provider": "runpod",
+   "usd_per_hour": 0.49,
+   "price_checked": "2026-09-26",
+   "requests_per_second": 1.3868892209132322,
+   "ttft_p99_ms": 11107.16154333204,
+   "accuracy": {
+    "point": 0.9715366430260048,
+    "low": 0.967565011820331,
+    "high": 0.9753191489361702
+   },
+   "every_field": {
+    "point": 0.6978723404255319,
+    "low": 0.6624113475177305,
+    "high": 0.7304964539007093
+   },
+   "usd_per_1000": 0.19628260002119755
+  },
+  {
+   "name": "7b-r64-lr1e-4-nall-s0-e1",
+   "size": "7b",
+   "format": "bf16",
+   "gpu": "A40",
+   "provider": "runpod",
+   "usd_per_hour": 0.49,
+   "price_checked": "2026-09-26",
+   "requests_per_second": 1.1560036192732324,
+   "ttft_p99_ms": 17322.39313889295,
+   "accuracy": {
+    "point": 0.97371158392435,
+    "low": 0.9698345153664303,
+    "high": 0.9773995271867613
+   },
+   "every_field": {
+    "point": 0.7191489361702128,
+    "low": 0.6851063829787234,
+    "high": 0.75177304964539
+   },
+   "usd_per_1000": 0.2354856141310055
+  },
+  {
+   "name": "7b-r64-lr1e-4-nall-s0-e1",
+   "size": "7b",
+   "format": "gptq",
+   "gpu": "A40",
+   "provider": "runpod",
+   "usd_per_hour": 0.49,
+   "price_checked": "2026-09-26",
+   "requests_per_second": 1.3871044019405412,
+   "ttft_p99_ms": 11924.815949983895,
+   "accuracy": {
+    "point": 0.9731442080378251,
+    "low": 0.9689834515366432,
+    "high": 0.9770212765957447
+   },
+   "every_field": {
+    "point": 0.7163120567375887,
+    "low": 0.6808510638297872,
+    "high": 0.7489361702127659
+   },
+   "usd_per_1000": 0.19625215076917557
+  }
+ ],
+ "curves": [
+  {
+   "served": 0,
+   "against": "openai/gpt-5.6-luna zero_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.0002682641110682328,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 194627.8427179517,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0000894213703560776,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 194627.8427179517,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00005365282221364656,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 194627.8427179517,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00003832344443831897,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 194627.8427179517,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.000029807123452025865,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 194627.8427179517,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    }
+   ]
+  },
+  {
+   "served": 0,
+   "against": "openai/gpt-5.6-sol few_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.0002682641110682328,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 5320.601513943888,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0000894213703560776,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 5320.601513943888,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00005365282221364656,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 5320.601513943888,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00003832344443831897,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 5320.601513943888,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.000029807123452025865,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 5320.601513943888,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 197.235
+    }
+   ]
+  },
+  {
+   "served": 1,
+   "against": "openai/gpt-5.6-luna zero_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.00041316223962712317,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.00013772074654237442,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00008263244792542465,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00005902317708958904,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.0000459069155141248,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 1,
+   "against": "openai/gpt-5.6-sol few_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.00041316223962712317,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.00013772074654237442,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00008263244792542465,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00005902317708958904,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.0000459069155141248,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 2,
+   "against": "openai/gpt-5.6-luna zero_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.002020882705461271,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": null,
+     "gpus_at_break_even": null,
+     "monthly_cost_at_break_even": null
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0006736275684870903,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.0004041765410922542,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00028869752935161016,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.00022454252282903012,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 2,
+   "against": "openai/gpt-5.6-sol few_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.002020882705461271,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0006736275684870903,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.0004041765410922542,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00028869752935161016,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.00022454252282903012,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 3,
+   "against": "openai/gpt-5.6-luna zero_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.0019326727693720737,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": null,
+     "gpus_at_break_even": null,
+     "monthly_cost_at_break_even": null
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0006442242564573579,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00038653455387441477,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.0002760961099102963,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.00021474141881911931,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 3,
+   "against": "openai/gpt-5.6-sol few_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.0019326727693720737,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0006442242564573579,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00038653455387441477,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.0002760961099102963,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.00021474141881911931,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 4,
+   "against": "openai/gpt-5.6-luna zero_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.0009814130001059875,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0003271376667019959,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00019628260002119754,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00014020185715799826,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.0001090458889006653,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 4,
+   "against": "openai/gpt-5.6-sol few_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.0009814130001059875,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0003271376667019959,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00019628260002119754,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00014020185715799826,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.0001090458889006653,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 5,
+   "against": "openai/gpt-5.6-luna zero_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.0011774280706550275,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": null,
+     "gpus_at_break_even": null,
+     "monthly_cost_at_break_even": null
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0003924760235516759,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.0002354856141310055,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00016820401009357537,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.00013082534118389195,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 5,
+   "against": "openai/gpt-5.6-sol few_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.0011774280706550275,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.0003924760235516759,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.0002354856141310055,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00016820401009357537,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.00013082534118389195,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 6,
+   "against": "openai/gpt-5.6-luna zero_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.000981260753845878,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.000327086917948626,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00019625215076917558,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00014018010769226827,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.00010902897264954199,
+     "api_usd_per_call": 0.0010133956028368794,
+     "volume_per_month": 353213.4923399864,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  },
+  {
+   "served": 6,
+   "against": "openai/gpt-5.6-sol few_shot",
+   "points": [
+    {
+     "utilisation": 0.1,
+     "self_hosted_usd_per_call": 0.000981260753845878,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.3,
+     "self_hosted_usd_per_call": 0.000327086917948626,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.5,
+     "self_hosted_usd_per_call": 0.00019625215076917558,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.7,
+     "self_hosted_usd_per_call": 0.00014018010769226827,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    },
+    {
+     "utilisation": 0.9,
+     "self_hosted_usd_per_call": 0.00010902897264954199,
+     "api_usd_per_call": 0.037070056737588654,
+     "volume_per_month": 9655.9064512315,
+     "gpus_at_break_even": 1,
+     "monthly_cost_at_break_even": 357.945
+    }
+   ]
+  }
+ ],
+ "gates": [
+  {
+   "candidate": "2b-r64-lr1e-4-nall-s0-e1",
+   "baseline": "luna",
+   "verdict": "block",
+   "suites": 15,
+   "blocked": [
+    "operating_income",
+    "net_income"
+   ]
+  },
+  {
+   "candidate": "2b-r64-lr1e-4-nall-s0-e1",
+   "baseline": "sol",
+   "verdict": "block",
+   "suites": 15,
+   "blocked": [
+    "operating_income",
+    "net_income"
+   ]
+  },
+  {
+   "candidate": "4b-r16-lr2e-4-nall-s0-e1",
+   "baseline": "luna",
+   "verdict": "block",
+   "suites": 15,
+   "blocked": [
+    "net_income"
+   ]
+  },
+  {
+   "candidate": "4b-r16-lr2e-4-nall-s0-e1",
+   "baseline": "sol",
+   "verdict": "block",
+   "suites": 15,
+   "blocked": [
+    "cost_of_revenue",
+    "net_income"
+   ]
+  },
+  {
+   "candidate": "7b-r64-lr1e-4-nall-s0-e1",
+   "baseline": "luna",
+   "verdict": "pass",
+   "suites": 15,
+   "blocked": []
+  },
+  {
+   "candidate": "7b-r64-lr1e-4-nall-s0-e1",
+   "baseline": "sol",
+   "verdict": "block",
+   "suites": 15,
+   "blocked": [
+    "net_income",
+    "shares_diluted"
+   ]
+  }
+ ]
+}

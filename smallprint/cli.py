@@ -20,7 +20,7 @@ import typer
 import yaml
 from boundary import Mode
 
-from smallprint import __version__
+from smallprint import __version__, site
 from smallprint.baseline import (
     DEFAULT_MAX_TOKENS,
     TEMPERATURE,
@@ -741,6 +741,44 @@ def report(
         return
     out.write_text(markdown + "\n", encoding="utf-8", newline="\n")
     typer.echo(f"Written to {out}.")
+
+
+@app.command(name="site")
+def site_results(
+    runs: Path = typer.Option(Path("data/baseline"), help="The frontier runs."),
+    finetuned_runs: Path = typer.Option(
+        Path("data/finetuned"), "--finetuned", help="The fine-tuned runs."
+    ),
+    bench_runs: Path = typer.Option(Path("data/bench"), "--bench", help="The load tests."),
+    gate_runs: Path = typer.Option(Path("gate-runs"), "--gates", help="The gate decisions."),
+    build_dir: Path = typer.Option(Path("data/build"), help="The build the runs were made on."),
+    out: Path = typer.Option(Path("site"), help="The website directory."),
+) -> None:
+    """The website's numbers, site/results.json, from the same runs as the report."""
+    data = site.build(
+        finetuned_runs, runs, bench_runs, build_dir, gate_runs, written=dt.date.today()
+    )
+    written = site.write(data, out)
+    typer.echo(
+        f"Written to {written}: {len(data.frontier)} frontier runs, {len(data.served)} served "
+        f"models, {len(data.gates)} gate decisions."
+    )
+
+
+@app.command(name="site-preview")
+def site_preview(
+    directory: Path = typer.Option(Path("site"), help="The website directory."),
+    port: int = typer.Option(8080, help="The local port."),
+) -> None:
+    """Serve the website locally with the host's headers, to look before pushing."""
+    server = site.preview(directory, port)
+    typer.echo(f"http://localhost:{port}/ with the host's headers. Ctrl+C stops it.")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
 
 
 # -- merging and the formats ------------------------------------------------------------------

@@ -208,6 +208,15 @@ PLAN.md's definition of done:
 - The break-even is a curve over utilisation with its inputs published, not a single
   number. A reader substitutes their own volume and prices.
 
+## The website
+
+[`site/`](site) is these results as one page, with a break-even calculator: put in your
+own API price, card rent, fixed costs and how busy you would run the card. Every figure on
+it is read from `site/results.json`, which `smallprint site` writes from the same runs as
+the tables here, and CI checks the calculator's JavaScript against
+`smallprint/bench/breakeven.py`. `smallprint site-preview` serves it locally with the
+host's headers; [docs/deploy.md](docs/deploy.md) puts it on its own address.
+
 ## Tried and rejected: one tolerance for grading and for finding a label
 
 The first corpus decided a label was on the page when some number in the right statement
