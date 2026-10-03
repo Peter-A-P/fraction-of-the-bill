@@ -292,7 +292,7 @@ def test_the_serving_table_pairs_each_format_with_its_bf16_and_breaks_even_on_th
     assert table[2].startswith("| `2b-r16` | bf16 | reference | 10.00 (9.00 to 11.00) |")
     assert table[3].startswith("| `2b-r16` | gguf-q4_k_m | -3.3% (-10.0% to +0.0%) | 20.00")
     # One card-month is 0.36 * 730.5 = US$262.98; at US$0.001 a call that is 263k calls.
-    assert table[2].endswith("| 0.3M |")
+    assert table[2].endswith("| 263k |")  # whole thousands, not 0.3M, which hid 14% moves
 
 
 def test_the_breakeven_table_says_never_where_one_card_costs_more_than_the_api(
@@ -303,6 +303,15 @@ def test_the_breakeven_table_says_never_where_one_card_costs_more_than_the_api(
     # 0.001 a second on one card: US$0.1 a call at 100%, dearer than the API at any load.
     slow = report.breakeven_table([load_run("selfhosted/7b-r16-bf16", rps=0.001)], anchor)
     assert slow.splitlines()[2].endswith("| never | never | never | never | never |")
+
+
+def test_against_a_dearer_api_the_same_card_breaks_even_far_sooner(tmp_path: Path) -> None:
+    """The break-even is one card-month over the API's price a call while one card carries
+    the volume: US$262.98 over sol's US$0.03 is 8,766 a month, against luna's 263k."""
+    _, front = rows(tmp_path)
+    sol = next(r for r in front if r.summary.model == "openai/sol")
+    table = report.breakeven_table([load_run("selfhosted/2b-r16-bf16")], sol)
+    assert table.splitlines()[2].endswith("| 9k | 9k | 9k | 9k | 9k |")
 
 
 def test_the_chart_points_are_every_costed_run(tmp_path: Path) -> None:

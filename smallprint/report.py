@@ -495,7 +495,9 @@ def _inputs(run: LoadRun, anchor: Row) -> BreakEvenInputs | None:
 def _volume(point: BreakEvenPoint) -> str:
     if point.volume_per_month is None:
         return "never"
-    return f"{point.volume_per_month / 1e6:,.1f}M"
+    # Whole thousands: at one decimal of a million, 354,000 and 411,000 both printed 0.4M,
+    # which hid a 14% move in the break-even when the cost anchor was corrected.
+    return f"{point.volume_per_month / 1e3:,.0f}k"
 
 
 def _by_run(runs: Sequence[LoadRun]) -> list[LoadRun]:
@@ -634,9 +636,18 @@ def money(
     parts = [
         serving_table(post, runs, anchor),
         caption,
-        "**Break-even, extractions a month, across utilisation:**",
+        f"**Break-even against `{anchor.key}`, extractions a month, across utilisation:**",
         breakeven_table(runs, anchor),
     ]
+    ceiling = best_frontier(frontier)
+    if ceiling is not anchor and ceiling.summary.usd_per_1000 is not None:
+        # The anchor is what a team running this volume would pay; the ceiling is what a
+        # team buying the most accurate answer pays, and the fine-tunes match it on fields.
+        parts += [
+            f"**Break-even against `{ceiling.key}`**, the most accurate frontier run, at "
+            f"US${ceiling.usd_per_1000:,.2f} per 1,000:",
+            breakeven_table(runs, ceiling),
+        ]
     if chart is not None:
         points = pareto_points(frontier, post, runs)
         chart.write_text(render_chart(points, caption=caption), encoding="utf-8", newline="\n")

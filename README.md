@@ -10,8 +10,8 @@ a 2B model gets **96.9% of fields right** on filings published after its base wa
 level with the most expensive frontier result measured (`gpt-5.6-sol` two-shot, 96.9%) and
 above the cheapest model that does the job (`gpt-5.6-luna`, 96.2%). The 7B gets 97.4%.
 Served on a rented A40, the 2B answers for **US$0.083 per 1,000 extractions against luna's
-US$1.01**, and a dedicated card pays for itself from about **0.35 million extractions a
-month**. **The limitation**: field by field through the release gate, only the 7B is
+US$1.01**, and a dedicated card pays for itself from about **353,000 extractions a
+month** against luna, about 10,000 against `gpt-5.6-sol`. **The limitation**: field by field through the release gate, only the 7B is
 shown non-inferior to luna on every field; the 2B is better on average and cannot rule out
 a three-point loss on operating income and net income, and no fine-tune is shown
 non-inferior to the two-shot ceiling. Every number below has its interval, and every
@@ -76,21 +76,25 @@ utilisation, against luna's US$1.01 per 1,000:
 
 | Model | Format | Accuracy delta vs bf16 (95% CI) | Req/s at c=32 | TTFT p99 ms | Cost per 1,000 | Break-even volume at 50% utilisation |
 |---|---|---|---:|---:|---:|---:|
-| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 3.29 (3.29 to 3.29) | 3,628 (3,032 to 4,415) | US$0.083 (US$0.083 to US$0.083) | 0.4M |
-| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | -0.7% (-1.4% to -0.2%) | 0.67 (0.67 to 0.67) | 27,538 (21,364 to 30,202) | US$0.404 (US$0.404 to US$0.404) | 0.4M |
-| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | -0.2% (-0.5% to +0.0%) | 0.70 (0.70 to 0.70) | 24,862 (18,454 to 28,287) | US$0.387 (US$0.387 to US$0.387) | 0.4M |
-| `7b-r64-lr1e-4-nall-s0-e1` | awq | -0.2% (-0.4% to -0.0%) | 1.39 (1.39 to 1.39) | 11,107 (8,308 to 12,223) | US$0.196 (US$0.196 to US$0.196) | 0.4M |
-| `7b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 1.16 (1.16 to 1.16) | 17,322 (16,672 to 17,468) | US$0.235 (US$0.235 to US$0.235) | 0.4M |
+| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 3.29 (3.29 to 3.29) | 3,628 (3,032 to 4,415) | US$0.083 (US$0.083 to US$0.083) | 353k |
+| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | -0.7% (-1.4% to -0.2%) | 0.67 (0.67 to 0.67) | 27,538 (21,364 to 30,202) | US$0.404 (US$0.404 to US$0.404) | 353k |
+| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | -0.2% (-0.5% to +0.0%) | 0.70 (0.70 to 0.70) | 24,862 (18,454 to 28,287) | US$0.387 (US$0.387 to US$0.387) | 353k |
+| `7b-r64-lr1e-4-nall-s0-e1` | awq | -0.2% (-0.4% to -0.0%) | 1.39 (1.39 to 1.39) | 11,107 (8,308 to 12,223) | US$0.196 (US$0.196 to US$0.196) | 353k |
+| `7b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 1.16 (1.16 to 1.16) | 17,322 (16,672 to 17,468) | US$0.235 (US$0.235 to US$0.235) | 353k |
 | `7b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | | not measured at c=32, or retried | | | |
 | `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | | not measured at c=32, or retried | | | |
-| `7b-r64-lr1e-4-nall-s0-e1` | gptq | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 0.4M |
+| `7b-r64-lr1e-4-nall-s0-e1` | gptq | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 353k |
 
 **The release gate** (project 03, field by field, three-point margin; [docs/gate.md](docs/gate.md))
 passes the 7B against the cost anchor on all fifteen fields, and blocks the 2B on operating
 income and net income, where it cannot rule out a three-point loss; neither passes against
 the two-shot ceiling. The 2B in bf16 answers for **US$0.083 per 1,000, about a twelfth of the
 cheapest frontier model, and better on average**, though not on those two lines; the 7B for US$0.196 in GPTQ, a fifth, and the most accurate
-model measured. A dedicated card pays for itself from about 0.35 million extractions a month.
+model measured. A dedicated card pays for itself from about 353,000 extractions a month: while one card
+carries the volume, the break-even is simply a month's rent (US$357.95) over the API's
+price a call, so it is the same for every model and format, and it falls in step with the
+rent. Against `gpt-5.6-sol` two-shot, the frontier result the 2B matches on fields, it is
+about 10,000 a month.
 llama.cpp serves GGUF well to one caller and badly to many: its throughput falls as the load
 rises, which puts the 2B's GGUF at four to five times vLLM's cost on the same card. The 7B's
 GGUF managed 0.2 requests a second at one and at eight in flight and failed every request at
