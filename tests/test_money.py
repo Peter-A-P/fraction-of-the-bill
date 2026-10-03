@@ -289,8 +289,12 @@ def test_the_serving_table_pairs_each_format_with_its_bf16_and_breaks_even_on_th
     assert anchor.summary.model == "openai/luna"
     runs = [load_run("selfhosted/2b-r16-bf16"), load_run("selfhosted/2b-r16-gguf-q4_k_m", 20.0)]
     table = report.serving_table(post, runs, anchor).splitlines()
-    assert table[2].startswith("| `2b-r16` | bf16 | reference | 10.00 (9.00 to 11.00) |")
-    assert table[3].startswith("| `2b-r16` | gguf-q4_k_m | -3.3% (-10.0% to +0.0%) | 20.00")
+    assert table[2].startswith(
+        "| `2b-r16` | bf16 | RTX 4090, 0.36 | reference | 10.00 (9.00 to 11.00) |"
+    )
+    assert table[3].startswith(
+        "| `2b-r16` | gguf-q4_k_m | RTX 4090, 0.36 | -3.3% (-10.0% to +0.0%) | 20.00"
+    )
     # One card-month is 0.36 * 730.5 = US$262.98; at US$0.001 a call that is 263k calls.
     assert table[2].endswith("| 263k |")  # whole thousands, not 0.3M, which hid 14% moves
 
@@ -318,8 +322,8 @@ def test_the_chart_points_are_every_costed_run(tmp_path: Path) -> None:
     post, front = rows(tmp_path)
     points = report.pareto_points(front, post, [load_run("selfhosted/2b-r16-bf16")])
     labels = {p.label: p for p in points}
-    assert set(labels) == {"luna zero-shot", "sol zero-shot", "2b-r16 bf16"}
-    assert labels["2b-r16 bf16"].self_hosted
+    assert set(labels) == {"luna zero-shot", "sol zero-shot", "2b-r16 bf16 RTX 4090"}
+    assert labels["2b-r16 bf16 RTX 4090"].self_hosted
     assert labels["luna zero-shot"].usd_per_1000 == pytest.approx(1.0)
 
 

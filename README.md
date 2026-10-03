@@ -11,8 +11,9 @@ level with the most expensive frontier result measured (`gpt-5.6-sol` two-shot, 
 above the cheapest model that does the job (`gpt-5.6-luna`, 96.2%). The 7B gets 97.4%.
 Served on a rented A40, the 2B answers for **US$0.083 per 1,000 extractions against luna's
 US$1.01**, and a dedicated card pays for itself from about **353,000 extractions a
-month** against luna, about 10,000 against `gpt-5.6-sol`. **The limitation**: field by field through the release gate, only the 7B is
-shown non-inferior to luna on every field; the 2B is better on average and cannot rule out
+month** against luna, about 10,000 against `gpt-5.6-sol`; on a cheaper card, an RTX A5000
+at US$0.27 an hour, US$0.054 per 1,000 and a break-even of 195,000 and 5,000.
+**The limitation**: field by field through the release gate, only the 7B is shown non-inferior to luna on every field; the 2B is better on average and cannot rule out
 a three-point loss on operating income and net income, and no fine-tune is shown
 non-inferior to the two-shot ceiling. Every number below has its interval, and every
 price its date.
@@ -74,16 +75,17 @@ interval in [docs/results-finetuned.md](docs/results-finetuned.md); the reading 
 **What it costs to serve**, on a Secure Cloud A40 at US$0.49 an hour, 2026-09-26, at 50%
 utilisation, against luna's US$1.01 per 1,000:
 
-| Model | Format | Accuracy delta vs bf16 (95% CI) | Req/s at c=32 | TTFT p99 ms | Cost per 1,000 | Break-even volume at 50% utilisation |
-|---|---|---|---:|---:|---:|---:|
-| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 3.29 (3.29 to 3.29) | 3,628 (3,032 to 4,415) | US$0.083 (US$0.083 to US$0.083) | 353k |
-| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | -0.7% (-1.4% to -0.2%) | 0.67 (0.67 to 0.67) | 27,538 (21,364 to 30,202) | US$0.404 (US$0.404 to US$0.404) | 353k |
-| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | -0.2% (-0.5% to +0.0%) | 0.70 (0.70 to 0.70) | 24,862 (18,454 to 28,287) | US$0.387 (US$0.387 to US$0.387) | 353k |
-| `7b-r64-lr1e-4-nall-s0-e1` | awq | -0.2% (-0.4% to -0.0%) | 1.39 (1.39 to 1.39) | 11,107 (8,308 to 12,223) | US$0.196 (US$0.196 to US$0.196) | 353k |
-| `7b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 1.16 (1.16 to 1.16) | 17,322 (16,672 to 17,468) | US$0.235 (US$0.235 to US$0.235) | 353k |
-| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | | not measured at c=32, or retried | | | |
-| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | | not measured at c=32, or retried | | | |
-| `7b-r64-lr1e-4-nall-s0-e1` | gptq | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 353k |
+| Model | Format | GPU, US$ an hour | Accuracy delta vs bf16 (95% CI) | Req/s at c=32 | TTFT p99 ms | Cost per 1,000 | Break-even volume at 50% utilisation |
+|---|---|---|---|---:|---:|---:|---:|
+| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | A40, 0.49 | reference | 3.29 (3.29 to 3.29) | 3,628 (3,032 to 4,415) | US$0.083 (US$0.083 to US$0.083) | 353k |
+| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | RTXA5000, 0.27 | reference | 2.80 (2.80 to 2.80) | 2,851 (2,293 to 2,851) | US$0.054 (US$0.054 to US$0.054) | 195k |
+| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | A40, 0.49 | -0.7% (-1.4% to -0.2%) | 0.67 (0.67 to 0.67) | 27,538 (21,364 to 30,202) | US$0.404 (US$0.404 to US$0.404) | 353k |
+| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | A40, 0.49 | -0.2% (-0.5% to +0.0%) | 0.70 (0.70 to 0.70) | 24,862 (18,454 to 28,287) | US$0.387 (US$0.387 to US$0.387) | 353k |
+| `7b-r64-lr1e-4-nall-s0-e1` | awq | A40, 0.49 | -0.2% (-0.4% to -0.0%) | 1.39 (1.39 to 1.39) | 11,107 (8,308 to 12,223) | US$0.196 (US$0.196 to US$0.196) | 353k |
+| `7b-r64-lr1e-4-nall-s0-e1` | bf16 | A40, 0.49 | reference | 1.16 (1.16 to 1.16) | 17,322 (16,672 to 17,468) | US$0.235 (US$0.235 to US$0.235) | 353k |
+| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | A40, 0.49 | | not measured at c=32, or retried | | | |
+| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | A40, 0.49 | | not measured at c=32, or retried | | | |
+| `7b-r64-lr1e-4-nall-s0-e1` | gptq | A40, 0.49 | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 353k |
 
 **The release gate** (project 03, field by field, three-point margin; [docs/gate.md](docs/gate.md))
 passes the 7B against the cost anchor on all fifteen fields, and blocks the 2B on operating
@@ -94,7 +96,10 @@ model measured. A dedicated card pays for itself from about 353,000 extractions 
 carries the volume, the break-even is simply a month's rent (US$357.95) over the API's
 price a call, so it is the same for every model and format, and it falls in step with the
 rent. Against `gpt-5.6-sol` two-shot, the frontier result the 2B matches on fields, it is
-about 10,000 a month.
+about 10,000 a month. On an RTX A5000 at US$0.27 an hour, the cheapest data center card
+that could be rented on 2026-10-03, the 2B serves 2.80 requests a second at 32 in flight,
+US$0.054 per 1,000, and breaks even at 195,000 a month against luna and 5,000 against sol
+([docs/serving.md](docs/serving.md#the-2b-on-a-cheaper-card-2026-10-03)).
 llama.cpp serves GGUF well to one caller and badly to many: its throughput falls as the load
 rises, which puts the 2B's GGUF at four to five times vLLM's cost on the same card. The 7B's
 GGUF managed 0.2 requests a second at one and at eight in flight and failed every request at

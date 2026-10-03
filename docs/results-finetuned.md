@@ -86,16 +86,17 @@ Measured on 705 test_post_cutoff filings, every call through the gateway, temper
 |---|---|---|---|---|
 | `2b-r64-lr1e-4-nall-s0-e1-distill-luna` | `2b-r64-lr1e-4-nall-s0-e1` | 95.6% (95.1% to 96.0%) | 52.1% (48.4% to 55.7%) | -1.3% (-1.7% to -1.0%) |
 
-| Model | Format | Accuracy delta vs bf16 (95% CI) | Req/s at c=32 | TTFT p99 ms | Cost per 1,000 | Break-even volume at 50% utilisation |
-|---|---|---|---:|---:|---:|---:|
-| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 3.29 (3.29 to 3.29) | 3,628 (3,032 to 4,415) | US$0.083 (US$0.083 to US$0.083) | 353k |
-| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | -0.7% (-1.4% to -0.2%) | 0.67 (0.67 to 0.67) | 27,538 (21,364 to 30,202) | US$0.404 (US$0.404 to US$0.404) | 353k |
-| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | -0.2% (-0.5% to +0.0%) | 0.70 (0.70 to 0.70) | 24,862 (18,454 to 28,287) | US$0.387 (US$0.387 to US$0.387) | 353k |
-| `7b-r64-lr1e-4-nall-s0-e1` | awq | -0.2% (-0.4% to -0.0%) | 1.39 (1.39 to 1.39) | 11,107 (8,308 to 12,223) | US$0.196 (US$0.196 to US$0.196) | 353k |
-| `7b-r64-lr1e-4-nall-s0-e1` | bf16 | reference | 1.16 (1.16 to 1.16) | 17,322 (16,672 to 17,468) | US$0.235 (US$0.235 to US$0.235) | 353k |
-| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | | not measured at c=32, or retried | | | |
-| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | | not measured at c=32, or retried | | | |
-| `7b-r64-lr1e-4-nall-s0-e1` | gptq | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 353k |
+| Model | Format | GPU, US$ an hour | Accuracy delta vs bf16 (95% CI) | Req/s at c=32 | TTFT p99 ms | Cost per 1,000 | Break-even volume at 50% utilisation |
+|---|---|---|---|---:|---:|---:|---:|
+| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | A40, 0.49 | reference | 3.29 (3.29 to 3.29) | 3,628 (3,032 to 4,415) | US$0.083 (US$0.083 to US$0.083) | 353k |
+| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | RTXA5000, 0.27 | reference | 2.80 (2.80 to 2.80) | 2,851 (2,293 to 2,851) | US$0.054 (US$0.054 to US$0.054) | 195k |
+| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | A40, 0.49 | -0.7% (-1.4% to -0.2%) | 0.67 (0.67 to 0.67) | 27,538 (21,364 to 30,202) | US$0.404 (US$0.404 to US$0.404) | 353k |
+| `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | A40, 0.49 | -0.2% (-0.5% to +0.0%) | 0.70 (0.70 to 0.70) | 24,862 (18,454 to 28,287) | US$0.387 (US$0.387 to US$0.387) | 353k |
+| `7b-r64-lr1e-4-nall-s0-e1` | awq | A40, 0.49 | -0.2% (-0.4% to -0.0%) | 1.39 (1.39 to 1.39) | 11,107 (8,308 to 12,223) | US$0.196 (US$0.196 to US$0.196) | 353k |
+| `7b-r64-lr1e-4-nall-s0-e1` | bf16 | A40, 0.49 | reference | 1.16 (1.16 to 1.16) | 17,322 (16,672 to 17,468) | US$0.235 (US$0.235 to US$0.235) | 353k |
+| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | A40, 0.49 | | not measured at c=32, or retried | | | |
+| `7b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | A40, 0.49 | | not measured at c=32, or retried | | | |
+| `7b-r64-lr1e-4-nall-s0-e1` | gptq | A40, 0.49 | -0.1% (-0.2% to +0.1%) | 1.39 (1.39 to 1.39) | 11,925 (8,543 to 12,351) | US$0.196 (US$0.196 to US$0.196) | 353k |
 
 Self-hosted cost is the GPU-hour rate over the throughput measured at 32 requests in flight, at 50% utilisation; break-even is against `openai/gpt-5.6-luna zero_shot` at US$1.01 per 1,000, the cheapest frontier run, recomputed from its response bytes at OpenAI's cache-write rate.
 
@@ -104,6 +105,7 @@ Self-hosted cost is the GPU-hour rate over the throughput measured at 32 request
 | Model | Format | GPU | 10% | 30% | 50% | 70% | 90% |
 |---|---|---|---:|---:|---:|---:|---:|
 | `2b-r64-lr1e-4-nall-s0-e1` | bf16 | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | 353k | 353k | 353k | 353k | 353k |
+| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | RTXA5000 on_demand at runpod, US$0.270/h, checked 2026-10-03 | 195k | 195k | 195k | 195k | 195k |
 | `2b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | never | 353k | 353k | 353k | 353k |
 | `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | never | 353k | 353k | 353k | 353k |
 | `7b-r64-lr1e-4-nall-s0-e1` | awq | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | 353k | 353k | 353k | 353k | 353k |
@@ -115,6 +117,7 @@ Self-hosted cost is the GPU-hour rate over the throughput measured at 32 request
 | Model | Format | GPU | 10% | 30% | 50% | 70% | 90% |
 |---|---|---|---:|---:|---:|---:|---:|
 | `2b-r64-lr1e-4-nall-s0-e1` | bf16 | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | 10k | 10k | 10k | 10k | 10k |
+| `2b-r64-lr1e-4-nall-s0-e1` | bf16 | RTXA5000 on_demand at runpod, US$0.270/h, checked 2026-10-03 | 5k | 5k | 5k | 5k | 5k |
 | `2b-r64-lr1e-4-nall-s0-e1` | gguf-q4_k_m | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | 10k | 10k | 10k | 10k | 10k |
 | `2b-r64-lr1e-4-nall-s0-e1` | gguf-q8_0 | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | 10k | 10k | 10k | 10k | 10k |
 | `7b-r64-lr1e-4-nall-s0-e1` | awq | A40 on_demand at runpod, US$0.490/h, checked 2026-09-26 | 10k | 10k | 10k | 10k | 10k |

@@ -249,6 +249,28 @@ event loop, because the gateway's connections belong to the loop that opened the
 connection the server drops at 64 in flight is a failed request in its level, not the end of
 the test. The 2B's bf16 at 64 lost 4 of 640 that way.
 
+## The 2B on a cheaper card, 2026-10-03
+
+The same published weights (`Peter-A-P/smallprint-2b`, the bf16 merge with its
+`merge.json`), the same vLLM 0.30.0 and the same command line from `smallprint serve argv`,
+load-tested on an RTX A5000 (24 GB) on Secure Cloud at US$0.27 an hour
+([gpu-prices.md](gpu-prices.md#a-cheaper-serving-card-2026-10-03)). Four levels, 1,360
+requests, none failed:
+
+| Card | Req/s at 32 in flight | TTFT p99 at 32 | Cost per 1,000 at 50% | Break-even against luna | Against sol two-shot |
+|---|---:|---:|---:|---:|---:|
+| A40, US$0.49 | 3.29 | 3.6 s | US$0.083 | 353k a month | 10k |
+| RTX A5000, US$0.27 | 2.80 | 2.9 s | US$0.054 | 195k a month | 5k |
+
+The A5000 serves 15% fewer requests a second for 45% less rent, so a call costs a third
+less, and the break-even falls with the rent. Its capacity at 50% is still 3.7 million
+extractions a month, ten times what break-even needs. Accuracy is the A40's measurement of
+the same weights: serving the same bf16 file on another card changes the arithmetic order
+of a few kernels and nothing a grader at this tolerance would see, but it was not
+re-graded, and a deployment that changes the card should run `scripts/evaluate.sh` once on
+it. The cards and the gateway's price overlay stay on the A40, the card every other
+number was measured on.
+
 ## The serving container
 
 [docker/Dockerfile](../docker/Dockerfile) is vLLM's own image at the version every load

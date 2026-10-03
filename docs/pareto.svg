@@ -51,7 +51,7 @@
 <text class="ink" x="90" y="28" font-size="13">Frontier API</text>
 <path class="s2 ring" d="M208.0,18.0L214.0,24.0L208.0,30.0L202.0,24.0Z"/>
 <text class="ink" x="220" y="28" font-size="13">Self-hosted fine-tune</text>
-<path class="front" d="M224.2,178.7H286.6V133.7H299.7V127.3"/>
+<path class="front" d="M193.1,178.7H286.6V133.7H299.7V127.3"/>
 <g><title>gpt-5.6-luna zero-shot: 96.2% (95.8% to 96.6%), US$1.013 per 1,000</title>
 <line class="s1l" stroke-width="1.5" x1="405.0" y1="304.1" x2="405.0" y2="211.9"/>
 <circle class="s1 ring" cx="405.0" cy="258.0" r="5"/>
@@ -76,31 +76,35 @@
 <line class="s1l" stroke-width="1.5" x1="664.5" y1="219.4" x2="664.5" y2="131.6"/>
 <circle class="s1 ring" cx="664.5" cy="175.5" r="5"/>
 </g>
-<g><title>2b-r64-lr1e-4-nall-s0-e1 bf16: 96.9% (96.5% to 97.3%), US$0.083 per 1,000</title>
+<g><title>2b-r64-lr1e-4-nall-s0-e1 bf16 A40: 96.9% (96.5% to 97.3%), US$0.083 per 1,000</title>
 <line class="s2l" stroke-width="1.5" x1="224.2" y1="224.8" x2="224.2" y2="134.8"/>
 <path class="s2 ring" d="M224.2,172.7L230.2,178.7L224.2,184.7L218.2,178.7Z"/>
 </g>
-<g><title>2b-r64-lr1e-4-nall-s0-e1 gguf-q4_k_m: 96.2% (95.4% to 96.8%), US$0.404 per 1,000</title>
+<g><title>2b-r64-lr1e-4-nall-s0-e1 bf16 RTXA5000: 96.9% (96.5% to 97.3%), US$0.054 per 1,000</title>
+<line class="s2l" stroke-width="1.5" x1="193.1" y1="224.8" x2="193.1" y2="134.8"/>
+<path class="s2 ring" d="M193.1,172.7L199.1,178.7L193.1,184.7L187.1,178.7Z"/>
+</g>
+<g><title>2b-r64-lr1e-4-nall-s0-e1 gguf-q4_k_m A40: 96.2% (95.4% to 96.8%), US$0.404 per 1,000</title>
 <line class="s2l" stroke-width="1.5" x1="338.7" y1="345.9" x2="338.7" y2="188.4"/>
 <path class="s2 ring" d="M338.7,254.2L344.7,260.2L338.7,266.2L332.7,260.2Z"/>
 </g>
-<g><title>2b-r64-lr1e-4-nall-s0-e1 gguf-q8_0: 96.7% (96.2% to 97.2%), US$0.387 per 1,000</title>
+<g><title>2b-r64-lr1e-4-nall-s0-e1 gguf-q8_0 A40: 96.7% (96.2% to 97.2%), US$0.387 per 1,000</title>
 <line class="s2l" stroke-width="1.5" x1="335.5" y1="256.9" x2="335.5" y2="147.6"/>
 <path class="s2 ring" d="M335.5,192.0L341.5,198.0L335.5,204.0L329.5,198.0Z"/>
 </g>
-<g><title>7b-r64-lr1e-4-nall-s0-e1 awq: 97.2% (96.8% to 97.5%), US$0.196 per 1,000</title>
+<g><title>7b-r64-lr1e-4-nall-s0-e1 awq A40: 97.2% (96.8% to 97.5%), US$0.196 per 1,000</title>
 <line class="s2l" stroke-width="1.5" x1="286.6" y1="196.9" x2="286.6" y2="109.0"/>
 <path class="s2 ring" d="M286.6,145.9L292.6,151.9L286.6,157.9L280.6,151.9Z"/>
 </g>
-<g><title>7b-r64-lr1e-4-nall-s0-e1 bf16: 97.4% (97.0% to 97.7%), US$0.235 per 1,000</title>
+<g><title>7b-r64-lr1e-4-nall-s0-e1 bf16 A40: 97.4% (97.0% to 97.7%), US$0.235 per 1,000</title>
 <line class="s2l" stroke-width="1.5" x1="299.7" y1="171.2" x2="299.7" y2="85.5"/>
 <path class="s2 ring" d="M299.7,121.3L305.7,127.3L299.7,133.3L293.7,127.3Z"/>
 </g>
-<g><title>7b-r64-lr1e-4-nall-s0-e1 gptq: 97.3% (96.9% to 97.7%), US$0.196 per 1,000</title>
+<g><title>7b-r64-lr1e-4-nall-s0-e1 gptq A40: 97.3% (96.9% to 97.7%), US$0.196 per 1,000</title>
 <line class="s2l" stroke-width="1.5" x1="286.6" y1="180.9" x2="286.6" y2="89.8"/>
 <path class="s2 ring" d="M286.6,127.7L292.6,133.7L286.6,139.7L280.6,133.7Z"/>
 </g>
-<text class="ink" x="234.2" y="170.7" font-size="12" text-anchor="start">2b-r64-lr1e-4-nall-s0-e1 bf16</text>
-<text class="ink" x="296.6" y="125.7" font-size="12" text-anchor="start">7b-r64-lr1e-4-nall-s0-e1 gptq</text>
-<text class="ink" x="309.7" y="119.3" font-size="12" text-anchor="start">7b-r64-lr1e-4-nall-s0-e1 bf16</text>
+<text class="ink" x="203.1" y="170.7" font-size="12" text-anchor="start">2b-r64-lr1e-4-nall-s0-e1 bf16 RTXA5000</text>
+<text class="ink" x="296.6" y="125.7" font-size="12" text-anchor="start">7b-r64-lr1e-4-nall-s0-e1 gptq A40</text>
+<text class="ink" x="309.7" y="119.3" font-size="12" text-anchor="start">7b-r64-lr1e-4-nall-s0-e1 bf16 A40</text>
 </svg>

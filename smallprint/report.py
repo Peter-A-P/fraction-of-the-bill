@@ -508,17 +508,20 @@ def serving_table(post: Sequence[Row], runs: Sequence[LoadRun], anchor: Row) -> 
     """Quantisation cost, serving and money: one row per served model that was load-tested."""
     by_model = {r.summary.model: r for r in post}
     lines = [
-        "| Model | Format | Accuracy delta vs bf16 (95% CI) | "
+        "| Model | Format | GPU, US$ an hour | Accuracy delta vs bf16 (95% CI) | "
         f"Req/s at c={SERVING_CONCURRENCY} | TTFT p99 ms | Cost per 1,000 | "
         f"Break-even volume at {QUOTED_UTILISATION:.0%} utilisation |",
-        "|---|---|---|---:|---:|---:|---:|",
+        "|---|---|---|---|---:|---:|---:|---:|",
     ]
     for run in _by_run(runs):
         _, name, fmt = parse_served_name(run.model)
+        # The same weights load-tested on more than one card are more than one row, so the
+        # card and its rate are in every row rather than in a caption.
+        card = f"{run.price.gpu}, {run.price.usd_per_hour:,.2f}"
         summary = _level(run, SERVING_CONCURRENCY)
         if summary is None:
             lines.append(
-                f"| `{name}` | {fmt.value} | | not measured at c={SERVING_CONCURRENCY}, "
+                f"| `{name}` | {fmt.value} | {card} | | not measured at c={SERVING_CONCURRENCY}, "
                 "or retried | | | |"
             )
             continue
@@ -539,7 +542,7 @@ def serving_table(post: Sequence[Row], runs: Sequence[LoadRun], anchor: Row) -> 
         )
         rps, ttft = summary.requests_per_second, summary.ttft_p99_ms
         lines.append(
-            f"| `{name}` | {fmt.value} | {delta} | "
+            f"| `{name}` | {fmt.value} | {card} | {delta} | "
             f"{rps.point:,.2f} ({rps.low:,.2f} to {rps.high:,.2f}) | "
             f"{ttft.point:,.0f} ({ttft.low:,.0f} to {ttft.high:,.0f}) | "
             f"{money_cell} | {volume} |"
@@ -590,7 +593,7 @@ def pareto_points(
         _, name, fmt = parse_served_name(run.model)
         points.append(
             Point(
-                label=f"{name} {fmt.value}",
+                label=f"{name} {fmt.value} {run.price.gpu}",
                 self_hosted=True,
                 usd_per_1000=cost.point,
                 accuracy=row.summary.accuracy.point,

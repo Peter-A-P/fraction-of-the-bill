@@ -165,3 +165,28 @@ format with room for a cache: the L4 is the same price and was not offered. Not 
 RTX 4090 the training ran on, a consumer card whose driver terms exclude data center
 deployment, and whose Community tier is the cheap one precisely because it carries no
 guarantees a business would sign for.
+
+## A cheaper serving card, 2026-10-03
+
+The A40 carries 4.3 million extractions a month at 50% utilisation, and the break-even
+against luna needs 353,000. While one card carries the volume, the break-even is a
+month's rent over the API's price a call, so the cheapest card that holds the model and
+keeps up sets it, and the A40's spare capacity is paid for and unused. From the Runpod API
+at 06:20 UTC, Secure Cloud, on-demand, per GPU hour, cards of 16 to 24 GB:
+
+| Card | VRAM | Secure | Listed in stock |
+|---|---:|---:|---|
+| RTX 2000 Ada | 16 GB | US$0.24 | no |
+| RTX A4000 | 16 GB | US$0.25 | no |
+| RTX A4500 | 20 GB | US$0.25 | no |
+| RTX A5000 | 24 GB | US$0.27 | no |
+| RTX 4000 Ada | 20 GB | US$0.28 | low |
+| L4 | 24 GB | US$0.49 | low |
+| A40 | 48 GB | US$0.49 | low |
+
+None of the four cheapest could be rented at 06:20, and twelve attempts on the RTX 4000 Ada
+found none free either. A watcher polling every five minutes rented **an RTX A5000 at
+US$0.27** at 06:39, the first to come into stock: a data center card on the data center
+tier, 24 GB, which holds the 2B in bf16 with room for its cache. The rate is the pod's own
+`costPerHr` at rental, and it is in the load test's record beside the timings.
+
