@@ -5,51 +5,17 @@ frontier API on a high-volume extraction task at a small fraction of the per-cal
 the exact volume at which the switch pays for itself. For a team spending five figures a
 month on API calls, this is the project that finds most of it.
 
-**Status: building, started 2026-09-14.** Built and tested so far: the fifteen-field
-extraction schema, the programmatic grader with its named failure modes and paired
-bootstrap intervals, the SEC fair-access client, XBRL fact selection, the company-level
-splits, the statement locator that finds what the model is shown inside a filing, the
-locatability filter that keeps a filing only when its labels are printed where they are
-read from, the corpus build that runs all of it over EDGAR and reproduces offline from its
-cache, the datasheet and checksums written from a build's own outputs, the hand-audit
-tooling, the prompt and its fingerprint, the baseline runner that takes a model over a
-split through the gateway and grades what comes back, the load-test, cost-per-call and
-break-even arithmetic ([docs/cost.md](docs/cost.md)), the training code with its
-checkpointing ([docs/training.md](docs/training.md)), the three bases pinned to exact
-revisions, the self-hosted price overlay the gateway validates, the quantisation gate,
-the server command lines and the closed-loop load client
-([docs/serving.md](docs/serving.md)), the model-card generator, and everything between a
-finished fine-tune and its rows in the tables: the checked merge to bf16, the AWQ, GPTQ
-and GGUF builds calibrated on training filings only, serving a fine-tune through the
-gateway, the fine-tuned and quantisation tables, the files the release gate reads, the
-load test on disk and the price overlay made from it, and the serving, break-even and
-Pareto outputs of the report.
-All of it is tested without a GPU; the rented card only has to run it.
-
-The full corpus is built: **7,874 items from 1,600 companies**, 19,574 filings tried, the
-post-cutoff test set 705 filings from 144 filers ([docs/data.md](docs/data.md)). **The
-200-item hand audit is done: 3.0% of filings carried a wrong label (1.4% to 6.4%), 6 of
-200, none of them in the test sets.** Five of the six had one cause, the filter taking a
-number within the grader's tolerance for a location. The rebuild that fixed it dropped
-157 filings and corrected 173 labels across the corpus, five of the six among them.
-
-The three frontier baselines are chosen and the gateway is configured: `gpt-5.6-sol` as
-the quality ceiling, `claude-sonnet-5` as a second vendor, and `gpt-5.6-luna` as the cost
-anchor the break-even has to beat ([docs/baseline.md](docs/baseline.md)).
-
-All three have now been measured on the whole post-cutoff test set, zero-shot and
-two-shot: 4,296 calls, **US$59.63 as the ledger recorded them, US$67.09 at what OpenAI
-bills** (cache writes; below), in the table below. **All three sizes are
-fine-tuned**, 24 runs of the sweep, each graded on the validation set, and **the first,
-the 2B, clears the cost anchor on the post-cutoff test set** (below;
-[docs/training.md](docs/training.md)). The chosen recipes are
-seeded three times, quantised, measured against their own bf16 and load-tested on a
-rented data center card, which gives the cost per call and the break-even below. The GPU provider is chosen by the portfolio's rule: Runpod, one RTX
-4090 on Community Cloud for training, at US$0.34 an hour on 2026-09-22, with checkpoints
-pushed to a network volume over its S3 API ([docs/gpu-prices.md](docs/gpu-prices.md)).
-The plan is in [PLAN.md](PLAN.md); the dataset design and the open
-questions are in [docs/data.md](docs/data.md), the prompt and the runner in
-[docs/baseline.md](docs/baseline.md).
+**The answer.** Fine-tuned on 5,060 filings with the companies' own XBRL facts as labels,
+a 2B model gets **96.9% of fields right** on filings published after its base was trained,
+level with the most expensive frontier result measured (`gpt-5.6-sol` two-shot, 96.9%) and
+above the cheapest model that does the job (`gpt-5.6-luna`, 96.2%). The 7B gets 97.4%.
+Served on a rented A40, the 2B answers for **US$0.083 per 1,000 extractions against luna's
+US$1.01**, and a dedicated card pays for itself from about **0.35 million extractions a
+month**. **The limitation**: field by field through the release gate, only the 7B is
+shown non-inferior to luna on every field; the 2B is better on average and cannot rule out
+a three-point loss on operating income and net income, and no fine-tune is shown
+non-inferior to the two-shot ceiling. Every number below has its interval, and every
+price its date.
 
 ## Result
 
@@ -83,6 +49,27 @@ cost anchor, `gpt-5.6-luna` zero-shot, every seed of every size is ahead on fiel
 4B's Q4_K_M forgets the output format and does not ship. Detail, the pre-cutoff runs and the
 quantisation gate in [docs/results-finetuned.md](docs/results-finetuned.md), the recipe
 and the seeds in [docs/training.md](docs/training.md).
+
+**How much data it takes**, three seeds a point, rank 16, one epoch, on the post-cutoff
+filings, written by `smallprint report`:
+
+| Size | Training filings | Seed 0 | Seed 1 | Seed 2 | Mean of seeds (95% CI) | Every field right, mean |
+|---|---:|---:|---:|---:|---|---:|
+| 2b | 1,000 | 88.1% | 85.4% | 83.1% | 85.6% (84.3% to 86.8%) | 29.7% |
+| 2b | 2,500 | 93.1% | 92.1% | 91.4% | 92.2% (91.4% to 93.0%) | 43.3% |
+| 2b | 5,000 | 95.2% | 95.1% | 95.2% | 95.2% (94.7% to 95.7%) | 52.6% |
+| 4b | 1,000 | 89.3% | 88.8% | 91.9% | 90.0% (89.2% to 90.8%) | 36.5% |
+| 4b | 2,500 | 95.0% | 95.3% | 95.8% | 95.4% (94.9% to 95.8%) | 53.5% |
+| 4b | 5,000 | 96.2% | 95.8% | 93.7% | 95.2% (94.8% to 95.7%) | 55.7% |
+| 7b | 1,000 | 91.4% | 90.7% | 91.1% | 91.1% (90.1% to 92.0%) | 45.2% |
+| 7b | 2,500 | 95.9% | 96.0% | 96.0% | 96.0% (95.5% to 96.4%) | 58.7% |
+| 7b | 5,000 | 97.0% | 96.9% | 96.8% | 96.9% (96.5% to 97.3%) | 68.0% |
+
+Size buys most when data is scarce: the 7B leads the 2B by 5.5 points at 1,000 filings and
+1.7 at 5,000. The 7B reaches luna from 2,500 labelled filings. One 4B seed at 5,000 learned to
+leave the diluted per-share figures empty and is why that point dips. Every seed with its
+interval in [docs/results-finetuned.md](docs/results-finetuned.md); the reading in
+[docs/training.md](docs/training.md#the-data-scaling-curve).
 
 **What it costs to serve**, on a Secure Cloud A40 at US$0.49 an hour, 2026-09-26, at 50%
 utilisation, against luna's US$1.01 per 1,000:
@@ -168,6 +155,38 @@ better. Memorising a filing does not help you copy a number off the page you wer
 **What a frontier model is actually bad at.** 99.0% of fields right when the filing
 reports them; **73.7% when it does not**, where the right answer is null and the model
 answers anyway. The weakness is abstention, not reading.
+
+## Status, 2026-10-03
+
+Built 2026-09-14 to 2026-10-03 on rented GPUs, with US$72.29 of API calls at what the
+vendors bill (US$67.09 for the frontier baselines and their rehearsals, US$5.20 for the
+distillation targets). The corpus is **7,874 items from 1,600 companies**, 19,574
+filings tried, the post-cutoff test set 705 filings from 144 filers, and a 200-item hand
+audit found 3.0% of labels wrong (1.4% to 6.4%), none in the test sets, all since fixed
+([docs/data.md](docs/data.md)). The frontier baselines are `gpt-5.6-sol` as the quality
+ceiling, `claude-sonnet-5` as a second vendor and `gpt-5.6-luna` as the cost anchor
+([docs/baseline.md](docs/baseline.md)). Training ran on Runpod
+([docs/gpu-prices.md](docs/gpu-prices.md)), the recipe and every run are in
+[docs/training.md](docs/training.md), serving and the formats in
+[docs/serving.md](docs/serving.md), and the order the work was done in is
+[docs/runbook.md](docs/runbook.md).
+
+PLAN.md's definition of done:
+
+- [x] Dataset published on Hugging Face with datasheet, checksums, construction script and company-level split test
+- [x] Three model sizes fine-tuned; adapters and merged weights published with model cards including failure modes
+- [x] Untuned bases and three frontier APIs measured on the same held-out items through the gateway
+- [x] Non-inferiority against the best frontier model through the 03 gate, delta stated, interval shown ([docs/gate.md](docs/gate.md))
+- [x] Pre-cutoff against post-cutoff accuracy reported
+- [x] Three quantisation formats measured for quality cost, paired CIs, per-field breakdown
+- [x] Data-scaling curve with three seeds ([docs/training.md](docs/training.md#the-data-scaling-curve))
+- [x] Throughput, TTFT and p99 at four concurrencies on real hardware, GPU and prices stated
+- [x] Cost per 1,000 extractions from the gateway ledger for both frontier and self-hosted, OpenAI's recomputed at its cache-write rate
+- [x] Pareto chart published with the break-even curve over utilisation and the inputs table
+- [x] GPU provider decision recorded with the day-one price table
+- [x] Reproducible training recipe and serving container (the container is built and checked in CI, not yet started on a GPU)
+- [x] One rejected approach documented with evidence ([docs/rejected.md](docs/rejected.md))
+- [ ] Repository public, `v0.1.0` tagged
 
 ## What this does not do
 

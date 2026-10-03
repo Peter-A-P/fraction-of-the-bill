@@ -313,6 +313,54 @@ fingerprint, the base model's revision as resolved on the day, the library versi
 step it resumed from, the losses, and the measured seconds per step. Model cards are
 written from that file, so a card cannot claim something the run did not do.
 
+## The data-scaling curve
+
+How much labelled data the task needs, with three seeds a point, on the post-cutoff test
+set. The recipe is held at the sweep's middle (rank 16, learning rate 1e-4, one epoch) and
+only the number of training filings changes; the volume subsets are nested, so a larger
+point adds filings and never swaps them. 27 runs, each trained, merged and graded on all 705
+filings. The table, with every seed and the mean's interval over filings, is in
+[results-finetuned.md](results-finetuned.md), written by `smallprint report`.
+
+| Training filings | 2B | 4B | 7B |
+|---:|---:|---:|---:|
+| 1,000 | 85.6% (84.3 to 86.8) | 90.0% (89.2 to 90.8) | 91.1% (90.1 to 92.0) |
+| 2,500 | 92.2% (91.4 to 93.0) | 95.4% (94.9 to 95.8) | 96.0% (95.5 to 96.4) |
+| 5,000 | 95.2% (94.7 to 95.7) | 95.2% (94.8 to 95.7) | 96.9% (96.5 to 97.3) |
+| All 5,060, the chosen recipe | 96.8% | 96.5% | 97.2% |
+
+Fields correct, mean of three seeds. The last row is the chosen recipe of each size (the
+2B and 7B at rank 64, the 4B at learning rate 2e-4), its three seeds' mean, for where the
+curve leads; it is a different recipe, not a fourth volume.
+
+**Size buys most when data is scarce.** At 1,000 filings the 7B is 5.5 points ahead of the
+2B; at 5,000, 1.7. A team with a few hundred labelled documents should rent the larger
+model; a team with thousands can serve the small one, which is what makes the cost axis
+work.
+
+**Whole filings keep rising after fields flatten.** The 7B goes from 45.2% of filings
+entirely right at 1,000 to 58.7% at 2,500 and 68.0% at 5,000, while its field accuracy moves
+0.9 points over the last step. The last fields a model learns are the rare ones, and a
+filing is only right when all fifteen are.
+
+**Seeds disagree when data is scarce, and once more at the 4B.** The 2B's three seeds span
+5.0 points at 1,000 filings (88.1% to 83.1%) and 0.1 at 5,000. The exception is the 4B at
+5,000, where seed 2 scored 93.7% against 96.2% and 95.8%: it learned to leave the diluted
+per-share figures empty, `eps_diluted` and `shares_diluted` missing 162 and 168 times
+against 17 and 14 for seed 0, and is otherwise level. One epoch at a fixed learning rate
+does not always settle the same way, which is why every headline row here is three seeds
+and why the 4B's 5,000 point, at 95.2%, sits below its 2,500 point.
+
+**Against the bar.** luna zero-shot is 96.2% of fields. The 7B reaches it from 2,500
+filings (96.0%, an interval that includes it) and passes it at 5,000; the 2B needs the full
+pool and the larger rank. On cost per filing labelled the XBRL facts are free here, and the
+curve says what a project without them would have to buy.
+
+The seed-2 runs were trained twice: the first attempts trained to the end and then could not
+upload their last checkpoint to the full network volume, which failed the run; they were
+rerun once the volume had space ([the distillation section](#distillation-against-the-truth)
+says how that was found).
+
 ## Distillation against the truth
 
 The ablation PLAN.md section 9 names second: the same 2B recipe that was chosen
