@@ -1,6 +1,6 @@
 [project]
 name = "smallprint"
-version = "0.1.0.dev1"
+version = "0.1.0"
 description = "Frontier quality at a fraction of the bill: fine-tuned, quantised small models measured against frontier APIs on structured extraction from SEC filings with XBRL truth."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"

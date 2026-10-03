@@ -128,7 +128,7 @@ filings are where paying more shows: the ceiling model gets 8.7 more of every hu
 filings entirely right, for 37 times the price. Detail and failure modes in
 [docs/results-baseline.md](docs/results-baseline.md).
 
-**Published**, 2026-09-27, private on Hugging Face until reviewed, each model with the card
+**Published** on Hugging Face, public since 2026-10-03, each model with the card
 generated from its records ([cards/](cards)):
 
 | Repository | What |
@@ -186,7 +186,7 @@ PLAN.md's definition of done:
 - [x] GPU provider decision recorded with the day-one price table
 - [x] Reproducible training recipe and serving container (the container is built and checked in CI, not yet started on a GPU)
 - [x] One rejected approach documented with evidence ([docs/rejected.md](docs/rejected.md))
-- [ ] Repository public, `v0.1.0` tagged
+- [x] Repository public, `v0.1.0` tagged
 
 ## What this does not do
 
