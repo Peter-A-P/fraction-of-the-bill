@@ -310,20 +310,20 @@ Whichever produces the clearest evidence becomes `docs/rejected.md`.
 
 ## 10. Definition of done
 
-- [ ] Dataset published on Hugging Face with datasheet, checksums, construction script and company-level split test
-- [ ] Three model sizes fine-tuned; adapters and merged weights published with model cards including failure modes
-- [ ] Untuned bases and two or three frontier APIs measured on the same held-out items through the gateway
-- [ ] Non-inferiority against the best frontier model through the 03 gate, delta stated, interval shown
-- [ ] Pre-cutoff against post-cutoff accuracy reported
-- [ ] Three quantisation formats measured for quality cost, paired CIs, per-field breakdown
-- [ ] Data-scaling curve with three seeds
-- [ ] Throughput, TTFT and p99 at four concurrencies on real hardware, GPU and prices stated
-- [ ] Cost per 1,000 extractions from the gateway ledger for both frontier and self-hosted
-- [ ] Pareto chart published with the break-even curve over utilisation and the inputs table
-- [ ] GPU provider decision recorded with the day-one price table
-- [ ] Reproducible training recipe and serving container
-- [ ] One rejected approach documented with evidence (Rule C)
-- [ ] Repository public, `v0.1.0` tagged
+- [x] Dataset published on Hugging Face with datasheet, checksums, construction script and company-level split test
+- [x] Three model sizes fine-tuned; adapters and merged weights published with model cards including failure modes
+- [x] Untuned bases and two or three frontier APIs measured on the same held-out items through the gateway
+- [x] Non-inferiority against the best frontier model through the 03 gate, delta stated, interval shown
+- [x] Pre-cutoff against post-cutoff accuracy reported
+- [x] Three quantisation formats measured for quality cost, paired CIs, per-field breakdown
+- [x] Data-scaling curve with three seeds
+- [x] Throughput, TTFT and p99 at four concurrencies on real hardware, GPU and prices stated
+- [x] Cost per 1,000 extractions from the gateway ledger for both frontier and self-hosted
+- [x] Pareto chart published with the break-even curve over utilisation and the inputs table
+- [x] GPU provider decision recorded with the day-one price table
+- [x] Reproducible training recipe and serving container
+- [x] One rejected approach documented with evidence (Rule C)
+- [x] Repository public, `v0.1.0` tagged
 
 ## 11. Deferred
 
