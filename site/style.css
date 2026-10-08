@@ -795,3 +795,24 @@ tbody tr.group-start th, tbody tr.group-start td { border-top: 1px solid var(--l
 
 .steps li:last-child .step-n { background: var(--accent); color: #fdfcf9; }
 @media (prefers-color-scheme: dark) { .steps li:last-child .step-n { color: #0e1013; } }
+
+/* ---------------------------------------------------------------- the first screen, as project 03's */
+
+/* A wash of the accent behind the first screen, full width, fading into the page: the one
+   place colour is used for its own sake, so the opening is not black on white alone. The
+   same treatment as gate.peterparker.ca, so the project pages read as one site. */
+body { overflow-x: clip; }
+.hero { position: relative; }
+.hero::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: 50%;
+  width: 100vw; margin-left: -50vw;
+  background: radial-gradient(60rem 22rem at 85% 0%,
+      color-mix(in srgb, var(--alt) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--accent-soft), var(--paper) 85%); }
+.hero h1 .hl { color: var(--accent); }
+.hero .eyebrow { color: var(--accent-ink); }
+.hero .point { border-top: 3px solid var(--accent); box-shadow: var(--shadow); }
+.hero .point.good { border-top-color: var(--good); }
+.hero .point.violet { border-top-color: var(--alt); }
+.hero .point .point-figure { color: var(--accent-ink); }
+.hero .point.good .point-figure { color: var(--good); }
+.hero .point.violet .point-figure { color: var(--alt); }
