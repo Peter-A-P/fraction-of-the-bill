@@ -19,6 +19,7 @@ import urllib.request
 from pathlib import Path
 
 import pytest
+from items import training_pool
 from test_baseline import WRONG, items
 from test_formats import make_run
 from test_money import PRICE, load_run, rows
@@ -26,6 +27,9 @@ from test_money import PRICE, load_run, rows
 from smallprint import report, site
 from smallprint.bench.breakeven import BreakEvenInputs, break_even
 from smallprint.bench.cost import GpuPrice
+from smallprint.train import dataset
+from smallprint.train.qlora import RunRecord
+from smallprint.train.recipe import BASES, TrainConfig
 
 SITE = Path(__file__).resolve().parents[1] / "site"
 
@@ -114,6 +118,106 @@ def test_the_results_file_round_trips(tmp_path: Path) -> None:
     )
     written = site.write(data, tmp_path)
     assert site.SiteData.model_validate_json(written.read_text(encoding="utf-8")) == data
+
+
+# -- the models and how they were trained ---------------------------------------------------
+
+
+def sweep_rows(tmp_path: Path) -> list[report.Row]:
+    runs: dict[str, dict[int, str | None]] = {
+        "2b-r16-lr1e-4-nall-s0-e1": {0: WRONG, 1: WRONG},  # the base recipe
+        "2b-r64-lr1e-4-nall-s0-e1": {},  # rank changed, the best: chosen
+        "2b-r16-lr2e-4-nall-s0-e1": {0: WRONG},  # learning rate changed
+        "2b-r16-lr1e-4-n1000-s0-e1": {0: WRONG, 1: WRONG, 2: WRONG},  # volume changed
+        "2b-r64-lr2e-4-nall-s0-e1": {},  # two things changed: not a sweep point
+        "2b-r64-lr1e-4-nall-s1-e1": {},  # another seed: not a sweep point
+        "2b-r64-lr1e-4-nall-s0-e1-distill-luna": {},  # an ablation: not a sweep point
+    }
+    for run, answers in runs.items():
+        make_run(
+            tmp_path / run, answers, model=f"selfhosted/{run}-bf16", run_items=items(), cost=0.0
+        )
+    make_run(
+        tmp_path / "q8",
+        {},
+        model="selfhosted/2b-r16-lr1e-4-nall-s0-e1-gguf-q8_0",
+        run_items=items(),
+        cost=0.0,
+    )
+    return report.load(report.run_dirs(tmp_path), items())[0]
+
+
+def test_the_sweep_is_the_one_factor_runs_in_bf16_with_the_chosen_one_marked(
+    tmp_path: Path,
+) -> None:
+    points = site.sweep_points(sweep_rows(tmp_path), ["2b-r64-lr1e-4-nall-s0-e1"])
+    assert [(p.varied, p.value, p.chosen) for p in points] == [
+        ("Base recipe", "rank 16, 1e-4, every filing", False),
+        ("Adapter rank", "64", True),
+        ("Learning rate", "2e-4", False),
+        ("Training filings", "1,000", False),
+    ]
+    assert points[1].accuracy.point > points[0].accuracy.point
+
+
+def test_a_recipe_is_its_training_record_with_its_seeds_and_untuned_base(
+    tmp_path: Path,
+) -> None:
+    _, manifest = dataset.build(training_pool())
+    config = TrainConfig(base=BASES["2b"].repo, size="2b", rank=64, alpha=128, epochs=1)
+    record = RunRecord(
+        run_id=config.run_id,
+        config=config,
+        dataset=manifest,
+        base_revision=BASES["2b"].revision,
+        started_at=dt.datetime(2026, 9, 23, tzinfo=dt.UTC),
+        steps=317,
+        seconds_per_step=27.0,
+        versions={"python": "3.13.15", "peft": "0.21.0"},
+    )
+    tuned, untuned = tmp_path / "tuned", tmp_path / "untuned"
+    seeds: list[tuple[int, dict[int, str | None]]] = [(0, {}), (1, {0: WRONG}), (2, {})]
+    for seed, answers in seeds:
+        run = f"2b-r64-lr1e-4-nall-s{seed}-e1"
+        make_run(tuned / run, answers, model=f"selfhosted/{run}-bf16", run_items=items(), cost=0.0)
+    # A second epoch and a quantised format of the same recipe are not seeds.
+    make_run(
+        tuned / "e2",
+        {},
+        model="selfhosted/2b-r64-lr1e-4-nall-s0-e2-bf16",
+        run_items=items(),
+        cost=0.0,
+    )
+    make_run(
+        tuned / "q8",
+        {},
+        model="selfhosted/2b-r64-lr1e-4-nall-s0-e1-gguf-q8_0",
+        run_items=items(),
+        cost=0.0,
+    )
+    make_run(
+        untuned / "2b",
+        {0: WRONG, 1: WRONG},
+        model="selfhosted/untuned-2b-it",
+        run_items=items(),
+        cost=0.0,
+    )
+    make_run(untuned / "4b", {}, model="selfhosted/untuned-4b-it", run_items=items(), cost=0.0)
+    post = report.load(report.run_dirs(tuned), items())[0]
+    prompted = report.load(report.run_dirs(untuned), items())[0]
+
+    r = site.recipe("2b-r64-lr1e-4-nall-s0-e1", record, post, prompted)
+    assert r.facts.name == "Gemma 4 E2B"
+    assert (r.rank, r.alpha, r.epochs, r.steps) == (64, 128, 1, 317)
+    assert r.effective_batch == config.batch_size * config.grad_accum
+    assert r.train_filings == manifest.train
+    assert len(r.seeds) == 3 and r.seeds[1].point < r.seeds[0].point
+    assert [u.prompt for u in r.untuned] == ["zero-shot"]  # only its own base's
+    assert r.published == "Peter-A-P/smallprint-2b"
+
+
+def test_every_size_the_page_can_show_has_its_facts() -> None:
+    assert set(site.BASE_FACTS) == set(BASES)
 
 
 # -- the committed page -----------------------------------------------------------------------

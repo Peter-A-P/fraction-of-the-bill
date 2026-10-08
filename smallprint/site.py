@@ -34,8 +34,10 @@ from smallprint.bench.cost import HOURS_PER_MONTH, SECONDS_PER_HOUR
 from smallprint.bench.run import LoadRun
 from smallprint.data.split import Split
 from smallprint.grade import Interval
+from smallprint.quant.quality import Format
 from smallprint.report import (
     QUOTED_UTILISATION,
+    RUN_NAME,
     SERVING_CONCURRENCY,
     TABLE_UTILISATIONS,
     Row,
@@ -49,6 +51,7 @@ from smallprint.report import (
     self_hosted_per_1000,
 )
 from smallprint.serve.launch import parse_served_name
+from smallprint.train.qlora import RunRecord, read_record
 
 #: Where the page reads its numbers from, relative to the site directory.
 RESULTS: Final = "results.json"
@@ -133,6 +136,105 @@ class Gate(BaseModel):
     blocked: tuple[str, ...]
 
 
+class BaseFacts(BaseModel):
+    """What docs/models.md records of a base model, for a reader who has not met it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    maker: str
+    parameters: str
+    licence: str
+    cutoff: str
+
+
+#: docs/models.md, read from the model cards on 2026-09-19. The parameter counts are the
+#: makers' own and, for Gemma, also what serving memory pays for, because the two differ.
+BASE_FACTS: Final[dict[str, BaseFacts]] = {
+    "2b": BaseFacts(
+        name="Gemma 4 E2B",
+        maker="Google",
+        parameters="2.3B effective, 5.1B with its per-layer embeddings",
+        licence="Apache 2.0",
+        cutoff="January 2025",
+    ),
+    "4b": BaseFacts(
+        name="Gemma 4 E4B",
+        maker="Google",
+        parameters="4.5B effective, 8B with its per-layer embeddings",
+        licence="Apache 2.0",
+        cutoff="January 2025",
+    ),
+    "7b": BaseFacts(
+        name="OLMo 3 7B",
+        maker="Ai2",
+        parameters="7B",
+        licence="Apache 2.0",
+        cutoff="December 2024",
+    ),
+}
+
+#: Where the chosen recipes were trained (docs/gpu-prices.md, docs/runbook.md). A run record
+#: does not carry its card, so this is the one training fact on the page written by hand.
+TRAINING_CARD: Final = "one rented RTX 4090, 24 GB"
+
+#: The recipe every one-factor change in the sweep is made from (docs/training.md).
+SWEEP_BASE: Final = {"rank": "16", "lr": "1e-4", "volume": "all"}
+
+
+class Untuned(BaseModel):
+    """The base's own instruction model, prompted rather than trained, on the same filings."""
+
+    model_config = ConfigDict(frozen=True)
+
+    prompt: str
+    accuracy: Share
+
+
+class Recipe(BaseModel):
+    """One published fine-tune: the base it started from and exactly how it was trained."""
+
+    model_config = ConfigDict(frozen=True)
+
+    size: str
+    facts: BaseFacts
+    base: str
+    base_revision: str | None
+    chat_template: str | None
+    published: str
+    run: str
+    rank: int
+    alpha: int
+    dropout: float
+    learning_rate: float
+    epochs: int
+    effective_batch: int
+    max_seq_len: int
+    warmup_ratio: float
+    load_in_4bit: bool
+    steps: int
+    seconds_per_step: float | None
+    train_filings: int
+    validation_filings: int
+    card: str
+    versions: dict[str, str]
+    #: Post-cutoff field accuracy of the chosen recipe in bf16, seed by seed.
+    seeds: tuple[Share, ...]
+    untuned: tuple[Untuned, ...]
+
+
+class SweepPoint(BaseModel):
+    """One run of the one-factor sweep, graded on the validation filings."""
+
+    model_config = ConfigDict(frozen=True)
+
+    size: str
+    varied: str
+    value: str
+    accuracy: Share
+    chosen: bool
+
+
 class SiteData(BaseModel):
     """Everything the page shows."""
 
@@ -150,6 +252,9 @@ class SiteData(BaseModel):
     served: tuple[Served, ...]
     curves: tuple[Curve, ...]
     gates: tuple[Gate, ...]
+    recipes: tuple[Recipe, ...] = ()
+    sweep: tuple[SweepPoint, ...] = ()
+    validation_filings: int = 0
 
 
 def _frontier(row: Row) -> Frontier:
@@ -208,6 +313,102 @@ def read_gate(decision: Path) -> Gate:
     )
 
 
+_SWEEP_ORDER: Final = ("Base recipe", "Adapter rank", "Learning rate", "Training filings")
+
+
+def _variant(run: str) -> tuple[str, str] | None:
+    """Which one thing a sweep run changes from the base recipe, or None if it is not one."""
+    m = RUN_NAME.match(run)
+    if m is None or m["suffix"] or m["seed"] != "0" or m["epochs"] != "1":
+        return None
+    changed = [k for k, v in SWEEP_BASE.items() if m[k] != v]
+    if not changed:
+        return "Base recipe", "rank 16, 1e-4, every filing"
+    if len(changed) > 1:
+        return None
+    if changed[0] == "rank":
+        return "Adapter rank", m["rank"]
+    if changed[0] == "lr":
+        return "Learning rate", m["lr"]
+    return "Training filings", f"{int(m['volume']):,}"
+
+
+def sweep_points(validation: Sequence[Row], chosen: Sequence[str]) -> list[SweepPoint]:
+    """Every one-factor run of the sweep on the validation filings, the one each size went
+    on marked. Chosen on graded accuracy, not on loss (docs/training.md)."""
+    points = []
+    for row in validation:
+        size, run, fmt = parse_served_name(row.summary.model)
+        variant = _variant(run)
+        if fmt is not Format.BF16 or variant is None:
+            continue
+        points.append(
+            SweepPoint(
+                size=size,
+                varied=variant[0],
+                value=variant[1],
+                accuracy=Share.of(row.summary.accuracy),
+                chosen=run in chosen,
+            )
+        )
+
+    def order(p: SweepPoint) -> tuple[str, int, float]:
+        value = p.value.replace(",", "")
+        number = float(value) if p.varied != "Base recipe" else 0.0
+        return p.size, _SWEEP_ORDER.index(p.varied), number
+
+    return sorted(points, key=order)
+
+
+def recipe(run: str, record: RunRecord, post: Sequence[Row], untuned: Sequence[Row]) -> Recipe:
+    """A chosen run's recipe from its training record, with its seeds on the post-cutoff
+    filings and its base's own instruction model, prompted, beside it."""
+    c = record.config
+    stem = run.removesuffix("-s0-e1")
+    seeds = []
+    for row in post:
+        _, served, fmt = parse_served_name(row.summary.model)
+        m = RUN_NAME.match(served)
+        # The same recipe at every seed: the stem, a seed, one epoch, nothing after.
+        if fmt is Format.BF16 and m and served == f"{stem}-s{m['seed']}-e1":
+            seeds.append((int(m["seed"]), Share.of(row.summary.accuracy)))
+    prompted = [
+        Untuned(
+            prompt=r.summary.style.value.replace("_", "-")
+            + (", reasoning on" if r.summary.thinking else ""),
+            accuracy=Share.of(r.summary.accuracy),
+        )
+        for r in untuned
+        if r.summary.model.endswith(f"/untuned-{c.size}-it")
+    ]
+    return Recipe(
+        size=c.size,
+        facts=BASE_FACTS[c.size],
+        base=c.base,
+        base_revision=record.base_revision,
+        chat_template=record.chat_template,
+        published=f"Peter-A-P/smallprint-{c.size}",
+        run=run,
+        rank=c.rank,
+        alpha=c.alpha,
+        dropout=c.dropout,
+        learning_rate=c.learning_rate,
+        epochs=c.epochs,
+        effective_batch=c.batch_size * c.grad_accum,
+        max_seq_len=c.max_seq_len,
+        warmup_ratio=c.warmup_ratio,
+        load_in_4bit=c.load_in_4bit,
+        steps=record.steps,
+        seconds_per_step=record.seconds_per_step,
+        train_filings=record.dataset.train,
+        validation_filings=record.dataset.validation,
+        card=TRAINING_CARD,
+        versions=dict(record.versions),
+        seeds=tuple(share for _, share in sorted(seeds, key=lambda s: s[0])),
+        untuned=tuple(sorted(prompted, key=lambda u: u.prompt)),
+    )
+
+
 def site_data(
     frontier: Sequence[Row],
     post: Sequence[Row],
@@ -215,6 +416,9 @@ def site_data(
     gates: Sequence[Gate],
     *,
     written: dt.date,
+    recipes: Sequence[Recipe] = (),
+    sweep: Sequence[SweepPoint] = (),
+    validation_filings: int = 0,
 ) -> SiteData:
     """The page's numbers from the report's rows: frontier costed runs, every served model
     measured at the quoted concurrency, and each one's break-even against the cost anchor
@@ -246,6 +450,9 @@ def site_data(
         served=tuple(served),
         curves=tuple(curves),
         gates=tuple(gates),
+        recipes=tuple(recipes),
+        sweep=tuple(sweep),
+        validation_filings=validation_filings,
     )
 
 
@@ -257,13 +464,41 @@ def build(
     gate_root: Path,
     *,
     written: dt.date,
+    training_root: Path | None = None,
+    untuned_root: Path | None = None,
 ) -> SiteData:
-    """Read the runs, the load tests and the gate decisions, as `smallprint report` does."""
+    """Read the runs, the load tests and the gate decisions, as `smallprint report` does,
+    and, where they are given, the chosen runs' training records and the untuned bases."""
     items = read_split(build_dir, Split.TEST_POST_CUTOFF.value)
     post, _ = load(run_dirs(finetuned_root, Split.TEST_POST_CUTOFF.value), items)
     frontier, _ = load(run_dirs(frontier_root, Split.TEST_POST_CUTOFF.value), items)
     gates = [read_gate(d) for d in sorted(gate_root.glob("*/decision.txt"))]
-    return site_data(frontier, post, read_loads(bench_root), gates, written=written)
+    recipes: list[Recipe] = []
+    sweep: list[SweepPoint] = []
+    validation_filings = 0
+    if training_root is not None:
+        # The chosen runs are the ones the gate decided on: one recipe for each size.
+        chosen = sorted({g.candidate for g in gates})
+        untuned = (
+            load(run_dirs(untuned_root, Split.TEST_POST_CUTOFF.value), items)[0]
+            if untuned_root is not None
+            else []
+        )
+        recipes = [recipe(r, read_record(training_root / r), post, untuned) for r in chosen]
+        val_items = read_split(build_dir, Split.VALIDATION.value)
+        validation, _ = load(run_dirs(finetuned_root, Split.VALIDATION.value), val_items)
+        sweep = sweep_points(validation, chosen)
+        validation_filings = len(val_items)
+    return site_data(
+        frontier,
+        post,
+        read_loads(bench_root),
+        gates,
+        written=written,
+        recipes=recipes,
+        sweep=sweep,
+        validation_filings=validation_filings,
+    )
 
 
 def write(data: SiteData, site_dir: Path) -> Path:

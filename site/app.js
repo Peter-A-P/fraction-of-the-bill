@@ -431,6 +431,93 @@
     draw();
   }
 
+  // ------------------------------------------------------------------ the models
+
+  function lr(x) {
+    // 0.0001 -> "1e-4", 0.0002 -> "2e-4", as the run names write it.
+    const [m, e] = x.toExponential().split("e");
+    return m.replace(/\.0+$/, "") + "e" + e;
+  }
+
+  function hours(seconds) {
+    return seconds >= 3600 ? (seconds / 3600).toFixed(1) + " hours" : Math.round(seconds / 60) + " minutes";
+  }
+
+  function training(data) {
+    if (!data.recipes || !data.recipes.length) return;
+    const host = byId("recipes");
+    data.recipes.forEach((r) => {
+      const card = html("article", { class: "recipe" }, host);
+      html("h3", {}, card, r.facts.name);
+      html("p", { class: "maker" }, card, "by " + r.facts.maker + ", fine-tuned as the " + size(r.size));
+      const best = r.untuned.slice().sort((a, b) => b.accuracy.point - a.accuracy.point)[0];
+      const tuned = r.seeds[0];
+      if (best && tuned) {
+        const lift = html("div", { class: "lift" }, card);
+        html("span", { class: "from" }, lift, pct(best.accuracy.point));
+        html("span", { class: "arrow", "aria-hidden": "true" }, lift, "\u2192");
+        html("span", { class: "to" }, lift, pct(tuned.point));
+        const range = r.seeds.map((x) => x.point);
+        html("p", { class: "lift-note" }, card,
+          "fields right on the " + data.filings.toLocaleString("en-US") + " test filings: its maker's own instruction model, " +
+          "prompted at its best (" + best.prompt + "), then this fine-tune" +
+          (r.seeds.length > 1 ? "; " + r.seeds.length + " training seeds gave " + pct(Math.min(...range)) + " to " + pct(Math.max(...range)) : ""));
+      }
+      const dl = html("dl", {}, card);
+      const row = (k, v) => { html("dt", {}, dl, k); html("dd", {}, dl, v); };
+      row("Size", r.facts.parameters);
+      row("Licence", r.facts.licence);
+      row("Training cutoff", r.facts.cutoff);
+      row("Method", "QLoRA: " + (r.load_in_4bit ? "4-bit NF4 base, " : "") + "bf16 adapters on every attention and MLP projection");
+      row("Adapter", "rank " + r.rank + ", alpha " + r.alpha + ", dropout " + r.dropout);
+      row("Learning rate", lr(r.learning_rate) + ", cosine, " + Math.round(r.warmup_ratio * 100) + "% warm-up");
+      row("Batch", r.effective_batch + " filings a step");
+      row("Data", r.train_filings.toLocaleString("en-US") + " filings, " + r.epochs + (r.epochs === 1 ? " epoch, " : " epochs, ") + r.steps + " steps");
+      row("Context", r.max_seq_len.toLocaleString("en-US") + " tokens");
+      if (r.seconds_per_step) row("Compute", hours(r.seconds_per_step * r.steps) + " of steps on " + r.card);
+      const links = html("p", { class: "links" }, card);
+      html("a", { href: "https://huggingface.co/" + r.published }, links, r.published);
+    });
+
+    setText("sweep-filings", data.validation_filings.toLocaleString("en-US"));
+    const sizes = [...new Set(data.sweep.map((p) => p.size))];
+    const t = byId("sweep-table");
+    const head = html("tr", {}, html("thead", {}, t));
+    html("th", { scope: "col" }, head, "Changed");
+    html("th", { scope: "col" }, head, "To");
+    sizes.forEach((sz) => {
+      const r = data.recipes.find((x) => x.size === sz);
+      html("th", { scope: "col", class: "num" }, head, size(sz) + (r ? ", " + r.facts.name : ""));
+    });
+    const body = html("tbody", {}, t);
+    const keys = [];
+    data.sweep.forEach((p) => {
+      const k = p.varied + "|" + p.value;
+      if (!keys.includes(k)) keys.push(k);
+    });
+    let group = null;
+    keys.forEach((k) => {
+      const [varied, value] = k.split("|");
+      const tr = html("tr", { class: varied !== group ? "group-start" : "" }, body);
+      html("th", { scope: "row" }, tr, varied !== group ? varied : "");
+      group = varied;
+      html("td", {}, tr, value);
+      sizes.forEach((sz) => {
+        const p = data.sweep.find((x) => x.size === sz && x.varied === varied && x.value === value);
+        html("td", { class: "num" + (p && p.chosen ? " chosen" : "") }, tr, p ? pct(p.accuracy.point) : "");
+      });
+    });
+    setText("sweep-note",
+      "Fields right on the validation filings, seed 0, one epoch. Ticked: the recipe each size went on with, then trained " +
+      "at two more seeds and measured on the test filings. Intervals are about half a point either way, which is why the " +
+      "seeds were run before any of these differences was believed.");
+    const v = data.recipes[0].versions;
+    const lib = [["PyTorch", "torch"], ["Transformers", "transformers"], ["PEFT", "peft"], ["TRL", "trl"], ["bitsandbytes", "bitsandbytes"]]
+      .filter(([, k]) => v[k]).map(([n, k]) => n + " " + v[k].split("+")[0]);
+    setText("stack-note", "Trained with " + lib.join(", ") + " on Python " + v.python +
+      ", every library pinned and recorded in each run's record, with the base model's exact revision.");
+  }
+
   // ------------------------------------------------------------------ the gate
 
   function gate(data) {
@@ -470,7 +557,7 @@
 
   fetch("results.json", { cache: "no-cache" })
     .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then((data) => { hero(data); pareto(data); calculator(data); table(data); gate(data); })
+    .then((data) => { hero(data); training(data); pareto(data); calculator(data); table(data); gate(data); })
     .catch(() => {
       setText("hero-note", "The results file did not load, so the figures on this page are missing. " +
         "Every number is also in the repository's README.");

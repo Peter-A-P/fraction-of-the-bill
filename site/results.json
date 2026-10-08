@@ -1,5 +1,5 @@
 {
- "written": "2026-10-03",
+ "written": "2026-10-08",
  "filings": 705,
  "hours_per_month": 730.5,
  "seconds_per_hour": 3600.0,
@@ -976,5 +976,509 @@
     "shares_diluted"
    ]
   }
- ]
+ ],
+ "recipes": [
+  {
+   "size": "2b",
+   "facts": {
+    "name": "Gemma 4 E2B",
+    "maker": "Google",
+    "parameters": "2.3B effective, 5.1B with its per-layer embeddings",
+    "licence": "Apache 2.0",
+    "cutoff": "January 2025"
+   },
+   "base": "google/gemma-4-E2B",
+   "base_revision": "d29ff6b45f081a49ee2733a859c9c9c2d95d1a6f",
+   "chat_template": "google/gemma-4-E2B-it@3e22461f65e89153144f8adb70e3b8c2cc9845a7",
+   "published": "Peter-A-P/smallprint-2b",
+   "run": "2b-r64-lr1e-4-nall-s0-e1",
+   "rank": 64,
+   "alpha": 128,
+   "dropout": 0.05,
+   "learning_rate": 0.0001,
+   "epochs": 1,
+   "effective_batch": 16,
+   "max_seq_len": 8192,
+   "warmup_ratio": 0.03,
+   "load_in_4bit": true,
+   "steps": 317,
+   "seconds_per_step": 27.427367993164072,
+   "train_filings": 5060,
+   "validation_filings": 713,
+   "card": "one rented RTX 4090, 24 GB",
+   "versions": {
+    "python": "3.13.15",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "peft": "0.21.0",
+    "trl": "1.13.0",
+    "bitsandbytes": "0.50.2",
+    "accelerate": "1.15.0"
+   },
+   "seeds": [
+    {
+     "point": 0.9691725768321513,
+     "low": 0.9651063829787235,
+     "high": 0.9730496453900709
+    },
+    {
+     "point": 0.9699290780141845,
+     "low": 0.9652009456264776,
+     "high": 0.9741843971631207
+    },
+    {
+     "point": 0.96548463356974,
+     "low": 0.9605673758865249,
+     "high": 0.9699290780141845
+    }
+   ],
+   "untuned": [
+    {
+     "prompt": "few-shot",
+     "accuracy": {
+      "point": 0.7364539007092199,
+      "low": 0.7211347517730496,
+      "high": 0.7516784869976361
+     }
+    },
+    {
+     "prompt": "zero-shot",
+     "accuracy": {
+      "point": 0.4990070921985816,
+      "low": 0.48226950354609927,
+      "high": 0.5161229314420804
+     }
+    },
+    {
+     "prompt": "zero-shot, reasoning on",
+     "accuracy": {
+      "point": 0.7983924349881797,
+      "low": 0.78193853427896,
+      "high": 0.8141843971631205
+     }
+    }
+   ]
+  },
+  {
+   "size": "4b",
+   "facts": {
+    "name": "Gemma 4 E4B",
+    "maker": "Google",
+    "parameters": "4.5B effective, 8B with its per-layer embeddings",
+    "licence": "Apache 2.0",
+    "cutoff": "January 2025"
+   },
+   "base": "google/gemma-4-E4B",
+   "base_revision": "411aa17b749aa952df1359d2dcea73917a544d9a",
+   "chat_template": "google/gemma-4-E4B-it@ee0ef6023621cff504d758262d4e04895a5af4a2",
+   "published": "Peter-A-P/smallprint-4b",
+   "run": "4b-r16-lr2e-4-nall-s0-e1",
+   "rank": 16,
+   "alpha": 32,
+   "dropout": 0.05,
+   "learning_rate": 0.0002,
+   "epochs": 1,
+   "effective_batch": 16,
+   "max_seq_len": 8192,
+   "warmup_ratio": 0.03,
+   "load_in_4bit": true,
+   "steps": 317,
+   "seconds_per_step": 32.80084826826039,
+   "train_filings": 5060,
+   "validation_filings": 713,
+   "card": "one rented RTX 4090, 24 GB",
+   "versions": {
+    "python": "3.13.15",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "peft": "0.21.0",
+    "trl": "1.13.0",
+    "bitsandbytes": "0.50.2",
+    "accelerate": "1.15.0"
+   },
+   "seeds": [
+    {
+     "point": 0.9688888888888889,
+     "low": 0.964822695035461,
+     "high": 0.9727659574468086
+    },
+    {
+     "point": 0.9649172576832152,
+     "low": 0.960661938534279,
+     "high": 0.9689834515366432
+    },
+    {
+     "point": 0.9623640661938535,
+     "low": 0.95725768321513,
+     "high": 0.9671867612293145
+    }
+   ],
+   "untuned": [
+    {
+     "prompt": "few-shot",
+     "accuracy": {
+      "point": 0.8257210401891253,
+      "low": 0.8105910165484634,
+      "high": 0.8408510638297874
+     }
+    },
+    {
+     "prompt": "zero-shot",
+     "accuracy": {
+      "point": 0.8746099290780144,
+      "low": 0.8639243498817969,
+      "high": 0.8845413711583926
+     }
+    },
+    {
+     "prompt": "zero-shot, reasoning on",
+     "accuracy": {
+      "point": 0.8922931442080381,
+      "low": 0.8816075650118205,
+      "high": 0.9026028368794328
+     }
+    }
+   ]
+  },
+  {
+   "size": "7b",
+   "facts": {
+    "name": "OLMo 3 7B",
+    "maker": "Ai2",
+    "parameters": "7B",
+    "licence": "Apache 2.0",
+    "cutoff": "December 2024"
+   },
+   "base": "allenai/Olmo-3-1025-7B",
+   "base_revision": "a81bae42db3975be1671e27b9c9a56da1a9f980f",
+   "chat_template": "allenai/Olmo-3-7B-Instruct@6e5971d9eba42665f5bd5a0fcf047f299ce1dccc",
+   "published": "Peter-A-P/smallprint-7b",
+   "run": "7b-r64-lr1e-4-nall-s0-e1",
+   "rank": 64,
+   "alpha": 128,
+   "dropout": 0.05,
+   "learning_rate": 0.0001,
+   "epochs": 1,
+   "effective_batch": 16,
+   "max_seq_len": 8192,
+   "warmup_ratio": 0.03,
+   "load_in_4bit": true,
+   "steps": 317,
+   "seconds_per_step": 24.413159719846377,
+   "train_filings": 5060,
+   "validation_filings": 713,
+   "card": "one rented RTX 4090, 24 GB",
+   "versions": {
+    "python": "3.13.15",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "peft": "0.21.0",
+    "trl": "1.13.0",
+    "bitsandbytes": "0.50.2",
+    "accelerate": "1.15.0"
+   },
+   "seeds": [
+    {
+     "point": 0.97371158392435,
+     "low": 0.9698345153664303,
+     "high": 0.9773995271867613
+    },
+    {
+     "point": 0.9706855791962177,
+     "low": 0.9660520094562649,
+     "high": 0.9749408983451537
+    },
+    {
+     "point": 0.9724822695035461,
+     "low": 0.9683215130023641,
+     "high": 0.9763593380614659
+    }
+   ],
+   "untuned": [
+    {
+     "prompt": "few-shot",
+     "accuracy": {
+      "point": 0.5766430260047282,
+      "low": 0.5599999999999999,
+      "high": 0.5932860520094563
+     }
+    },
+    {
+     "prompt": "zero-shot",
+     "accuracy": {
+      "point": 0.4767848699763593,
+      "low": 0.46335697399527187,
+      "high": 0.4905910165484634
+     }
+    }
+   ]
+  }
+ ],
+ "sweep": [
+  {
+   "size": "2b",
+   "varied": "Base recipe",
+   "value": "rank 16, 1e-4, every filing",
+   "accuracy": {
+    "point": 0.9358578775128567,
+    "low": 0.929593267882188,
+    "high": 0.9418419822346892
+   },
+   "chosen": false
+  },
+  {
+   "size": "2b",
+   "varied": "Adapter rank",
+   "value": "8",
+   "accuracy": {
+    "point": 0.9223936418887332,
+    "low": 0.9151940158952783,
+    "high": 0.9292192613370733
+   },
+   "chosen": false
+  },
+  {
+   "size": "2b",
+   "varied": "Adapter rank",
+   "value": "64",
+   "accuracy": {
+    "point": 0.9557737260402057,
+    "low": 0.9509116409537167,
+    "high": 0.9604488078541376
+   },
+   "chosen": true
+  },
+  {
+   "size": "2b",
+   "varied": "Learning rate",
+   "value": "5e-5",
+   "accuracy": {
+    "point": 0.9136979897148201,
+    "low": 0.9062178588125293,
+    "high": 0.9208041140719962
+   },
+   "chosen": false
+  },
+  {
+   "size": "2b",
+   "varied": "Learning rate",
+   "value": "2e-4",
+   "accuracy": {
+    "point": 0.9494156147732586,
+    "low": 0.9438055165965406,
+    "high": 0.9548387096774192
+   },
+   "chosen": false
+  },
+  {
+   "size": "2b",
+   "varied": "Training filings",
+   "value": "1,000",
+   "accuracy": {
+    "point": 0.8757363253856943,
+    "low": 0.86507713884993,
+    "high": 0.8861173445535298
+   },
+   "chosen": false
+  },
+  {
+   "size": "2b",
+   "varied": "Training filings",
+   "value": "2,500",
+   "accuracy": {
+    "point": 0.9234221598877982,
+    "low": 0.9154745208041141,
+    "high": 0.930621785881253
+   },
+   "chosen": false
+  },
+  {
+   "size": "2b",
+   "varied": "Training filings",
+   "value": "5,000",
+   "accuracy": {
+    "point": 0.9360448807854139,
+    "low": 0.9290322580645163,
+    "high": 0.9424964936886395
+   },
+   "chosen": false
+  },
+  {
+   "size": "4b",
+   "varied": "Base recipe",
+   "value": "rank 16, 1e-4, every filing",
+   "accuracy": {
+    "point": 0.936231884057971,
+    "low": 0.9307152875175316,
+    "high": 0.9415614773258534
+   },
+   "chosen": false
+  },
+  {
+   "size": "4b",
+   "varied": "Adapter rank",
+   "value": "8",
+   "accuracy": {
+    "point": 0.942402992052361,
+    "low": 0.9368863955119214,
+    "high": 0.9478260869565218
+   },
+   "chosen": false
+  },
+  {
+   "size": "4b",
+   "varied": "Adapter rank",
+   "value": "64",
+   "accuracy": {
+    "point": 0.9492286115007011,
+    "low": 0.9437096774193549,
+    "high": 0.9544647031323049
+   },
+   "chosen": false
+  },
+  {
+   "size": "4b",
+   "varied": "Learning rate",
+   "value": "5e-5",
+   "accuracy": {
+    "point": 0.9147265077138851,
+    "low": 0.9066853669939224,
+    "high": 0.9223001402524547
+   },
+   "chosen": false
+  },
+  {
+   "size": "4b",
+   "varied": "Learning rate",
+   "value": "2e-4",
+   "accuracy": {
+    "point": 0.9542776998597476,
+    "low": 0.9488546049555868,
+    "high": 0.9593267882187938
+   },
+   "chosen": true
+  },
+  {
+   "size": "4b",
+   "varied": "Training filings",
+   "value": "1,000",
+   "accuracy": {
+    "point": 0.8761103319308089,
+    "low": 0.8652641421224873,
+    "high": 0.8864890135577371
+   },
+   "chosen": false
+  },
+  {
+   "size": "4b",
+   "varied": "Training filings",
+   "value": "2,500",
+   "accuracy": {
+    "point": 0.9336138382421694,
+    "low": 0.9278167367928938,
+    "high": 0.9394109396914445
+   },
+   "chosen": false
+  },
+  {
+   "size": "4b",
+   "varied": "Training filings",
+   "value": "5,000",
+   "accuracy": {
+    "point": 0.945488546049556,
+    "low": 0.939597942964002,
+    "high": 0.951098644226274
+   },
+   "chosen": false
+  },
+  {
+   "size": "7b",
+   "varied": "Base recipe",
+   "value": "rank 16, 1e-4, every filing",
+   "accuracy": {
+    "point": 0.9517531556802244,
+    "low": 0.9461430575035065,
+    "high": 0.9570827489481065
+   },
+   "chosen": false
+  },
+  {
+   "size": "7b",
+   "varied": "Adapter rank",
+   "value": "8",
+   "accuracy": {
+    "point": 0.9497896213183732,
+    "low": 0.9438990182328191,
+    "high": 0.9553062178588126
+   },
+   "chosen": false
+  },
+  {
+   "size": "7b",
+   "varied": "Adapter rank",
+   "value": "64",
+   "accuracy": {
+    "point": 0.9569892473118282,
+    "low": 0.952127162225339,
+    "high": 0.9617578307620384
+   },
+   "chosen": true
+  },
+  {
+   "size": "7b",
+   "varied": "Learning rate",
+   "value": "5e-5",
+   "accuracy": {
+    "point": 0.9401589527816737,
+    "low": 0.9338008415147266,
+    "high": 0.9462365591397851
+   },
+   "chosen": false
+  },
+  {
+   "size": "7b",
+   "varied": "Learning rate",
+   "value": "2e-4",
+   "accuracy": {
+    "point": 0.9532491818606826,
+    "low": 0.9478260869565218,
+    "high": 0.9583917718560075
+   },
+   "chosen": false
+  },
+  {
+   "size": "7b",
+   "varied": "Training filings",
+   "value": "1,000",
+   "accuracy": {
+    "point": 0.8689107059373539,
+    "low": 0.8552594670406733,
+    "high": 0.882000935016363
+   },
+   "chosen": false
+  },
+  {
+   "size": "7b",
+   "varied": "Training filings",
+   "value": "2,500",
+   "accuracy": {
+    "point": 0.9408134642356242,
+    "low": 0.9345488546049556,
+    "high": 0.9467975689574568
+   },
+   "chosen": false
+  },
+  {
+   "size": "7b",
+   "varied": "Training filings",
+   "value": "5,000",
+   "accuracy": {
+    "point": 0.9508181393174382,
+    "low": 0.9451145395044415,
+    "high": 0.956241234221599
+   },
+   "chosen": false
+  }
+ ],
+ "validation_filings": 713
 }

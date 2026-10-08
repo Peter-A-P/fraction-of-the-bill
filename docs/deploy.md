@@ -7,8 +7,12 @@ follows the same path as project 12's `finishline.peterparker.ca` and project 08
 
 **Every number on the page comes from `site/results.json`**, and nothing on the page is
 typed by hand. `smallprint site` writes the file from the same runs, load tests and
-break-even arithmetic as the README's tables (`smallprint/site.py`), and the gate decisions
-from `gate-runs/`. The runs are not in the repository, so the file is written on the machine
+break-even arithmetic as the README's tables (`smallprint/site.py`), the gate decisions
+from `gate-runs/`, and, for the section on the models and how they were trained, each chosen
+run's training record (`runs/<run>/run.json`), the one-factor sweep graded on the validation
+filings and the untuned bases prompted (`data/untuned/`). The base models' makers, sizes,
+licences and cutoffs are `BASE_FACTS` in `smallprint/site.py`, from [models.md](models.md),
+and the training card is `TRAINING_CARD`: a run record carries neither. The runs are not in the repository, so the file is written on the machine
 that has them and committed; the deploy uploads `site/` as it is and builds nothing. In CI,
 `tests/test_site.py` checks every curve in the committed file against the Python break-even
 and runs the calculator's `site/breakeven.js` under Node against it over a grid of inputs, so

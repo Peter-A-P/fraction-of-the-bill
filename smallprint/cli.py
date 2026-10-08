@@ -752,16 +752,30 @@ def site_results(
     bench_runs: Path = typer.Option(Path("data/bench"), "--bench", help="The load tests."),
     gate_runs: Path = typer.Option(Path("gate-runs"), "--gates", help="The gate decisions."),
     build_dir: Path = typer.Option(Path("data/build"), help="The build the runs were made on."),
+    training_runs: Path = typer.Option(
+        Path("runs"), "--training", help="The chosen runs' training records, run.json each."
+    ),
+    untuned_runs: Path = typer.Option(
+        Path("data/untuned"), "--untuned", help="The untuned bases, prompted."
+    ),
     out: Path = typer.Option(Path("site"), help="The website directory."),
 ) -> None:
     """The website's numbers, site/results.json, from the same runs as the report."""
     data = site.build(
-        finetuned_runs, runs, bench_runs, build_dir, gate_runs, written=dt.date.today()
+        finetuned_runs,
+        runs,
+        bench_runs,
+        build_dir,
+        gate_runs,
+        written=dt.date.today(),
+        training_root=training_runs,
+        untuned_root=untuned_runs,
     )
     written = site.write(data, out)
     typer.echo(
         f"Written to {written}: {len(data.frontier)} frontier runs, {len(data.served)} served "
-        f"models, {len(data.gates)} gate decisions."
+        f"models, {len(data.gates)} gate decisions, {len(data.recipes)} recipes, "
+        f"{len(data.sweep)} sweep runs."
     )
 
 

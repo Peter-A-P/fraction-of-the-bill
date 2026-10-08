@@ -745,3 +745,53 @@ td.fields { white-space: normal; min-width: 12rem; }
 }
 
 .noscript { padding: 0.9rem 1.1rem; border-left: 3px solid var(--warn); background: var(--paper-soft); }
+
+/* The three recipes, one card each. */
+.recipes { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 0.9rem; margin: 1.25rem 0 0.5rem; }
+.recipe { background: var(--paper-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem 0.9rem; display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.recipe h3 { margin: 0; }
+.recipe .maker { font-size: 0.82rem; color: var(--ink-faint); margin: -0.35rem 0 0; }
+.recipe .lift { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.recipe .lift .from { font-family: var(--serif); font-size: 1.35rem; color: var(--ink-faint); }
+.recipe .lift .arrow { color: var(--ink-faint); }
+.recipe .lift .to { font-family: var(--serif); font-size: 1.75rem; color: var(--good); }
+.recipe .lift-note { font-size: 0.8rem; color: var(--ink-faint); line-height: 1.4; margin: -0.3rem 0 0.2rem; }
+.recipe dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.25rem 0.8rem; margin: 0; font-size: 0.84rem; }
+.recipe dt { color: var(--ink-faint); }
+.recipe dd { margin: 0; color: var(--ink-soft); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.recipe .links { font-size: 0.84rem; margin-top: auto; padding-top: 0.4rem; border-top: 1px solid var(--line); }
+td.chosen { color: var(--good); font-weight: 600; }
+td.chosen::after { content: " \2713"; }
+tbody tr.group-start th, tbody tr.group-start td { border-top: 1px solid var(--line-2); }
+.steps li > span:last-child { min-width: 0; }
+.steps { list-style: none; margin: 0.75rem 0 1rem; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 0.7rem; }
+
+.steps li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  background: var(--paper-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.8rem 0.95rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.step-n {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.steps li:last-child .step-n { background: var(--accent); color: #fdfcf9; }
+@media (prefers-color-scheme: dark) { .steps li:last-child .step-n { color: #0e1013; } }

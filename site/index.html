@@ -105,6 +105,47 @@ state_of_incorporation  a code, or not reported</pre>
     </div>
   </section>
 
+  <section class="section" id="models">
+    <h2>The models, and exactly how they were fine-tuned</h2>
+    <p class="section-lead">
+      Three open-weights base models, one small, one middling and one large for this kind of
+      work, each chosen for two things before quality: a licence that allows publishing the
+      trained weights, and a documented training cutoff, so the test filings can be shown to
+      postdate everything the model read. Each was fine-tuned with <strong>QLoRA</strong>: the
+      base model's weights are frozen and stored in 4 bits, and only small low-rank "adapter"
+      matrices added beside every attention and feed-forward projection are trained. That is
+      what lets a 7B model train on one 24 GB card in a few hours rather than on a cluster.
+    </p>
+    <div class="recipes" id="recipes"></div>
+
+    <h3 class="subhead">How each recipe was chosen</h3>
+    <p>
+      Not by guessing and not by the training loss. From one starting recipe, one setting at a
+      time was changed: the adapter's rank, the learning rate, and how many training filings
+      it saw. Every run was then merged, served and <strong>graded on <span id="sweep-filings">-</span>
+      validation filings</strong> it never trained on, and each size kept the setting with the
+      most fields right. The validation loss would have picked differently: for one size its
+      lowest-loss run was its least accurate, because the loss is averaged over every
+      character of an answer that is mostly punctuation and field names, and which number
+      lands in a field is a few characters of it.
+    </p>
+    <div class="table-wrap">
+      <table class="tight" id="sweep-table"></table>
+    </div>
+    <p class="note" id="sweep-note"></p>
+
+    <h3 class="subhead">From filing to served model</h3>
+    <ol class="steps">
+      <li><span class="step-n">1</span><span><strong>Pair each filing with its answer.</strong> The financial statements as text, and the fifteen figures the company tagged in XBRL, as the exact JSON the grader marks. Companies never cross from training into a test set.</span></li>
+      <li><span class="step-n">2</span><span><strong>Train on the answer only.</strong> The loss falls on the model's reply and not on the instructions or the filing, so it learns to read, not to recite the prompt. It is trained on the zero-shot prompt, so no worked examples are paid for on every call afterwards.</span></li>
+      <li><span class="step-n">3</span><span><strong>Checkpoint from the first steps.</strong> Rented cards can be taken back. Every checkpoint goes to object storage and a run resumes from its newest, which happened for real when a host rebooted mid-sweep.</span></li>
+      <li><span class="step-n">4</span><span><strong>Merge, and check the merge.</strong> The adapter is folded into the base in 16-bit, and the merged model has to predict the same next tokens as base plus adapter on a held-out filing before it is used.</span></li>
+      <li><span class="step-n">5</span><span><strong>Quantise, and measure what it costs.</strong> GGUF, AWQ and GPTQ versions, each graded against its own 16-bit model on the same filings and published with that loss stated; the two that lost the most, one of which forgot the output format altogether, were not published.</span></li>
+      <li><span class="step-n">6</span><span><strong>Serve and publish.</strong> vLLM on a rented card behind the same gateway as the frontier APIs, so both are costed one way, and the weights, adapters and cards on Hugging Face.</span></li>
+    </ol>
+    <p class="note" id="stack-note"></p>
+  </section>
+
   <section class="section" id="frontier">
     <h2>Quality against cost</h2>
     <p class="section-lead">
