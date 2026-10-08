@@ -1,4 +1,4 @@
-# Putting the website on breakeven.peterparker.ca
+# Putting the website on smallmodel.peterparker.ca
 
 The website is `site/`: one static page, its stylesheet, two scripts, two fonts and
 `results.json`. There is no backend, so hosting it is a file upload and one DNS record. It
@@ -41,7 +41,7 @@ Portal: [Azure Portal](https://portal.azure.com), Create a resource, **Static We
 |---|---|
 | Subscription | `<subscription>` |
 | Resource group | `<resource-group>` |
-| Name | `breakeven-peterparker-ca` |
+| Name | `smallmodel-peterparker-ca` |
 | Plan type | **Free** |
 | Region | any near you; content is served from a CDN regardless |
 | Deployment source | **Other** |
@@ -54,7 +54,7 @@ never in a file.
 Or from the CLI:
 
 ```powershell
-az staticwebapp create --name breakeven-peterparker-ca --resource-group <resource-group> `
+az staticwebapp create --name smallmodel-peterparker-ca --resource-group <resource-group> `
   --location eastus2 --sku Free --subscription <subscription>
 ```
 
@@ -69,19 +69,19 @@ a second hostname on another site's app.
 
    | Type | Name | Target | Proxy status | TTL |
    |---|---|---|---|---|
-   | CNAME | `breakeven` | `<generated-name>.azurestaticapps.net` | **DNS only** | Auto |
+   | CNAME | `smallmodel` | `<generated-name>.azurestaticapps.net` | **DNS only** | Auto |
 
 3. **Proxy status DNS only, the grey cloud, not the orange one.** A proxied record hides the
    target behind Cloudflare's addresses, Azure's validation cannot see the CNAME, and the
    certificate is never issued. Projects 01 and 08 both hit this.
 4. In the Static Web App: **Settings**, **Custom domains**, **+ Add**, **Custom domain on
-   other DNS**. Enter `breakeven.peterparker.ca`, record type **CNAME**, add
+   other DNS**. Enter `smallmodel.peterparker.ca`, record type **CNAME**, add
    ([Microsoft's page](https://learn.microsoft.com/en-us/azure/static-web-apps/custom-domain-external)).
    From the CLI instead:
 
    ```powershell
-   az staticwebapp hostname set --name breakeven-peterparker-ca --resource-group <resource-group> `
-     --hostname breakeven.peterparker.ca --subscription <subscription>
+   az staticwebapp hostname set --name smallmodel-peterparker-ca --resource-group <resource-group> `
+     --hostname smallmodel.peterparker.ca --subscription <subscription>
    ```
 
 5. Wait for validation, usually minutes, occasionally an hour. Azure issues and renews the
@@ -94,7 +94,7 @@ store straight from the Azure CLI, so it never appears on screen, in a file, in 
 or in a chat. **The token alone is enough to publish to the site.**
 
 ```powershell
-az staticwebapp secrets list --name breakeven-peterparker-ca --resource-group <resource-group> `
+az staticwebapp secrets list --name smallmodel-peterparker-ca --resource-group <resource-group> `
   --subscription <subscription> --query properties.apiKey -o tsv |
   gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --repo Peter-A-P/fraction-of-the-bill
 
@@ -123,7 +123,7 @@ Then add the address to the project's entry in peterparker.ca's `projects.yaml` 
   `python -m http.server`**, which sends none of the headers in `staticwebapp.config.json`
   and so shows a page the content security policy would partly refuse (project 08 lost a
   chart on its live site for two weeks that way).
-- `https://breakeven.peterparker.ca` serves over HTTPS with no certificate warning.
+- `https://smallmodel.peterparker.ca` serves over HTTPS with no certificate warning.
 - The browser console on the live page is empty: a policy violation is reported there and
   nowhere else.
 - The hero's figures match the README's: the 2B's cost per 1,000 on its cheapest card, and
