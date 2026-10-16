@@ -74,35 +74,35 @@
 <text x="978.0" y="899.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">smallmodel.peterparker.ca</text>
 <text x="978.0" y="915.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Azure Static Web Apps, a calculator</text>
 <text x="978.0" y="932.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.site, site/</text>
-<rect x="38.4" y="146.0" width="247.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="61.3" y="146.0" width="201.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="162.0" y="158.0" font-size="12" text-anchor="middle" fill="#14201E">19,574 filings tried, one fact per field</text>
-<rect x="73.7" y="259.5" width="176.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="77.6" y="259.5" width="168.8" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="162.0" y="271.5" font-size="12" text-anchor="middle" fill="#14201E">7,874 items, 1,600 companies</text>
-<rect x="272.4" y="436.0" width="53.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="275.3" y="436.0" width="47.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="299.0" y="448.0" font-size="12" text-anchor="middle" fill="#14201E">dataset</text>
-<rect x="321.8" y="262.0" width="88.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="333.0" y="262.0" width="66.0" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="366.0" y="274.0" font-size="12" text-anchor="middle" fill="#14201E">training file</text>
-<rect x="540.5" y="262.0" width="59.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="542.7" y="262.0" width="54.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="570.0" y="274.0" font-size="12" text-anchor="middle" fill="#14201E">adapters</text>
-<rect x="537.5" y="378.0" width="64.9" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="540.3" y="378.0" width="59.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="570.0" y="390.0" font-size="12" text-anchor="middle" fill="#14201E">published</text>
-<rect x="505.2" y="494.0" width="129.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="513.0" y="494.0" width="114.1" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="570.0" y="506.0" font-size="12" text-anchor="middle" fill="#14201E">pulled onto the card</text>
-<rect x="712.1" y="430.7" width="123.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="721.3" y="430.7" width="105.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="774.0" y="442.7" font-size="12" text-anchor="middle" fill="#5C6B67">a host with a price</text>
-<rect x="747.4" y="557.3" width="53.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="747.7" y="557.3" width="52.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="774.0" y="569.3" font-size="12" text-anchor="middle" fill="#14201E">answers</text>
-<rect x="930.8" y="262.0" width="94.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="933.3" y="262.0" width="89.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="978.0" y="274.0" font-size="12" text-anchor="middle" fill="#14201E">the same items</text>
-<rect x="927.9" y="436.0" width="100.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="930.3" y="436.0" width="95.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="978.0" y="448.0" font-size="12" text-anchor="middle" fill="#14201E">answers, costed</text>
-<rect x="933.8" y="610.0" width="88.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="937.7" y="610.0" width="80.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="978.0" y="622.0" font-size="12" text-anchor="middle" fill="#14201E">paired scores</text>
-<rect x="927.9" y="726.0" width="100.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="938.3" y="726.0" width="79.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="978.0" y="738.0" font-size="12" text-anchor="middle" fill="#14201E">delta, interval</text>
-<rect x="609.9" y="784.0" width="194.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="619.3" y="784.0" width="175.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="707.0" y="796.0" font-size="12" text-anchor="middle" fill="#14201E">throughput, p99, cost per 1,000</text>
-<rect x="936.7" y="842.0" width="82.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="943.7" y="842.0" width="68.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="978.0" y="854.0" font-size="12" text-anchor="middle" fill="#14201E">results.json</text>
 <rect x="28" y="964" width="26" height="16" rx="3" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
 <text x="62" y="976" font-size="11" fill="#5C6B67">built here</text>

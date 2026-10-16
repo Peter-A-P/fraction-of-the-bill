@@ -106,33 +106,33 @@
 <text x="1120.0" y="423.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">README tables, the chart,</text>
 <text x="1120.0" y="439.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">site/results.json</text>
 <text x="1120.0" y="456.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint report / site</text>
-<rect x="270.5" y="88.0" width="59.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="274.7" y="88.0" width="50.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="300.0" y="100.0" font-size="12" text-anchor="middle" fill="#14201E">held out</text>
-<rect x="604.4" y="88.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="605.3" y="88.0" width="45.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="628.0" y="100.0" font-size="12" text-anchor="middle" fill="#14201E">graded</text>
-<rect x="279.3" y="200.0" width="41.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="277.3" y="200.0" width="45.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="300.0" y="212.0" font-size="12" text-anchor="middle" fill="#14201E">US$67</text>
-<rect x="604.4" y="200.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="605.3" y="200.0" width="45.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="628.0" y="212.0" font-size="12" text-anchor="middle" fill="#14201E">graded</text>
-<rect x="279.3" y="312.0" width="41.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="283.0" y="312.0" width="34.0" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="300.0" y="324.0" font-size="12" text-anchor="middle" fill="#14201E">pairs</text>
-<rect x="604.4" y="312.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="608.3" y="312.0" width="39.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="628.0" y="324.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
-<rect x="270.5" y="424.0" width="59.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="269.7" y="424.0" width="60.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="300.0" y="436.0" font-size="12" text-anchor="middle" fill="#14201E">outcomes</text>
-<rect x="604.4" y="424.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="608.3" y="424.0" width="39.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="628.0" y="436.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
-<rect x="264.6" y="536.0" width="70.8" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="270.7" y="536.0" width="58.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="300.0" y="548.0" font-size="12" text-anchor="middle" fill="#14201E">four rates</text>
-<rect x="604.4" y="536.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="608.3" y="536.0" width="39.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="628.0" y="548.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
-<rect x="282.2" y="648.0" width="35.5" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="283.3" y="648.0" width="33.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="300.0" y="660.0" font-size="12" text-anchor="middle" fill="#14201E">rows</text>
-<rect x="604.4" y="648.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="608.3" y="648.0" width="39.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="628.0" y="660.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
-<rect x="273.4" y="760.0" width="53.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="276.0" y="760.0" width="48.0" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="300.0" y="772.0" font-size="12" text-anchor="middle" fill="#14201E">27 runs</text>
-<rect x="604.4" y="760.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="608.3" y="760.0" width="39.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="628.0" y="772.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
 <text x="1120.0" y="613.2" font-size="11" text-anchor="middle" fill="#5C6B67" font-style="italic">every number with a 95% interval</text>
 <text x="1120.0" y="628.2" font-size="11" text-anchor="middle" fill="#5C6B67" font-style="italic">resampled over filings, not fields</text>
