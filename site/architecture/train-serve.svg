@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="972" viewBox="0 0 1180 972" role="img" aria-label="Each base is fine-tuned with QLoRA on a rented GPU with checkpoints against spot interruptions, merged to bf16, quantised to each format and gated against its own bf16, served with vLLM or llama.cpp from a container, load-tested at four concurrencies, and registered with the gateway so its cost per call comes from the same ledger as the frontier APIs." font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#14201E"/></marker><marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#0E6E60"/></marker><marker id="arrow-signal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#A64C1C"/></marker><marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#5C6B67"/></marker></defs>
+<rect width="1180" height="972" fill="#FFFFFF"/>
+<text x="28" y="42" font-size="16" font-weight="700" fill="#14201E">From a base model to a served, costed endpoint</text>
+<path d="M 590.0 130.0 L 590.0 178.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 296.0 210.0 L 456.0 210.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<path d="M 590.0 242.0 L 590.0 290.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 590.0 354.0 L 590.0 402.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 590.0 466.0 L 590.0 514.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 590.0 578.0 L 590.0 626.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 296.0 658.0 L 456.0 658.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 724.0 658.0 L 884.0 658.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 590.0 690.0 L 590.0 738.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 590.0 802.0 L 590.0 850.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 724.0 882.0 L 884.0 882.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="456.0" y="66.0" width="268.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="590.0" y="87.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Open-weights bases</text>
+<text x="590.0" y="103.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">2B, 4B and 7B</text>
+<text x="590.0" y="120.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">docs/models.md</text>
+<rect x="456.0" y="178.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
+<rect x="456.0" y="178.0" width="5" height="64.0" rx="2" fill="#0E6E60"/>
+<text x="590.0" y="199.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">QLoRA on a rented GPU</text>
+<text x="590.0" y="215.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">rank, learning rate, data; 3 seeds</text>
+<text x="590.0" y="232.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.train.qlora, recipe</text>
+<path d="M 28.0 180.0 a 134.0 7 0 0 1 268.0 0 L 296.0 240.0 a 134.0 7 0 0 1 -268.0 0 Z" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/><path d="M 28.0 180.0 a 134.0 7 0 0 0 268.0 0" fill="none" stroke="#14201E" stroke-width="1.1"/>
+<text x="162.0" y="203.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Checkpoints</text>
+<text x="162.0" y="219.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">an interruption costs minutes</text>
+<text x="162.0" y="236.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.train.checkpoint</text>
+<rect x="456.0" y="290.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="590.0" y="319.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Merge to bf16</text>
+<text x="590.0" y="336.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.train.merge</text>
+<rect x="456.0" y="402.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="590.0" y="423.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Quantise</text>
+<text x="590.0" y="439.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">AWQ, GPTQ, GGUF q8_0 and q4_k_m</text>
+<text x="590.0" y="456.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.quant.formats</text>
+<rect x="456.0" y="514.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="456.0" y="514.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="590.0" y="535.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The quantisation gate</text>
+<text x="590.0" y="551.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">each format paired with its own bf16</text>
+<text x="590.0" y="568.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.quant.quality</text>
+<rect x="456.0" y="626.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
+<rect x="456.0" y="626.0" width="5" height="64.0" rx="2" fill="#0E6E60"/>
+<text x="590.0" y="647.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Serve</text>
+<text x="590.0" y="663.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">vLLM: bf16, AWQ, GPTQ; llama.cpp: GGUF</text>
+<text x="590.0" y="680.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.serve.launch</text>
+<rect x="28.0" y="626.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="162.0" y="647.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The serving container</text>
+<text x="162.0" y="663.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">built and checked in CI</text>
+<text x="162.0" y="680.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">docker/, container.yml</text>
+<rect x="884.0" y="626.0" width="268.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="1018.0" y="647.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Registered with the gateway</text>
+<text x="1018.0" y="663.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">a host with its own price</text>
+<text x="1018.0" y="680.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">boundary-served.yaml</text>
+<rect x="456.0" y="738.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="456.0" y="738.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="590.0" y="759.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Load test</text>
+<text x="590.0" y="775.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">four rates: throughput, TTFT, p99</text>
+<text x="590.0" y="792.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.bench.load</text>
+<rect x="456.0" y="850.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="456.0" y="850.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="590.0" y="871.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Cost per 1,000 extractions</text>
+<text x="590.0" y="887.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">from the ledger, GPU rent overlaid</text>
+<text x="590.0" y="904.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.bench.cost, recost</text>
+<rect x="884.0" y="850.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="1018.0" y="871.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Break-even over utilisation</text>
+<text x="1018.0" y="887.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">the inputs published</text>
+<text x="1018.0" y="904.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.bench.breakeven</text>
+<rect x="513.0" y="144.0" width="154.1" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="590.0" y="156.0" font-size="12" text-anchor="middle" fill="#14201E">4-bit base, adapters trained</text>
+<rect x="352.0" y="200.0" width="48.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="376.0" y="212.0" font-size="12" text-anchor="middle" fill="#14201E">resume</text>
+<rect x="562.7" y="256.0" width="54.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="590.0" y="268.0" font-size="12" text-anchor="middle" fill="#14201E">adapters</text>
+<rect x="543.7" y="368.0" width="92.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="590.0" y="380.0" font-size="12" text-anchor="middle" fill="#14201E">merged weights</text>
+<rect x="554.0" y="480.0" width="72.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="590.0" y="492.0" font-size="12" text-anchor="middle" fill="#14201E">each format</text>
+<rect x="541.6" y="592.0" width="96.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="590.0" y="604.0" font-size="12" text-anchor="middle" fill="#14201E">formats that ship</text>
+<rect x="349.3" y="648.0" width="53.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="376.0" y="660.0" font-size="12" text-anchor="middle" fill="#14201E">serve.sh</text>
+<rect x="747.0" y="648.0" width="114.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="804.0" y="660.0" font-size="12" text-anchor="middle" fill="#14201E">OpenAI-compatible</text>
+<rect x="529.3" y="704.0" width="121.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="590.0" y="716.0" font-size="12" text-anchor="middle" fill="#14201E">requests at four rates</text>
+<rect x="505.3" y="816.0" width="169.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="590.0" y="828.0" font-size="12" text-anchor="middle" fill="#14201E">throughput and the card&#x27;s rent</text>
+<rect x="784.0" y="872.0" width="40.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="804.0" y="884.0" font-size="12" text-anchor="middle" fill="#14201E">inputs</text>
+<rect x="28" y="936" width="26" height="16" rx="3" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
+<text x="62" y="948" font-size="11" fill="#5C6B67">built here</text>
+<rect x="141.9" y="936" width="26" height="16" rx="3" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<text x="175.9" y="948" font-size="11" fill="#5C6B67">a measurement</text>
+<rect x="271.97" y="936" width="26" height="16" rx="3" fill="#F2F4F3" stroke="#5C6B67" stroke-dasharray="4 3"/>
+<text x="305.97" y="948" font-size="11" fill="#5C6B67">outside the repository</text>
+</svg>

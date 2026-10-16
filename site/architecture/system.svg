@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1140" height="1000" viewBox="0 0 1140 1000" role="img" aria-label="SEC filings paired with the XBRL facts the companies filed give every field programmatic truth; three open-weights bases are fine-tuned with QLoRA, merged, quantised and served on rented GPUs; the same held-out items go to the frontier models through the gateway, one grader scores everything, the release gate runs the non-inferiority comparison and the report writes the tables, the Pareto chart and the site." font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#14201E"/></marker><marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#0E6E60"/></marker><marker id="arrow-signal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#A64C1C"/></marker><marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#5C6B67"/></marker></defs>
+<rect width="1140" height="1000" fill="#FFFFFF"/>
+<text x="28" y="42" font-size="16" font-weight="700" fill="#14201E">The system: free labels, three fine-tuned sizes, one grader, one ledger</text>
+<path d="M 162.0 130.0 L 162.0 182.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 162.0 246.0 L 162.0 293.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 162.0 367.0 L 162.0 440.0 Q 162.0 446.0 168.0 446.0 L 436.0 446.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 296.0 330.0 L 360.0 330.0 Q 366.0 330.0 366.0 324.0 L 366.0 220.0 Q 366.0 214.0 372.0 214.0 L 436.0 214.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 570.0 246.0 L 570.0 298.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 570.0 362.0 L 570.0 414.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 570.0 478.0 L 570.0 530.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 704.0 551.3 L 768.0 551.3 Q 774.0 551.3 774.0 545.3 L 774.0 336.0 Q 774.0 330.0 780.0 330.0 L 844.0 330.0" fill="none" stroke="#14201E" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+<path d="M 704.0 567.3 L 844.0 567.3" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 978.0 246.0 L 978.0 298.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 978.0 362.0 L 978.0 530.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 978.0 594.0 L 978.0 646.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 978.0 710.0 L 978.0 762.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 570.0 594.0 L 570.0 788.0 Q 570.0 794.0 576.0 794.0 L 844.0 794.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 978.0 826.0 L 978.0 878.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="12.0" y="66.0" width="300.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="162.0" y="87.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">SEC EDGAR, fair access</text>
+<text x="162.0" y="103.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">filings, and the XBRL facts filed with them</text>
+<text x="162.0" y="120.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.data.edgar, xbrl</text>
+<rect x="28.0" y="182.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
+<rect x="28.0" y="182.0" width="5" height="64.0" rx="2" fill="#0E6E60"/>
+<text x="162.0" y="203.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The dataset build</text>
+<text x="162.0" y="219.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">statement locator, facts, pairing</text>
+<text x="162.0" y="236.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.data</text>
+<path d="M 28.0 300.0 a 134.0 7 0 0 1 268.0 0 L 296.0 360.0 a 134.0 7 0 0 1 -268.0 0 Z" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/><path d="M 28.0 300.0 a 134.0 7 0 0 0 268.0 0" fill="none" stroke="#14201E" stroke-width="1.1"/>
+<text x="162.0" y="323.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Company-level splits</text>
+<text x="162.0" y="339.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">train; pre- and post-cutoff test</text>
+<text x="162.0" y="356.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.data.split</text>
+<rect x="436.0" y="182.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
+<rect x="436.0" y="182.0" width="5" height="64.0" rx="2" fill="#0E6E60"/>
+<text x="570.0" y="203.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">QLoRA on rented GPUs</text>
+<text x="570.0" y="219.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">2B, 4B, 7B; rank, rate, data; 3 seeds</text>
+<text x="570.0" y="236.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.train</text>
+<rect x="436.0" y="298.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="570.0" y="319.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Merge and quantise</text>
+<text x="570.0" y="335.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">bf16, AWQ, GPTQ, GGUF</text>
+<text x="570.0" y="352.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.train.merge, quant</text>
+<rect x="436.0" y="414.0" width="268.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="570.0" y="435.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Hugging Face</text>
+<text x="570.0" y="451.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">dataset, adapters, weights, cards</text>
+<text x="570.0" y="468.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">cards/</text>
+<rect x="436.0" y="530.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
+<rect x="436.0" y="530.0" width="5" height="64.0" rx="2" fill="#0E6E60"/>
+<text x="570.0" y="551.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Serving on rented GPUs</text>
+<text x="570.0" y="567.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">vLLM and llama.cpp, load-tested</text>
+<text x="570.0" y="584.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.serve, smallprint.bench</text>
+<rect x="844.0" y="182.0" width="268.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="978.0" y="203.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Frontier baselines</text>
+<text x="978.0" y="219.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">gpt-5.6-sol, claude-sonnet-5, luna</text>
+<text x="978.0" y="236.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.baseline</text>
+<rect x="844.0" y="298.0" width="268.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="978.0" y="319.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The gateway, project 04</text>
+<text x="978.0" y="335.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">every call costed, hosts registered</text>
+<text x="978.0" y="352.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">boundary</text>
+<rect x="844.0" y="530.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="844.0" y="530.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="978.0" y="551.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The grader</text>
+<text x="978.0" y="567.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">answers against the filed facts</text>
+<text x="978.0" y="584.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.grade</text>
+<rect x="844.0" y="646.0" width="268.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="978.0" y="667.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The release gate, project 03</text>
+<text x="978.0" y="683.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">non-inferiority vs the best frontier</text>
+<text x="978.0" y="700.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">gate-runs/</text>
+<rect x="844.0" y="762.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="844.0" y="762.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="978.0" y="783.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The report</text>
+<text x="978.0" y="799.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">tables, Pareto chart, break-even</text>
+<text x="978.0" y="816.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.report, smallprint.chart</text>
+<rect x="844.0" y="878.0" width="268.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="978.0" y="899.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">smallmodel.peterparker.ca</text>
+<text x="978.0" y="915.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Azure Static Web Apps, a calculator</text>
+<text x="978.0" y="932.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.site, site/</text>
+<rect x="61.3" y="146.0" width="201.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="162.0" y="158.0" font-size="12" text-anchor="middle" fill="#14201E">19,574 filings tried, one fact per field</text>
+<rect x="77.6" y="259.5" width="168.8" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="162.0" y="271.5" font-size="12" text-anchor="middle" fill="#14201E">7,874 items, 1,600 companies</text>
+<rect x="275.3" y="436.0" width="47.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="299.0" y="448.0" font-size="12" text-anchor="middle" fill="#14201E">dataset</text>
+<rect x="333.0" y="262.0" width="66.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="366.0" y="274.0" font-size="12" text-anchor="middle" fill="#14201E">training file</text>
+<rect x="542.7" y="262.0" width="54.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="570.0" y="274.0" font-size="12" text-anchor="middle" fill="#14201E">adapters</text>
+<rect x="540.3" y="378.0" width="59.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="570.0" y="390.0" font-size="12" text-anchor="middle" fill="#14201E">published</text>
+<rect x="513.0" y="494.0" width="114.1" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="570.0" y="506.0" font-size="12" text-anchor="middle" fill="#14201E">pulled onto the card</text>
+<rect x="721.3" y="430.7" width="105.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="774.0" y="442.7" font-size="12" text-anchor="middle" fill="#5C6B67">a host with a price</text>
+<rect x="747.7" y="557.3" width="52.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="774.0" y="569.3" font-size="12" text-anchor="middle" fill="#14201E">answers</text>
+<rect x="933.3" y="262.0" width="89.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="978.0" y="274.0" font-size="12" text-anchor="middle" fill="#14201E">the same items</text>
+<rect x="930.3" y="436.0" width="95.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="978.0" y="448.0" font-size="12" text-anchor="middle" fill="#14201E">answers, costed</text>
+<rect x="937.7" y="610.0" width="80.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="978.0" y="622.0" font-size="12" text-anchor="middle" fill="#14201E">paired scores</text>
+<rect x="938.3" y="726.0" width="79.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="978.0" y="738.0" font-size="12" text-anchor="middle" fill="#14201E">delta, interval</text>
+<rect x="619.3" y="784.0" width="175.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="707.0" y="796.0" font-size="12" text-anchor="middle" fill="#14201E">throughput, p99, cost per 1,000</text>
+<rect x="943.7" y="842.0" width="68.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="978.0" y="854.0" font-size="12" text-anchor="middle" fill="#14201E">results.json</text>
+<rect x="28" y="964" width="26" height="16" rx="3" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
+<text x="62" y="976" font-size="11" fill="#5C6B67">built here</text>
+<rect x="141.9" y="964" width="26" height="16" rx="3" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<text x="175.9" y="976" font-size="11" fill="#5C6B67">the measurement</text>
+<rect x="282.75" y="964" width="26" height="16" rx="3" fill="#F2F4F3" stroke="#5C6B67" stroke-dasharray="4 3"/>
+<text x="316.75" y="976" font-size="11" fill="#5C6B67">reused or outside</text>
+<path d="M 434.4 971.0 a 13.0 7 0 0 1 26.0 0 L 460.4 973.0 a 13.0 7 0 0 1 -26.0 0 Z" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/><path d="M 434.4 971.0 a 13.0 7 0 0 0 26.0 0" fill="none" stroke="#14201E" stroke-width="1.1"/>
+<text x="468.38" y="976" font-size="11" fill="#5C6B67">data at rest</text>
+</svg>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it's built: Frontier Quality at a Fraction of the Bill</title>
+<meta name="description" content="How the fine-tuned extraction models behind this page are built, served and measured, in four diagrams.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="https://peterparker.ca"><span class="mono-mark" aria-hidden="true">P</span>Peter Parker</a>
+    <p class="top-nav"><a href="https://peterparker.ca/projects/fraction-of-the-bill/">Project 06: Frontier Quality at a Fraction of the Bill</a></p>
+  </div>
+</header>
+<nav class="tabs" aria-label="This site">
+  <div class="tabs-inner">
+    <a href="index.html">Overview</a>
+    <a href="index.html#task">The task</a>
+    <a href="index.html#models">The models</a>
+    <a href="index.html#frontier">Quality and cost</a>
+    <a href="index.html#calculator">Your break-even</a>
+    <a href="index.html#table">Every card</a>
+    <a href="index.html#gate">Where it falls short</a>
+    <a href="architecture.html" aria-current="page">How it's built</a>
+  </div>
+</nav>
+<main>
+
+  <header class="hero">
+    <p class="eyebrow">Architecture</p>
+    <h1>How it's built</h1>
+    <p class="lead">
+      How the fine-tuned extraction models behind this page are built, served and measured, in four pictures. Select a diagram to open it full size.
+    </p>
+    <p class="hero-note"><a href="index.html">Back to the overview</a></p>
+  </header>
+
+  <section class="section" id="the-system">
+    <h2>The system</h2>
+    <figure class="arch-figure">
+      <a href="architecture/system.svg"><img src="architecture/system.svg" width="1140" height="1000" alt="SEC filings paired with the XBRL facts the companies filed give every field programmatic truth; three open-weights bases are fine-tuned with QLoRA, merged, quantised and served on rented GPUs; the same held-out items go to the frontier models through the gateway, one grader scores everything, the release gate runs the non-inferiority comparison and the report writes the tables, the Pareto chart and the site."></a>
+    </figure>
+    <div class="prose">
+      <p>The diagram reads left to right: the data, the models, and the measurement.</p>
+      <p>The data comes from the SEC. Companies file their quarterly and annual reports there and tag the key figures in a machine-readable format called XBRL, so every field already has an answer the company itself filed. Filings are fetched within the SEC's fair-access rules, the financial statements are found on each page, and one filed figure is paired with each field. The items are split by company, with test sets from before and after the models' training cutoff that no model ever trains on.</p>
+      <p>The models are three open-weights bases, at 2, 4 and 7 billion parameters. Each is fine-tuned on rented GPUs, with the settings and the amount of data varied over three seeds. The results are merged, compressed into several smaller formats, published on Hugging Face with the dataset and model cards, and served from there on a rented card where the load test runs.</p>
+      <p>The measurement puts the same held-out filings to three frontier models through the portfolio's gateway. The gateway also registers each self-hosted endpoint with its own price, so every call is costed in one ledger. One grader scores every answer against the filed figures and names each miss. The release gate from project 03 decides whether the small model is no worse than the frontier one, and the report writes the tables, the quality-against-cost chart, the break-even and this site's results file.</p>
+      <p class="where">Where it lives: <code>smallprint.data</code>, <code>smallprint.train</code>, <code>smallprint.quant</code>, <code>smallprint.serve</code>, <code>smallprint.bench</code>, <code>smallprint.baseline</code>, <code>smallprint.grade</code>, <code>gate-runs/</code> and <code>smallprint.report</code>.</p>
+    </div>
+  </section>
+
+  <section class="section" id="how-the-dataset-and-its-labels-are-built">
+    <h2>How the dataset and its labels are built</h2>
+    <figure class="arch-figure">
+      <a href="architecture/data.svg"><img src="architecture/data.svg" width="1180" height="972" alt="Filings are fetched under the SEC&#x27;s fair-access rules, their primary statements located, one XBRL fact chosen per field from the filing being labelled, kept only when the printed figure is on the page at its own precision, audited by hand, split by company with a post-cutoff test set, and published with a datasheet."></a>
+    </figure>
+    <div class="prose">
+      <p>The labels cost nothing because the companies filed them. The download client names itself and keeps to the SEC's rate limit. Each report's tagged figures are read, the main financial statements are found on the page, and for each field one filed figure is chosen, from the filing being labelled and no other.</p>
+      <p>An item is kept only when the printed figure appears on the page at its own precision. That rule came from a hand audit of 200 items, after the first version of the dataset turned out to have labels on the wrong line.</p>
+      <p>A single fifteen-field schema is read by the prompt, the training targets and the grader alike, and refuses to load if they drift apart. Items are split by company into a training set and two test sets, from before and after the training cutoff. The dataset is published on Hugging Face with its datasheet, checksums and build script. As a side experiment, the same 5,060 training filings were also labelled with a frontier model's answers, to test distillation, which was rejected.</p>
+      <p class="where">Where it lives: <code>smallprint.data.edgar</code>, <code>smallprint.data.ixbrl</code>, <code>smallprint.data.statements</code>, <code>smallprint.data.xbrl</code>, <code>smallprint.data.build</code>, <code>smallprint.data.audit</code>, <code>smallprint.schema</code> and <code>smallprint.data.split</code>.</p>
+    </div>
+  </section>
+
+  <section class="section" id="from-a-base-model-to-a-served-costed-endpoint">
+    <h2>From a base model to a served, costed endpoint</h2>
+    <figure class="arch-figure">
+      <a href="architecture/train-serve.svg"><img src="architecture/train-serve.svg" width="1180" height="972" alt="Each base is fine-tuned with QLoRA on a rented GPU with checkpoints against spot interruptions, merged to bf16, quantised to each format and gated against its own bf16, served with vLLM or llama.cpp from a container, load-tested at four concurrencies, and registered with the gateway so its cost per call comes from the same ledger as the frontier APIs."></a>
+    </figure>
+    <div class="prose">
+      <p>Each base model is loaded in compressed form and trained with QLoRA on a rented GPU. It saves checkpoints as it goes, so if the cloud provider reclaims the cheap machine, only minutes are lost.</p>
+      <p>The trained adapters are merged back into the full model and compressed into four smaller formats. Each format is checked against the uncompressed model on the same items, and only the formats that hold up ship.</p>
+      <p>A container serves the model with vLLM, or with llama.cpp for the smallest format. The endpoint is registered with the gateway at its own price, and a load test drives it at four levels of concurrency for throughput, time to first word and slowest-case response time. The cost per thousand extractions comes from the gateway's ledger with the GPU rent added. The break-even against the frontier APIs is a curve over how busy the card is, with its inputs published, and this site's calculator reproduces it in the browser, checked against the Python in CI.</p>
+      <p class="where">Where it lives: <code>smallprint.train.qlora</code>, <code>smallprint.train.checkpoint</code>, <code>smallprint.train.merge</code>, <code>smallprint.quant</code>, <code>docker/</code>, <code>smallprint.serve.launch</code>, <code>smallprint.bench.load</code> and <code>smallprint.bench.breakeven</code>.</p>
+    </div>
+  </section>
+
+  <section class="section" id="how-the-published-numbers-are-produced">
+    <h2>How the published numbers are produced</h2>
+    <figure class="arch-figure">
+      <a href="architecture/measurement.svg"><img src="architecture/measurement.svg" width="1256" height="860" alt="Each table comes from a stated input through one command into a stored run, and smallprint report and smallprint site write the README tables, the Pareto chart and the site&#x27;s results.json from the same runs."></a>
+    </figure>
+    <div class="prose">
+      <p>Every number comes from a stated input, through one command, into a stored run. This is how each one is made.</p>
+      <p>Every fine-tuned model, seed and format answers the same 705 filings, from 144 companies, published after the training cutoff, and is graded. The three frontier models answer the same filings. Each compressed format is compared with its own uncompressed version. The best fine-tuned model is compared with a frontier model, gpt-5.6-sol, by the release gate's paired test. The load test runs on a named rented GPU at four levels of concurrency. Costs come from the gateway's ledger, and the curve of quality against training data comes from 27 runs at growing training sizes.</p>
+      <p>One command writes the README's tables and chart from those runs, and another writes this site's results file from the same ones. Every number carries a 95% interval, resampled over filings rather than individual fields.</p>
+      <p class="where">Where it lives: <code>scripts/evaluate.sh</code>, <code>smallprint.baseline</code>, <code>smallprint.quant.quality</code>, <code>gate-runs/</code>, <code>scripts/loadtest.sh</code>, <code>smallprint.recost</code>, <code>scripts/sweep.sh</code>, <code>smallprint.report</code> and <code>smallprint.site</code>.</p>
+    </div>
+  </section>
+
+</main>
+<footer class="foot">
+  <div class="foot-inner">
+    <p>
+      The same four diagrams are in the repository's docs/architecture.md. Source, method
+      and every measurement: <a href="https://github.com/Peter-A-P/fraction-of-the-bill">github.com/Peter-A-P/fraction-of-the-bill</a>
+    </p>
+    <ul>
+      <li>Type: Newsreader and Inter, SIL Open Font License, served from this host</li>
+    </ul>
+  </div>
+</footer>
+</body>
+</html>

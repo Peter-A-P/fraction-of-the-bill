@@ -343,3 +343,26 @@ def test_the_calculator_gives_the_pythons_break_even() -> None:
             kinds.add("one card" if py.gpus_at_break_even == 1 else "more cards")
     # The grid has to reach every branch, or agreeing on it proves less than it says.
     assert kinds == {"never", "one card", "more cards"}
+
+
+def test_the_architecture_page_is_in_the_menu_and_linked_from_the_top() -> None:
+    """From the menu, and from a text link in the hero for a reader who never looks up."""
+    page = (SITE / "index.html").read_text(encoding="utf-8")
+    menu = page.partition('<nav class="tabs"')[2].partition("</nav>")[0]
+    assert 'href="architecture.html"' in menu
+    hero = page.partition('<header class="hero"')[2].partition("</header>")[0]
+    assert 'href="architecture.html"' in hero
+    for anchor in re.findall(r'href="#([^"]+)"', menu):
+        assert f'id="{anchor}"' in page, anchor
+
+
+def test_the_diagrams_it_shows_are_the_ones_in_docs() -> None:
+    """The site is deployed on its own, so the diagrams are copied into it. A copy that drifted
+    from docs/architecture/ would show a stale system to every visitor."""
+    page = (SITE / "architecture.html").read_text(encoding="utf-8")
+    shown = set(re.findall(r'<img\b[^>]*\ssrc="([^"]+)"', page))
+    docs = SITE.parent / "docs"
+    assert shown == {f"architecture/{p.name}" for p in (docs / "architecture").glob("*.svg")}
+    for target in shown:
+        assert (SITE / target).read_bytes() == (docs / target).read_bytes(), target
+    assert not re.search(r"<script|<style|\sstyle=", page)
