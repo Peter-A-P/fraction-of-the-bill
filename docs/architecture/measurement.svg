@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1256" height="860" viewBox="0 0 1256 860" role="img" aria-label="Each table comes from a stated input through one command into a stored run, and smallprint report and smallprint site write the README tables, the Pareto chart and the site&#x27;s results.json from the same runs." font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#14201E"/></marker><marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#0E6E60"/></marker><marker id="arrow-signal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#A64C1C"/></marker><marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9 z" fill="#5C6B67"/></marker></defs>
+<rect width="1256" height="860" fill="#FFFFFF"/>
+<text x="28" y="42" font-size="16" font-weight="700" fill="#14201E">How the published numbers are produced</text>
+<path d="M 244.0 98.0 L 356.0 98.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 572.0 98.0 L 684.0 98.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 244.0 210.0 L 356.0 210.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 572.0 210.0 L 684.0 210.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 244.0 322.0 L 356.0 322.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 572.0 322.0 L 684.0 322.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 244.0 434.0 L 356.0 434.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 572.0 434.0 L 684.0 434.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 244.0 546.0 L 356.0 546.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 572.0 546.0 L 684.0 546.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 244.0 658.0 L 356.0 658.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 572.0 658.0 L 684.0 658.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 244.0 770.0 L 356.0 770.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 572.0 770.0 L 684.0 770.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 900.0 98.0 L 950.0 98.0 Q 956.0 98.0 956.0 104.0 L 956.0 364.2 Q 956.0 370.2 962.0 370.2 L 1012.0 370.2" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 900.0 210.0 L 950.0 210.0 Q 956.0 210.0 956.0 216.0 L 956.0 385.5 Q 956.0 391.5 962.0 391.5 L 1012.0 391.5" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 900.0 322.0 L 950.0 322.0 Q 956.0 322.0 956.0 328.0 L 956.0 406.8 Q 956.0 412.8 962.0 412.8 L 1012.0 412.8" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 900.0 434.0 L 1012.0 434.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 900.0 546.0 L 950.0 546.0 Q 956.0 546.0 956.0 540.0 L 956.0 461.2 Q 956.0 455.2 962.0 455.2 L 1012.0 455.2" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 900.0 658.0 L 950.0 658.0 Q 956.0 658.0 956.0 652.0 L 956.0 482.5 Q 956.0 476.5 962.0 476.5 L 1012.0 476.5" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M 900.0 770.0 L 950.0 770.0 Q 956.0 770.0 956.0 764.0 L 956.0 503.8 Q 956.0 497.8 962.0 497.8 L 1012.0 497.8" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="28.0" y="66.0" width="216.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="136.0" y="94.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">705 post-cutoff filings</text>
+<text x="136.0" y="110.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">144 filers, never trained on</text>
+<rect x="356.0" y="66.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="464.0" y="87.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Every fine-tune, seed, format</text>
+<text x="464.0" y="103.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">through the gateway</text>
+<text x="464.0" y="120.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">scripts/evaluate.sh</text>
+<rect x="684.0" y="66.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="684.0" y="66.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="792.0" y="87.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Fields correct, every field</text>
+<text x="792.0" y="103.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">right, delta vs the frontier</text>
+<text x="792.0" y="120.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">runs/</text>
+<rect x="28.0" y="178.0" width="216.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="136.0" y="206.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The same items</text>
+<text x="136.0" y="222.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">three frontier models</text>
+<rect x="356.0" y="178.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="464.0" y="199.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">smallprint baseline</text>
+<text x="464.0" y="215.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">zero- and few-shot</text>
+<text x="464.0" y="232.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.baseline</text>
+<rect x="684.0" y="178.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="684.0" y="178.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="792.0" y="199.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Frontier accuracy and</text>
+<text x="792.0" y="215.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">cost per call</text>
+<text x="792.0" y="232.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">docs/baseline.md</text>
+<rect x="28.0" y="290.0" width="216.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="136.0" y="318.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Each format against</text>
+<text x="136.0" y="334.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">its own bf16</text>
+<rect x="356.0" y="290.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="464.0" y="311.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The quantisation gate</text>
+<text x="464.0" y="327.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">paired, per field</text>
+<text x="464.0" y="344.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.quant.quality</text>
+<rect x="684.0" y="290.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="684.0" y="290.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="792.0" y="319.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Quality cost per format</text>
+<text x="792.0" y="336.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">docs/results-finetuned.md</text>
+<rect x="28.0" y="402.0" width="216.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="136.0" y="430.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The best fine-tune</text>
+<text x="136.0" y="446.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">against gpt-5.6-sol</text>
+<rect x="356.0" y="402.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="464.0" y="423.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The release gate, project 03</text>
+<text x="464.0" y="439.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">non-inferiority, paired</text>
+<text x="464.0" y="456.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">gate-runs/</text>
+<rect x="684.0" y="402.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="684.0" y="402.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="792.0" y="431.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Delta, interval, verdict</text>
+<text x="792.0" y="448.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">docs/gate.md</text>
+<rect x="28.0" y="514.0" width="216.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="136.0" y="542.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">A rented GPU, named</text>
+<text x="136.0" y="558.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">four concurrencies</text>
+<rect x="356.0" y="514.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="464.0" y="543.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">smallprint bench load</text>
+<text x="464.0" y="560.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">scripts/loadtest.sh</text>
+<rect x="684.0" y="514.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="684.0" y="514.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="792.0" y="543.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Throughput, TTFT, p99</text>
+<text x="792.0" y="560.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">docs/serving.md</text>
+<rect x="28.0" y="626.0" width="216.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="136.0" y="654.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The gateway ledger</text>
+<text x="136.0" y="670.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">frontier and self-hosted rows</text>
+<rect x="356.0" y="626.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="464.0" y="647.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">smallprint recost</text>
+<text x="464.0" y="663.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">and bench cost</text>
+<text x="464.0" y="680.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint.recost, bench.cost</text>
+<rect x="684.0" y="626.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="684.0" y="626.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="792.0" y="647.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Cost per 1,000 and the</text>
+<text x="792.0" y="663.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">break-even curve</text>
+<text x="792.0" y="680.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">docs/cost.md, docs/pareto.svg</text>
+<rect x="28.0" y="738.0" width="216.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="136.0" y="766.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">1,000 to 5,060 training</text>
+<text x="136.0" y="782.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">filings, three seeds</text>
+<rect x="356.0" y="738.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#14201E" stroke-width="1.1"/>
+<text x="464.0" y="767.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The sweep</text>
+<text x="464.0" y="784.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">scripts/sweep.sh</text>
+<rect x="684.0" y="738.0" width="216.0" height="64.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="684.0" y="738.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
+<text x="792.0" y="767.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">The data-scaling curve</text>
+<text x="792.0" y="784.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">docs/training.md</text>
+<rect x="1012.0" y="349.0" width="216.0" height="170.0" rx="4" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<rect x="1012.0" y="349.0" width="5" height="170.0" rx="2" fill="#A64C1C"/>
+<text x="1120.0" y="423.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">README tables, the chart,</text>
+<text x="1120.0" y="439.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">site/results.json</text>
+<text x="1120.0" y="456.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">smallprint report / site</text>
+<rect x="270.5" y="88.0" width="59.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="300.0" y="100.0" font-size="12" text-anchor="middle" fill="#14201E">held out</text>
+<rect x="604.4" y="88.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="628.0" y="100.0" font-size="12" text-anchor="middle" fill="#14201E">graded</text>
+<rect x="279.3" y="200.0" width="41.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="300.0" y="212.0" font-size="12" text-anchor="middle" fill="#14201E">US$67</text>
+<rect x="604.4" y="200.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="628.0" y="212.0" font-size="12" text-anchor="middle" fill="#14201E">graded</text>
+<rect x="279.3" y="312.0" width="41.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="300.0" y="324.0" font-size="12" text-anchor="middle" fill="#14201E">pairs</text>
+<rect x="604.4" y="312.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="628.0" y="324.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
+<rect x="270.5" y="424.0" width="59.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="300.0" y="436.0" font-size="12" text-anchor="middle" fill="#14201E">outcomes</text>
+<rect x="604.4" y="424.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="628.0" y="436.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
+<rect x="264.6" y="536.0" width="70.8" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="300.0" y="548.0" font-size="12" text-anchor="middle" fill="#14201E">four rates</text>
+<rect x="604.4" y="536.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="628.0" y="548.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
+<rect x="282.2" y="648.0" width="35.5" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="300.0" y="660.0" font-size="12" text-anchor="middle" fill="#14201E">rows</text>
+<rect x="604.4" y="648.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="628.0" y="660.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
+<rect x="273.4" y="760.0" width="53.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="300.0" y="772.0" font-size="12" text-anchor="middle" fill="#14201E">27 runs</text>
+<rect x="604.4" y="760.0" width="47.3" height="20.0" rx="3" fill="#FFFFFF"/>
+<text x="628.0" y="772.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
+<text x="1120.0" y="613.2" font-size="11" text-anchor="middle" fill="#5C6B67" font-style="italic">every number with a 95% interval</text>
+<text x="1120.0" y="628.2" font-size="11" text-anchor="middle" fill="#5C6B67" font-style="italic">resampled over filings, not fields</text>
+<rect x="28" y="824" width="26" height="16" rx="3" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
+<text x="62" y="836" font-size="11" fill="#5C6B67">a published number</text>
+<rect x="185.01999999999998" y="824" width="26" height="16" rx="3" fill="#F2F4F3" stroke="#5C6B67" stroke-dasharray="4 3"/>
+<text x="219.01999999999998" y="836" font-size="11" fill="#5C6B67">the input</text>
+</svg>

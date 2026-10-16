@@ -253,7 +253,9 @@ quality cost. Served with vLLM and llama.cpp on rented GPUs, load-tested at four
 concurrencies, registered with the portfolio gateway so self-hosted cost per call is
 computed in the same ledger as the frontier APIs. Frontier models run the same items
 through the same gateway. The release-gate project runs the non-inferiority comparison. The
-Pareto chart and the break-even curve come out of those tables.
+Pareto chart and the break-even curve come out of those tables. Four architecture diagrams, the system,
+how the dataset is built, from a base model to a served endpoint, and how the numbers are produced, are in
+[docs/architecture.md](docs/architecture.md).
 
 ## Part of a portfolio
 
