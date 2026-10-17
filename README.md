@@ -5,6 +5,8 @@ frontier API on a high-volume extraction task at a small fraction of the per-cal
 the exact volume at which the switch pays for itself. For a team spending five figures a
 month on API calls, this is the project that finds most of it.
 
+**The site: [smallmodel.peterparker.ca](https://smallmodel.peterparker.ca)**, with quality against cost for every model, and a calculator for your own break-even volume.
+
 **The answer.** Fine-tuned on 5,060 filings with the companies' own XBRL facts as labels,
 a 2B model gets **96.9% of fields right** on filings published after its base was trained,
 level with the most expensive frontier result measured (`gpt-5.6-sol` two-shot, 96.9%) and
