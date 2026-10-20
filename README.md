@@ -267,8 +267,12 @@ dataset and the small extractor are reused by the Verified Filings Analyst.
 
 ## How this was built
 
-Design, methodology, evaluation choices and judgement are Peter Parker's. AI coding
-assistants (Claude Code) were used for implementation and drafting, the way a senior
+The design, the methods, the evaluation and the judgement calls are mine. The one that
+mattered most was what to train on. The usual shortcut is to have a frontier model write the
+labels; I trained on the companies' own XBRL facts instead, and then measured the shortcut to
+be sure. It scored lower than the model it learned from and copied that model's habit of
+inventing answers the filing does not contain.
+
+I used AI coding assistants (Claude Code) for implementation and drafting, the way a senior
 engineer uses them in 2026. Every number in the results tables is reproducible from this
-repository with one command and a GPU, and that reproducibility is the evidence that
-matters.
+repository with one command and a GPU, and that reproducibility is the evidence that matters.
